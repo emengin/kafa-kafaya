@@ -55,7 +55,8 @@ gerçek kişi, kulüp, marka veya logo kullanılmaz.
 - Klavye eşlemesi `KeyboardEvent.code` ile yapılır (sol/sağ Shift ayrımı ve klavye
   düzeninden bağımsızlık için).
 - Arayüz: **Esc / P** duraklat (Devam · Yeniden Başlat · Ana Menü), **F1** debug katmanı.
-  Menülerde ↑/↓ (veya W/S) + Enter/Space ya da fare.
+  Menülerde ↑/↓ (veya W/S) + Enter/Space ya da fare; alt menüden Esc/Backspace ile geri.
+- CPU'ya karşı modda tek oyuncu (P1) iki tuş takımından herhangi birini kullanabilir.
 - **Gamepad:** sol çubuk/d-pad hareket, A zıpla, X/B şut, RB/RT süper.
 - **Mobil:** yatay ekran, solda ←/→, sağda Zıpla / Şut / Süper dokunmatik butonları.
 
@@ -82,6 +83,9 @@ gerçek kişi, kulüp, marka veya logo kullanılmaz.
 - Her oyuncunun bir güç barı vardır. Topa dokundukça ve zamanla (yavaşça) dolar.
 - Bar doluyken **Süper** tuşu karakterin özel süper şutunu hazırlar: oyuncu parlar ve
   **bir sonraki vuruşu** (şut veya kafa) süper olur. Bar sıfırlanır.
+- Şu anki değerler (Faz 3): pasif dolum 0,05/sn (~20 sn), dokunuş başına +0,08 (oyuncu başına
+  0,3 sn bekleme), süper hazırken bar dolmaz. Karakterler gelene kadar **genel süper**: şut ×1,5
+  hız ve yarı yükselme açısıyla düz gider; kafa topu en az 1500 px/sn ile gönderir.
 
 ## 7. Karakterler (10 özgün karakter)
 
@@ -120,20 +124,30 @@ gerçek kişi, kulüp, marka veya logo kullanılmaz.
 
 ## 9. Yapay zekâ
 
-- Topun yörüngesini **fizik modülüyle ileri simüle ederek** tahmin eder (aynı deterministik
-  kod; ayrı bir "hayalet" dünya kopyasında).
-- Yalnızca `InputState` üretir; oyun durumunu değiştirmez, **hile yapmaz**.
-- Zorluk seviyeleri şu parametrelerle ayrışır:
+- Topun yörüngesini **fizik modülüyle ileri simüle ederek** (~1,5 sn) tahmin eder: aynı
+  deterministik kod, ayrı bir "hayalet" dünya kopyası; duvar/tavan/direk sekmeleri dahil.
+  Tahmin her karede değil, aralıklarla ya da bir çarpışma görülünce yenilenir.
+- Yalnızca `InputState` üretir; ekranda görünen bilginin bir kopyasını okur, oyun durumunu
+  değiştirmez, **hile yapmaz**. İnsanla aynı fizik ve kurallar.
+- Katmanlar: gecikmeli **algı** → gürültülü **tahmin** → utility ile **karar** (savun, hücum,
+  kafa, bekle/pozisyon al) → her adım **refleks** (yürüme, zamanlı zıplama, hayalet ayakla şut
+  zamanlaması ve şut değerlendirmesi, süper) → **sıkışma önleme** (itişme, direk/kafa üstünde
+  kalma, topu kafada taşıma, donup kalma).
+- Tüm rastgelelik tohumlanabilir (aynı tohum → aynı kararlar).
+- Zorluk seviyeleri (`gameConfig.ts` → `AI_PROFILES`; tam tablo PROGRESS.md Faz 3'te):
 
-| Seviye | Reaksiyon gecikmesi | Tahmin hatası | Agresiflik | Süper kullanımı |
-| ------ | ------------------- | ------------- | ---------- | --------------- |
-| Kolay  | Yüksek              | Yüksek        | Düşük      | Nadiren         |
-| Orta   | Orta                | Orta          | Orta       | Bazen           |
-| Zor    | Düşük               | Düşük         | Yüksek     | Akıllıca        |
+| Seviye | Reaksiyon | Tahmin hatası | Karar aralığı | Agresiflik | Süper kullanımı |
+| ------ | --------- | ------------- | ------------- | ---------- | --------------- |
+| Kolay  | 330 ms    | 0,20          | 250 ms        | 0,25       | 0,20 (nadiren)  |
+| Orta   | 220 ms    | 0,10          | 150 ms        | 0,55       | 0,55 (bazen)    |
+| Zor    | 150 ms    | 0,04          | 80 ms         | 0,80       | 0,95 (akıllıca) |
+
+- Doğrulama: `npm run simulate` (AI vs AI headless maçlar, skor dağılımı ve sıkışma raporu).
 
 ## 10. Oyun modları
 
-- **Hızlı Maç:** oyuncu vs CPU, karakter ve zorluk seçimi.
+- **Hızlı Maç:** oyuncu vs CPU, karakter ve zorluk seçimi. (Faz 3: menüde "CPU'ya Karşı" +
+  zorluk seçimi var; karakter seçimi sonraki fazlarda.)
 - **2 Oyuncu:** aynı klavyede iki kişi.
 - **Turnuva:** 8 kişilik eleme (çeyrek final → yarı final → final), rakipler giderek zorlaşır.
 - **Antrenman:** süresiz, rakipsiz veya pasif rakipli; topu sıfırlama ve süper barını
