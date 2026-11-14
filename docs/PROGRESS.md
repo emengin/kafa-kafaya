@@ -6,8 +6,9 @@
 | --- | --------------------------------------- | ------------- |
 | 0   | Kurulum ve yayın hattı                  | ✅ Tamamlandı |
 | 1   | Çekirdek fizik ve kontroller (gri kutu) | ✅ Tamamlandı |
-| 2   | —                                       | ⏭️ Sıradaki   |
-| 3–7 | —                                       | Bekliyor      |
+| 2   | Maç kuralları ve oyun döngüsü           | ✅ Tamamlandı |
+| 3   | —                                       | ⏭️ Sıradaki   |
+| 4–7 | —                                       | Bekliyor      |
 
 **Canlı sürüm:** https://emengin.github.io/kafa-kafaya/
 
@@ -225,3 +226,129 @@ bunlara bakılmalı:
 ### Sıradaki faz
 
 **Faz 2** — talimat bekleniyor.
+
+> Faz 1 notu (Faz 2'de çözüldü): maç süresi ve altın gol eklendi.
+
+---
+
+## Faz 2 — Maç kuralları ve oyun döngüsü (2026-11-14)
+
+**Bitti kriteri:** menüden 2 oyunculu maç başlatılıp baştan sona oynanabiliyor, tüm
+geçişler sorunsuz ✅ — üretim derlemesi headless Chrome'da gerçek klavye ve fare olaylarıyla
+uçtan uca oynatıldı (32 denetim, konsolda hata yok; ayrıntı aşağıda).
+
+### Tamamlananlar
+
+- **Maç durum makinesi (`src/game/rules/MatchFlow.ts`, saf ve deterministik):**
+  `kickoff → playing → goalScored → kickoff …` → süre bitince beraberlikte
+  `kickoff (uzatma) → goldenGoal → goalScored → matchEnd`, değilse `matchEnd`.
+  Geçişler olay olarak döner: `goal`, `kickoff` (diziliş), `playStart` (düdük),
+  `goldenGoal`, `matchEnd { winner, reason }`. GameSim her adımda gol algılamasını yapıp
+  makineyi ilerletir; `kickoff` olayında oyuncuları ve topu dizer. `GameSim` artık
+  `{ rules, skipKickoff }` seçenekleri alır (testler, ileride antrenman/turnuva).
+- **Gol algılama:** top kale çizgisini tamamen geçince (Faz 1 kuralı korunuyor); yalnızca
+  `playing`/`goldenGoal` durumunda sayılır. Kutlama, santra ve maç sonunda gol yok.
+- **Süre:** 90 sn geri sayım, yalnızca oyun akarken işler. Son 10 sn saat kırmızı ve her
+  saniye nabız. Saat yukarı yuvarlar ("0:00" yalnızca süre gerçekten bitince).
+- **Gol sonrası:** 1 gerçek sn ağır çekim (0,3x), "GOL!" + "Oyuncu 1 attı!", ekran
+  sarsıntısı, skor "pop" animasyonu; golden 2 gerçek sn sonra diziliş (kısa kararmayla
+  ışınlanma gizlenir), 0,8 sn bekleme, düdük, top ortadan düşer.
+- **Altın gol:** süre berabere biterse "ALTIN GOL! · İlk golü atan kazanır", diziliş,
+  1,8 sn bekleme, düdük; saatin yerinde "ALTIN GOL" yazar. İlk gol → kutlama → maç sonu.
+- **Maç sonu ekranı:** "OYUNCU 2 KAZANDI!" (kazananın renginde), skor satırı, altın golle
+  bittiyse "Altın golle"; "Tekrar Oyna" / "Ana Menü". Normal sürede bitince önce "MAÇ
+  BİTTİ!" yazısı ve üçlü düdük, 1,4 sn sonra ekran.
+- **Duraklatma (Esc / P):** her durumdan (santra, oyun, gol kutlaması/ağır çekim, altın
+  gol; maç sonu ekranı açılana kadar). Devam · Yeniden Başlat · Ana Menü. Esc/P ile de
+  devam edilir.
+- **HUD (`src/ui/MatchHud.ts`):** üstte skor çubuğu — oyuncu isimleri (kimlik rengiyle),
+  skorlar, saat; kafaların üstündeki P1/P2 etiketleri aynı renkte; altta kontrol ipucu.
+- **Menüler:** ortak `TextMenu` (klavye ↑/↓ veya W/S + Enter/Space, fare üzerine gel +
+  tıkla) ve `MenuOverlay` (perde + içeriğe göre boyutlanan panel; uzun başlık sığdırılır).
+  Ana menü: **2 Oyuncu** ve **Dil: Türkçe/English** (dil kaydedilir).
+- **Ses:** ilk sentezlenmiş ses — hakem düdüğü (Web Audio, titreşimli ton): santrada tek,
+  altın golde ikili, maç sonunda üçlü. İlk tuş/tıklamada ses kilidi açılır.
+- **i18n:** `format()` (yer tutucular) ve `upper()` (Türkçe büyük harf: i → İ).
+- **Geliştirici:** `?duration=N` maç süresi; `?debug=1` iken oyun nesnesi
+  `window.__KAFA_GAME__` (tarayıcı testleri için); debug katmanında maç durumu satırı.
+- **Testler:** 85 → **121**. Yeni:
+  - `MatchFlow.test.ts` (13): santra/düdük, saatin yalnızca oyunda işlemesi, ağır çekimin
+    18 adım (= 1 gerçek sn) sürmesi, 2 gerçek sn'de santra, kutlamada saat durması ve ikinci
+    gol yok, önde olan kazanır, 90 sn = tam 5400 adım, beraberlik → altın gol (süresiz),
+    altın gol → maç sonu (santra yok), son adım golü, son saniye eşitlemesi → altın gol,
+    altın gol kapalıyken berabere, maç sonunda durum değişmez, snapshot kopyadır.
+  - `ballRules.test.ts` (5): çizgi sınırı 0,001 px hassasiyetle, kısmi geçiş, üst direk
+    üstü, yanlış kale.
+  - GameSim gol sınır durumları (7): üst direğin ön yüzüne ve alt köşesine çarpıp dönen
+    top gol değil; direği sıyırıp/alt yüzüne çarpıp içeri düşen top gol; kısmen geçip geri
+    dönen top gol değil; direk üstünden sahaya yuvarlanan top gol değil; en yüksek hızda
+    giren top yakalanır; santra/kutlama/maç sonunda gol yok.
+  - GameSim maç akışı (3): gerçek kurallarla 90 sn'lik tam maç (olay dizisi ve toplam adım
+    sayısı), beraberlik → altın gol → maç sonu, santra ve maç sonunda girdilerin yok
+    sayılması.
+  - Determinizm testi artık 1200 adım ve gol → kutlama → santra döngüsünü de kapsıyor.
+  - `format.test.ts`, `KeyboardInput` (`consumeAny`, `releaseAll`), i18n (`format`, `upper`).
+- **Tarayıcıda uçtan uca doğrulama** (üretim derlemesi, `?debug=1&duration=6`, headless
+  Chrome + DevTools protokolü; betik depoda değil, gol için top kaleye konuldu): menü
+  ↑/↓/Enter → maç; santra → düdük; klavyeyle hareket ve şut; gol → 0,3x ağır çekim
+  **971 ms**, santra **1968 ms** sonra; diziliş doğru; Esc duraklatır, duraklatılmışken
+  `tick` sabit, P ile devam; ağır çekim sırasında duraklat → menüden Enter ile devam; son
+  10 sn kırmızı saat; beraberlik → altın gol → P2 golü → maç sonu ekranı; Tekrar Oyna →
+  0–0; Duraklat → Ana Menü; Duraklat → Yeniden Başlat (tween'ler yeniden başlatmadan sonra
+  çalışıyor); süre bitince önde olan kazanır; maç sonu → Ana Menü; dil değiştirme; fareyle
+  dil, 2 Oyuncu ve duraklatma menüsü.
+
+### Tasarım kararları
+
+1. **Duraklatma durum makinesinin dışında.** Duraklatılmışken sahne döngüyü hiç
+   ilerletmez ve tween'leri dondurur; böylece "her durumdan aç, aynı yerden devam et"
+   kendiliğinden sağlanır ve simülasyon (gol tekrarı için) duraklatmadan etkilenmez.
+2. **Ağır çekim sahnede, kutlama sayacı gerçek sürede.** Sahne kare süresini
+   `match.timeScale` (0,3) ile çarpar; simülasyon adımı sabit kalır, yalnızca saniyedeki
+   adım sayısı azalır. Kutlama sayacı adım başına `dt / timeScale` ilerler: "1 sn ağır
+   çekim, 2 sn sonra santra" gerçek saniyedir ama yine yalnızca adım sayısına bağlıdır
+   (determinizm ve tekrar korunur).
+3. **"2 sn" golden itibaren toplam süre** (1 sn ağır çekim + 1 sn normal). Simülasyon bu
+   sürede akar; oyuncular hareket edebilir ama ikinci gol sayılmaz.
+4. **Santra beklemesi** (0,8 sn): oyuncular girdisiz, top ortada tutulur, saat durur;
+   düdükle top serbest düşer. Maçın ilk santrası da aynı. Altın golde 1,8 sn (duyuru
+   okunsun).
+5. **Altın gol başında diziliş yapılır** (oyun kaldığı yerden sürmez): süre bitiminde top
+   herhangi bir yerde olabilir; adil ve okunaklı bir başlangıç için santra.
+6. **Aynı adımda gol ve süre bitimi → gol geçerli.** Kutlamadan sonra süre bitmişse maç
+   sonu/altın gol kararı verilir; süre kalmışsa (ör. 1 adım) santra yapılır ve kalan süre
+   oynanır.
+7. **Gol kontrolü adım sonunda.** Top 2000 px/sn sınırıyla adımda en fazla ~33 px gider;
+   tamamen girip aynı adımda geri çıkması için ≥ 92 px gerekir (ağ derinliği 90, çap 44),
+   yani kaçırma imkânsız (testle de doğrulandı).
+8. **`BALL.kickoffY` 280 → 320:** santrada bekleyen top "ALTIN GOL!" alt yazısıyla
+   çakışıyordu; duyuru yazıları da biraz yukarı alındı (`yRatio` 0,32 → 0,24).
+9. **Duraklatma menüsünden çıkışta tüm tuşlar bırakılmış sayılır** (`releaseAll`): menüde
+   basılan Enter/↑ oyuncu 2'ye şut/zıplama olarak sızmaz. Bedeli: duraklatma boyunca
+   basılı tutulan yön tuşunun yeniden basılması gerekir.
+10. **Maç sonunda simülasyon akmaya devam eder** (top seker), oyuncular girdisiz durur;
+    sonuç ekranının arkasında canlı bir sahne görünür.
+11. **Maç sonu ekranındayken Esc bir şey yapmaz** (yanlışlıkla çıkışı önlemek için);
+    seçim menüden yapılır.
+12. **Oyuncu kimlik renkleri** (P1 turuncu, P2 mavi) HUD isimlerinde, kafa üstü
+    etiketlerde ve kazanan başlığında; gri kutu gövdeler gri kaldı (görseller sonraki
+    fazlarda).
+13. **Ana menüde "2 Oyuncu" ve "Dil"** var; diğer modlar (Hızlı Maç, Turnuva, Antrenman)
+    ilgili fazlarda eklenecek.
+
+### Bilinen sorunlar / sınırlamalar
+
+- **Gol tekrarı yok** (GAME_DESIGN'da "kısa tekrar"); determinizm altyapısı hazır,
+  sonraki bir faza bırakıldı.
+- **`header` olayı tekrar ediyor:** top oyuncunun kafası ile zemin arasında sıkışıp
+  sürüklenirken her alt adımda `header` olayı üretilebiliyor (Faz 1 davranışı). Şimdilik
+  etkisi yok; vuruş sesleri eklenirken olaya bekleme süresi konmalı.
+- Düdük dışında ses yok (vuruş, direk, kalabalık sonraki fazlarda).
+- Duraklatma boyunca basılı tutulan tuş devamdan sonra yeniden basılmalı (karar 9).
+- Gol kutlamasında oyuncular topa vurabiliyor; sayılmıyor ama top santradan önce sahada
+  dolaşabiliyor (bilinçli: his canlı kalsın).
+- Faz 1'den süren: tarayıcılar arası determinizm, `npm audit` uyarısı, kaleye park etme.
+
+### Sıradaki faz
+
+**Faz 3** — talimat bekleniyor.

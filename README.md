@@ -5,9 +5,10 @@ karakterler, süper şutlar, güçlendiriciler ve gol tekrarı.
 
 **Canlı sürüm:** https://emengin.github.io/kafa-kafaya/
 
-> Durum: **Faz 1 — Gri kutu prototip.** İki kişi tek klavyede oynayabiliyor: kendi fizik
-> motoru, şut, kafa vuruşu, gol ve santra. Görseller henüz basit gri şekiller. Ayrıntılar
-> için [docs/PROGRESS.md](docs/PROGRESS.md).
+> Durum: **Faz 2 — Maç kuralları.** Menüden iki kişilik maç baştan sona oynanabiliyor:
+> 90 sn geri sayım, gol + ağır çekim, düdüklü santra, altın gol uzatması, duraklatma ve maç
+> sonu ekranı. Görseller henüz basit gri şekiller. Ayrıntılar için
+> [docs/PROGRESS.md](docs/PROGRESS.md).
 
 ## Teknoloji
 
@@ -30,8 +31,9 @@ npm run format    # Prettier ile biçimlendir
 npm test          # Vitest birim testleri
 ```
 
-Geliştirme kısayolu: `http://localhost:5173/?scene=match&debug=1` menüyü atlayıp doğrudan
-maça girer ve debug katmanını açık başlatır.
+Geliştirme kısayolu: `http://localhost:5173/?scene=match&debug=1&duration=10` menüyü
+atlayıp doğrudan 10 sn'lik maça girer (altın golü/maç sonunu hızlı denemek için) ve debug
+katmanını açık başlatır.
 
 ## Kontroller
 
@@ -42,7 +44,9 @@ maça girer ve debug katmanını açık başlatır.
 | Şut     | Space     | Enter     |
 | Süper   | Sol Shift | Sağ Shift |
 
-**F1:** debug katmanı (collider'lar, hız vektörleri, FPS, fizik adım süresi) · **Esc:** menü
+**Esc / P:** duraklat (Devam · Yeniden Başlat · Ana Menü) · **F1:** debug katmanı
+(collider'lar, hız vektörleri, FPS, fizik adım süresi, maç durumu). Menülerde ↑/↓ + Enter
+ya da fare.
 
 ## Klasör yapısı
 

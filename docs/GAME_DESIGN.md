@@ -54,18 +54,28 @@ gerçek kişi, kulüp, marka veya logo kullanılmaz.
 
 - Klavye eşlemesi `KeyboardEvent.code` ile yapılır (sol/sağ Shift ayrımı ve klavye
   düzeninden bağımsızlık için).
-- Arayüz: **F1** debug katmanı, **Esc** menüye dön.
+- Arayüz: **Esc / P** duraklat (Devam · Yeniden Başlat · Ana Menü), **F1** debug katmanı.
+  Menülerde ↑/↓ (veya W/S) + Enter/Space ya da fare.
 - **Gamepad:** sol çubuk/d-pad hareket, A zıpla, X/B şut, RB/RT süper.
 - **Mobil:** yatay ekran, solda ←/→, sağda Zıpla / Şut / Süper dokunmatik butonları.
 
 ## 5. Maç kuralları
 
-- Süre **90 sn**.
-- **Gol:** top kale çizgisini **tamamen** geçince (topun merkezi değil, tüm dairesi).
-- **Beraberlik:** altın gol uzatması — ilk atan kazanır.
-- **Gol anı:** ağır çekim + büyük "GOL!" yazısı + kısa tekrar (isteğe bağlı atlanır) +
-  santra. Santrada oyuncular ve top başlangıç konumlarına döner; top ortadan hafifçe
-  yukarıdan bırakılır.
+- Süre **90 sn** geri sayım; saat yalnızca oyun akarken işler (santra beklemesinde ve gol
+  kutlamasında durur). Son **10 sn** saat kırmızı ve her saniye nabız atar.
+- **Gol:** top kale çizgisini **tamamen** geçince (topun merkezi değil, tüm dairesi). Direğe
+  çarpıp sahaya dönen top gol değildir. Son adımda atılan gol geçerlidir.
+- **Beraberlik:** altın gol uzatması — süre biter, oyuncular ve top santraya alınır,
+  "ALTIN GOL!" duyurulur; süresiz oynanır, ilk atan kazanır.
+- **Gol anı:** 1 sn ağır çekim (0,3x) + büyük "GOL!" yazısı; golden 2 sn sonra oyuncular
+  ve top başlangıç konumlarına döner (kısa kararma). Kısa tekrar sonraki fazlarda
+  (isteğe bağlı atlanır).
+- **Santra:** oyuncular ve top başlangıç konumunda kısa süre (0,8 sn; altın golde 1,8 sn)
+  bekler, girdiler yok sayılır; **düdükle** top ortadan hafifçe düşer ve oyun başlar.
+- **Durum makinesi:** `Kickoff → Playing → GoalScored → Kickoff …` → süre biterse
+  (beraberlikte) `Kickoff → GoldenGoal → GoalScored → MatchEnd`, değilse `MatchEnd`.
+  Duraklatma her durumdan açılır; simülasyon duraklatılmışken adım atmaz.
+- **Maç sonu:** skor, kazanan (altın golle mi), "Tekrar Oyna" / "Ana Menü".
 
 ## 6. Güç barı ve süper şut
 
