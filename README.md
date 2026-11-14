@@ -5,10 +5,10 @@ karakterler, süper şutlar, güçlendiriciler ve gol tekrarı.
 
 **Canlı sürüm:** https://emengin.github.io/kafa-kafaya/
 
-> Durum: **Faz 2 — Maç kuralları.** Menüden iki kişilik maç baştan sona oynanabiliyor:
-> 90 sn geri sayım, gol + ağır çekim, düdüklü santra, altın gol uzatması, duraklatma ve maç
-> sonu ekranı. Görseller henüz basit gri şekiller. Ayrıntılar için
-> [docs/PROGRESS.md](docs/PROGRESS.md).
+> Durum: **Faz 3 — Yapay zekâ rakip.** Menüden **CPU'ya Karşı** (Kolay / Orta / Zor) ya da
+> **2 Oyuncu** maçı baştan sona oynanabiliyor: 90 sn geri sayım, gol + ağır çekim, santra,
+> altın gol, duraklatma, maç sonu, güç barı ve süper vuruş. Görseller henüz basit gri şekiller.
+> Ayrıntılar ve AI simülasyon sonuçları için [docs/PROGRESS.md](docs/PROGRESS.md).
 
 ## Teknoloji
 
@@ -29,11 +29,18 @@ npm run preview   # derlenmiş sürümü yerelde sun
 npm run lint      # ESLint + Prettier denetimi
 npm run format    # Prettier ile biçimlendir
 npm test          # Vitest birim testleri
+npm run simulate  # AI vs AI headless 100 maç: skor dağılımı ve sıkışma raporu
 ```
 
-Geliştirme kısayolu: `http://localhost:5173/?scene=match&debug=1&duration=10` menüyü
-atlayıp doğrudan 10 sn'lik maça girer (altın golü/maç sonunu hızlı denemek için) ve debug
-katmanını açık başlatır.
+`npm run simulate -- --p1 hard --p2 easy` farklı zorlukları, `--matrix` tüm eşleşmeleri,
+`--seed N` tohumu, `--matches N` maç sayısını, `--json dosya.json` JSON çıktısını seçer.
+
+Geliştirme kısayolları (URL parametreleri):
+
+- `?scene=match&debug=1&duration=10` — menüyü atlayıp doğrudan 10 sn'lik 2 oyunculu maça girer
+  ve debug katmanını açık başlatır.
+- `?cpu=easy|medium|hard` — doğrudan CPU'ya karşı maç; `?cpu1=…` ile P1 de yapay zekâ olur
+  (AI vs AI izleme); `?seed=N` yapay zekânın rastgelelik tohumunu sabitler.
 
 ## Kontroller
 
@@ -44,9 +51,13 @@ katmanını açık başlatır.
 | Şut     | Space     | Enter     |
 | Süper   | Sol Shift | Sağ Shift |
 
+CPU'ya karşı modda tek oyuncu iki tuş takımından birini (ya da ikisini) kullanabilir.
+**Süper:** güç barı (isimlerin altında) dolunca Shift'e bas — bir sonraki şut ya da kafa süper
+olur.
+
 **Esc / P:** duraklat (Devam · Yeniden Başlat · Ana Menü) · **F1:** debug katmanı
-(collider'lar, hız vektörleri, FPS, fizik adım süresi, maç durumu). Menülerde ↑/↓ + Enter
-ya da fare.
+(collider'lar, hız vektörleri, FPS, fizik adım süresi, maç durumu, AI'ın tahmin ettiği
+yörünge). Menülerde ↑/↓ + Enter ya da fare; alt menüden Esc ile geri.
 
 ## Klasör yapısı
 
@@ -54,12 +65,13 @@ ya da fare.
 src/
   config/     gameConfig.ts — tüm denge/ayar değerleri (kodda sihirli sayı yok)
   physics/    Phaser'dan bağımsız deterministik fizik ve sabit adımlı döngü
-  game/       entities, rules, ai — oyun mantığı
+  game/       entities, rules, ai (yapay zekâ rakip) — oyun mantığı
   input/      InputState soyutlaması (klavye, dokunmatik, gamepad, AI)
   scenes/     Phaser sahneleri (Boot → Preload → Menu → …)
   ui/         HUD, menüler, kodla üretilen dokular
   audio/      Web Audio sentezleyici
   i18n/       TR/EN metinler
+scripts/      simulate.ts (AI vs AI simülasyonu), run-ts.js (TS betik çalıştırıcı)
 docs/         GAME_DESIGN.md, PROGRESS.md
 ```
 
