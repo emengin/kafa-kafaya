@@ -1,18 +1,18 @@
 import Phaser from 'phaser';
-import { COLORS, DISPLAY, MENU, PHYSICS, TEXTURES, UNITS } from '../config/gameConfig';
+import { COLORS, DISPLAY, MENU, TEXTURES, UNITS } from '../config/gameConfig';
 import { t } from '../i18n';
 import { createGameLoop } from '../physics';
 import { SceneKeys } from './sceneKeys';
 
 /**
- * Ana menü. Faz 0'da başlık + "Başlamak için tıkla" + sabit adımlı döngüyle
- * sürülen zıplayan bir top içerir. Mod seçimi sonraki fazlarda eklenecek.
+ * Ana menü: başlık + "Başlamak için tıkla" + sabit adımlı döngüyle sürülen zıplayan top.
+ * Faz 1'de tıklama/tuş iki oyunculu gri kutu maçını başlatır. Mod seçimi sonraki fazlarda.
  */
 export class MenuScene extends Phaser.Scene {
   private readonly loop = createGameLoop();
   private ball!: Phaser.GameObjects.Image;
   private shadow!: Phaser.GameObjects.Ellipse;
-  private prompt!: Phaser.GameObjects.Text;
+  private starting = false;
 
   // Demo top durumu: simülasyon yalnızca sabit adımda ilerler, render enterpole edilir.
   private ballY = 0;
@@ -31,6 +31,7 @@ export class MenuScene extends Phaser.Scene {
     const grassTop = height * (1 - MENU.grass.heightRatio);
 
     this.loop.reset();
+    this.starting = false;
     this.drawBackground(grassTop);
 
     // Demo top
@@ -78,7 +79,7 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // "Başlamak için tıkla"
-    this.prompt = this.add
+    const prompt = this.add
       .text(width / 2, height * MENU.prompt.yRatio, t('menu.clickToStart'), {
         fontFamily: MENU.fontFamily,
         fontSize: `${MENU.prompt.fontSizePx}px`,
@@ -88,7 +89,7 @@ export class MenuScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     this.tweens.add({
-      targets: this.prompt,
+      targets: prompt,
       alpha: MENU.prompt.blinkMinAlpha,
       duration: MENU.prompt.blinkMs,
       yoyo: true,
@@ -133,7 +134,7 @@ export class MenuScene extends Phaser.Scene {
     this.prevBallY = this.ballY;
     this.prevAngle = this.angle;
 
-    this.ballVy += PHYSICS.gravity * dt;
+    this.ballVy += cfg.gravity * dt;
     this.ballY += this.ballVy * dt;
     this.angle += cfg.spinSpeed * dt;
 
@@ -144,11 +145,17 @@ export class MenuScene extends Phaser.Scene {
     }
   }
 
+  /** Tıklama/tuş: topa vur, ekranı karart ve iki oyunculu maça geç. */
   private onStart(): void {
+    if (this.starting) return;
+    this.starting = true;
     const flash = MENU.clickFlash;
     this.cameras.main.flash(flash.durationMs, flash.red, flash.green, flash.blue);
     this.ballVy = -MENU.demoBall.kickSpeed;
-    this.prompt.setText(t('menu.comingSoon'));
+    this.cameras.main.fadeOut(MENU.startFadeMs);
+    this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+      this.scene.start(SceneKeys.Match);
+    });
   }
 
   private drawBackground(grassTop: number): void {

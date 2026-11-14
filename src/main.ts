@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { DISPLAY } from './config/gameConfig';
 import { t } from './i18n';
 import { BootScene } from './scenes/BootScene';
+import { MatchScene } from './scenes/MatchScene';
 import { MenuScene } from './scenes/MenuScene';
 import { PreloadScene } from './scenes/PreloadScene';
 
@@ -22,5 +23,5 @@ new Phaser.Game({
   },
   fps: { target: DISPLAY.targetFps },
   render: { antialias: true, powerPreference: 'high-performance' },
-  scene: [BootScene, PreloadScene, MenuScene],
+  scene: [BootScene, PreloadScene, MenuScene, MatchScene],
 });

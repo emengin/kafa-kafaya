@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { COLORS, DISPLAY, MENU, PRELOAD } from '../config/gameConfig';
 import { t } from '../i18n';
 import { generateTextures } from '../ui/textures';
+import { wantsDirectMatch } from './devFlags';
 import { SceneKeys } from './sceneKeys';
 
 /** Kodla doku üretir ve yükleme çubuğu gösterir. Harici dosya yüklenmez. */
@@ -44,7 +45,7 @@ export class PreloadScene extends Phaser.Scene {
         this.drawBar(progress.value);
       },
       onComplete: () => {
-        this.scene.start(SceneKeys.Menu);
+        this.scene.start(wantsDirectMatch() ? SceneKeys.Match : SceneKeys.Menu);
       },
     });
   }
