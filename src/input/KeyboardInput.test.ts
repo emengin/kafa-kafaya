@@ -87,4 +87,24 @@ describe('KeyTracker / KeyboardInputSource', () => {
     target.dispatchEvent(key('keydown', 'KeyD'));
     expect(p1.read().right).toBe(false);
   });
+
+  it('consumeAny: listedeki tuşlardan biri basıldıysa true döner ve hepsini tüketir', () => {
+    const { target, tracker } = setup();
+    target.dispatchEvent(key('keydown', 'Escape'));
+    target.dispatchEvent(key('keydown', 'KeyP'));
+    expect(tracker.consumeAny(['Escape', 'KeyP'])).toBe(true);
+    expect(tracker.consumeAny(['Escape', 'KeyP'])).toBe(false);
+  });
+
+  it('releaseAll sonrası basılı tutulan tuş yeniden basılana kadar etkisizdir', () => {
+    const { target, tracker, p2 } = setup();
+    target.dispatchEvent(key('keydown', 'Enter'));
+    tracker.releaseAll();
+    expect(p2.read().kick).toBe(false);
+    target.dispatchEvent(key('keydown', 'Enter', true)); // otomatik tekrar
+    expect(p2.read().kick).toBe(false);
+    target.dispatchEvent(key('keyup', 'Enter'));
+    target.dispatchEvent(key('keydown', 'Enter'));
+    expect(p2.read().kick).toBe(true);
+  });
 });

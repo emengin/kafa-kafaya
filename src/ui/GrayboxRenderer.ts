@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GRAYBOX, HUD, PLAYER } from '../config/gameConfig';
+import { COLORS, GRAYBOX, HUD, PLAYER } from '../config/gameConfig';
 import { footOffset } from '../game/entities/Player';
 import type { GameSim } from '../game/GameSim';
 import type { Pitch } from '../game/pitch';
@@ -16,15 +16,18 @@ export class GrayboxRenderer {
   ) {
     drawPitch(scene.add.graphics(), sim.pitch);
     this.dynamic = scene.add.graphics();
-    const style = {
-      fontFamily: HUD.fontFamily,
-      fontSize: `${HUD.label.fontSizePx}px`,
-      color: '#ffffff',
-    };
-    this.labels = [
-      scene.add.text(0, 0, 'P1', style).setOrigin(0.5, 1).setAlpha(HUD.label.alpha),
-      scene.add.text(0, 0, 'P2', style).setOrigin(0.5, 1).setAlpha(HUD.label.alpha),
-    ];
+    const label = (text: string, color: string): Phaser.GameObjects.Text =>
+      scene.add
+        .text(0, 0, text, {
+          fontFamily: HUD.fontFamily,
+          fontSize: `${HUD.label.fontSizePx}px`,
+          color,
+          stroke: COLORS.textStroke,
+          strokeThickness: HUD.label.strokePx,
+        })
+        .setOrigin(0.5, 1)
+        .setAlpha(HUD.label.alpha);
+    this.labels = [label('P1', HUD.playerColors[0]), label('P2', HUD.playerColors[1])];
   }
 
   draw(frame: RenderFrame): void {

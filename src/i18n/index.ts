@@ -27,3 +27,16 @@ export function setLanguage(language: Language): void {
 export function t(key: StringKey): string {
   return DICTIONARIES[current][key];
 }
+
+/** Metni yer tutucularla doldurur: `format('end.winner', { name: 'Oyuncu 1' })`. */
+export function format(key: StringKey, vars: Readonly<Record<string, string | number>>): string {
+  return t(key).replace(/\{(\w+)\}/g, (match, name: string) => {
+    const value = vars[name];
+    return value === undefined ? match : String(value);
+  });
+}
+
+/** Etkin dile göre büyük harf (Türkçede i → İ). */
+export function upper(text: string): string {
+  return text.toLocaleUpperCase(current === 'tr' ? 'tr-TR' : 'en-US');
+}

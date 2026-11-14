@@ -1,5 +1,5 @@
 import { BALL, HEADER, KICK, LOOP, MATCH, PHYSICS, PITCH, PLAYER } from '../config/gameConfig';
-import type { InputState } from '../input/InputState';
+import { EMPTY_INPUT, type InputState } from '../input/InputState';
 import {
   circleVsCircle,
   circleVsRect,
@@ -15,6 +15,12 @@ import { Ball } from './entities/Ball';
 import { Player, PLAYER_STAND_OFFSET, type KickPhase, type PlayerPart } from './entities/Player';
 import { createPitch, type GoalDef, type Pitch, type StaticCollider } from './pitch';
 import { isBallInGoal, isBallOnCrossbar } from './rules/ballRules';
+import {
+  DEFAULT_MATCH_RULES,
+  MatchFlow,
+  type MatchRules,
+  type MatchSnapshot,
+} from './rules/MatchFlow';
 import type { PlayerIndex, SimEvent } from './types';
 
 /** Simülasyonun sabit adım süresi. Gerçek zamandan bağımsızdır (determinizm). */
@@ -46,8 +52,7 @@ export interface PlayerSnapshot {
 /** Simülasyonun tam durumu (düz veri). Determinizm testi ve gol tekrarı için. */
 export interface SimSnapshot {
   readonly tick: number;
-  readonly score: readonly [number, number];
-  readonly goalTimer: number;
+  readonly match: MatchSnapshot;
   readonly ball: {
     readonly x: number;
     readonly y: number;
@@ -59,6 +64,13 @@ export interface SimSnapshot {
     readonly lastTouch: number;
   };
   readonly players: readonly [PlayerSnapshot, PlayerSnapshot];
+}
+
+export interface GameSimOptions {
+  /** Varsayılan maç kurallarının üzerine yazılacak değerler (testler, farklı modlar). */
+  readonly rules?: Partial<MatchRules>;
+  /** true → santra beklemesi atlanır, oyun ilk adımdan başlar (testler, antrenman). */
+  readonly skipKickoff?: boolean;
 }
 
 function collideStatic(circle: Circle, collider: StaticCollider): Contact | null {
@@ -75,31 +87,39 @@ function collideStatic(circle: Circle, collider: StaticCollider): Contact | null
  * 1. Oyuncu girdileri (hareket eğrisi, zıplama, şut tetikleme).
  * 2. Uyarlamalı sayıda alt adım; her birinde: entegrasyon → oyuncu–saha → oyuncu–oyuncu →
  *    top–oyuncu (şut, kafa) → top–saha → (top sıkıştıysa) oyuncuyu toptan it.
- * 3. Kurallar: üst direkte bekleme, gol, santra.
+ * 3. Kurallar: üst direkte bekleme, gol algılama → maç durum makinesi (`MatchFlow`).
+ *
+ * Santra beklemesinde ve maç bitince girdiler yok sayılır; santrada top ortada tutulur.
  */
 export class GameSim {
   readonly pitch: Pitch = createPitch();
   readonly ball = new Ball();
   readonly players: readonly [Player, Player] = [new Player(0, 1), new Player(1, -1)];
-  readonly score: [number, number] = [0, 0];
+  /** Maç durum makinesi: skor, süre, santra, gol kutlaması, altın gol, maç sonu. */
+  readonly match: MatchFlow;
   tick = 0;
-  /** > 0 iken gol sonrası bekleme (sn); bitince santra. */
-  goalTimer = 0;
   /** Son adımda kullanılan alt adım sayısı (debug). */
   lastSubSteps = 0;
   private readonly events: SimEvent[] = [];
 
-  constructor() {
-    this.kickoff();
-    this.events.length = 0;
+  constructor(options: GameSimOptions = {}) {
+    this.match = new MatchFlow({ ...DEFAULT_MATCH_RULES, ...options.rules });
+    this.resetPositions();
+    if (options.skipKickoff) this.match.startInPlay();
+  }
+
+  /** [P1, P2] skoru. */
+  get score(): readonly [number, number] {
+    return this.match.score;
   }
 
   /** Bir sabit adım ilerletir ve bu adımda olan olayları döndürür. */
   step(inputs: readonly [InputState, InputState]): SimEvent[] {
     this.events.length = 0;
     const [p1, p2] = this.players;
-    p1.applyInput(inputs[0], STEP_SECONDS);
-    p2.applyInput(inputs[1], STEP_SECONDS);
+    const active = this.match.playersActive;
+    p1.applyInput(active ? inputs[0] : EMPTY_INPUT, STEP_SECONDS);
+    p2.applyInput(active ? inputs[1] : EMPTY_INPUT, STEP_SECONDS);
     this.ball.clampSpeed();
 
     const n = computeSubSteps(this.maxPointSpeed(), STEP_SECONDS, PHYSICS);
@@ -283,25 +303,29 @@ export class GameSim {
   }
 
   private applyRules(dt: number): void {
+    const match = this.match;
+    // Santra beklemesinde top ortada tutulur; düdükle birlikte serbest düşer.
+    if (match.ballHeld) this.holdBallAtCenter();
     this.applyCrossbarRule(dt);
 
-    if (this.goalTimer > 0) {
-      this.goalTimer -= dt;
-      if (this.goalTimer <= 0) {
-        this.goalTimer = 0;
-        this.kickoff();
-      }
-      return;
+    const scorer = match.goalsAllowed ? this.detectGoal() : null;
+    const firstNew = this.events.length;
+    match.advance(dt, scorer, this.events);
+    for (let i = firstNew; i < this.events.length; i++) {
+      if (this.events[i]?.type === 'kickoff') this.resetPositions();
     }
+  }
 
+  /** Top bir kaleye tamamen girdiyse golü atan oyuncu (kalenin rakibi), yoksa null. */
+  private detectGoal(): PlayerIndex | null {
     for (const goal of this.pitch.goals) {
-      if (!isBallInGoal(this.ball, goal)) continue;
-      const scorer: PlayerIndex = goal.defender === 0 ? 1 : 0;
-      this.score[scorer]++;
-      this.goalTimer = MATCH.goalResetDelaySeconds;
-      this.events.push({ type: 'goal', scorer });
-      break;
+      if (isBallInGoal(this.ball, goal)) return goal.defender === 0 ? 1 : 0;
     }
+    return null;
+  }
+
+  private holdBallAtCenter(): void {
+    this.ball.resetTo(this.pitch.width / 2, BALL.kickoffY);
   }
 
   /** Top üst direğin üstünde süreden uzun kalırsa sahaya doğru itilir. */
@@ -324,23 +348,21 @@ export class GameSim {
     }
   }
 
-  /** Santra: oyuncular başlangıç konumlarına, top ortadan hafifçe yukarıdan bırakılır. */
-  kickoff(): void {
+  /** Santra dizilişi: oyuncular başlangıç konumlarına, top ortada (yukarıda). */
+  resetPositions(): void {
     const { width, groundY } = this.pitch;
     const standY = groundY - PLAYER_STAND_OFFSET;
     const spawnX = width * PLAYER.spawnXRatio;
     this.players[0].resetTo(spawnX, standY);
     this.players[1].resetTo(width - spawnX, standY);
-    this.ball.resetTo(width / 2, BALL.kickoffY);
-    this.events.push({ type: 'kickoff' });
+    this.holdBallAtCenter();
   }
 
   snapshot(): SimSnapshot {
     const b = this.ball;
     return {
       tick: this.tick,
-      score: [this.score[0], this.score[1]],
-      goalTimer: this.goalTimer,
+      match: this.match.snapshot(),
       ball: {
         x: b.x,
         y: b.y,

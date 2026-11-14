@@ -66,10 +66,25 @@ export class KeyTracker {
     return this.latched.delete(code);
   }
 
+  /**
+   * Kod listesinden herhangi biri basıldıysa true. Hepsinin latch'ini tüketir (kısa devre
+   * yapmaz), böylece aynı karede basılan ikinci tuş bir sonraki kareye sarkmaz.
+   */
+  consumeAny(codes: readonly string[]): boolean {
+    let pressed = false;
+    for (const code of codes) pressed = this.latched.delete(code) || pressed;
+    return pressed;
+  }
+
   isHeld(code: string): boolean {
     return this.held.has(code);
   }
 
+  /**
+   * Tüm tuşları bırakılmış sayar. Basılı tutulan tuş, yeniden basılana kadar etkisizdir
+   * (tarayıcının otomatik tekrar olayları yok sayılır). Duraklatma menüsünden dönerken
+   * Enter/↑ gibi menü tuşlarının oyuncu 2'ye şut/zıplama olarak geçmemesi için kullanılır.
+   */
   releaseAll(): void {
     this.held.clear();
     this.latched.clear();

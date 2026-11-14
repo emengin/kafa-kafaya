@@ -13,3 +13,11 @@ export function wantsDirectMatch(): boolean {
 export function wantsDebugOverlay(): boolean {
   return params().get(DEV.debugParam) === DEV.debugOnValue;
 }
+
+/** `?duration=N` → maç süresi N sn (pozitif sayı değilse yok sayılır). */
+export function devMatchDuration(): number | undefined {
+  const raw = params().get(DEV.durationParam);
+  if (raw === null) return undefined;
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : undefined;
+}

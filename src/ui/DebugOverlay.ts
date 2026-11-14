@@ -105,6 +105,8 @@ export class DebugOverlay {
         `FPS ${stats.fps.toFixed(1)}`,
         `phys ${stats.stepMs.toFixed(d + 1)} ms/step  steps/frame ${stats.stepsThisFrame}`,
         `substeps ${sim.lastSubSteps}  tick ${sim.tick}`,
+        `match ${sim.match.phase}  t ${sim.match.phaseTime.toFixed(d)} s  ` +
+          `left ${sim.match.timeLeft.toFixed(d)} s  scale ${sim.match.timeScale}`,
         `ball v ${ball.speed.toFixed(0)} px/s  spin ${ball.angVel.toFixed(d)} rad/s`,
         `ball ground ${flag(ball.grounded)}  crossbar ${ball.crossbarTimer.toFixed(d)} s`,
         playerLine(sim.players[0]),

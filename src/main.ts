@@ -1,14 +1,23 @@
 import Phaser from 'phaser';
-import { DISPLAY } from './config/gameConfig';
+import { sfx } from './audio/Sfx';
+import { DEV, DISPLAY } from './config/gameConfig';
 import { t } from './i18n';
 import { BootScene } from './scenes/BootScene';
 import { MatchScene } from './scenes/MatchScene';
 import { MenuScene } from './scenes/MenuScene';
 import { PreloadScene } from './scenes/PreloadScene';
+import { wantsDebugOverlay } from './scenes/devFlags';
 
 document.title = t('game.title');
 
-new Phaser.Game({
+// Tarayıcılar sesi ilk kullanıcı etkileşimine kadar askıda tutar: ilk tuş/tıklamada aç.
+const unlockAudio = (): void => {
+  sfx.unlock();
+};
+window.addEventListener('keydown', unlockAudio, { once: true });
+window.addEventListener('pointerdown', unlockAudio, { once: true });
+
+const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
   title: t('game.title'),
@@ -25,3 +34,6 @@ new Phaser.Game({
   render: { antialias: true, powerPreference: 'high-performance' },
   scene: [BootScene, PreloadScene, MenuScene, MatchScene],
 });
+
+// Geliştirici kancası: tarayıcı testleri maç durumunu okuyabilsin.
+if (wantsDebugOverlay()) Reflect.set(globalThis, DEV.globalGameName, game);

@@ -10,6 +10,12 @@
 /** Genel birim dönüşümleri. */
 export const UNITS = {
   msPerSecond: 1000,
+  secondsPerMinute: 60,
+  /**
+   * Saat gösteriminde yukarı yuvarlamadan önce çıkarılan tolerans: 60 Hz adımların kayan
+   * nokta birikimi 30,0000001 sn'yi "0:31" göstermesin.
+   */
+  clockEpsilonSeconds: 1e-6,
 } as const;
 
 /** Mantıksal çözünürlük ve ekran ölçekleme. */
@@ -117,8 +123,8 @@ export const BALL = {
   maxSpeed: 2000,
   /** Yüzeyde yuvarlanırken yavaşlama (px/sn²). */
   rollingDecel: 150,
-  /** Santrada topun ortadan bırakıldığı yükseklik (y). */
-  kickoffY: 280,
+  /** Santrada topun ortadan bırakıldığı yükseklik (y); duyuru yazılarının altında kalır. */
+  kickoffY: 320,
 } as const;
 
 /**
@@ -217,14 +223,27 @@ export const HEADER = {
   minImpactSpeed: 150,
 } as const;
 
-/** Maç kuralları (GAME_DESIGN.md ile uyumlu). */
+/** Maç kuralları (GAME_DESIGN.md ile uyumlu). Süreler saniye. */
 export const MATCH = {
   durationSeconds: 90,
+  /** Süre bittiğinde beraberlikse altın gol uzatması oynanır (false → maç berabere biter). */
   goldenGoalOvertime: true,
   /** Top kale üst direğinde bu süreden uzun kalırsa sahaya doğru itilir. */
   crossbarRestMaxSeconds: 2,
-  /** Golden sonra santraya kadar geçen süre (sn). Simülasyon bu sürede akmaya devam eder. */
-  goalResetDelaySeconds: 1.5,
+  /** Santra: oyuncular ve top yerinde bekler; süre dolunca düdük çalar ve top bırakılır. */
+  kickoffSeconds: 0.8,
+  /** Altın gol uzatmasının santrasında daha uzun bekleme ("ALTIN GOL!" yazısı okunsun). */
+  goldenGoalKickoffSeconds: 1.8,
+  /**
+   * Golden santraya kadar geçen **gerçek** süre (ağır çekim dahil). Simülasyon bu sürede
+   * akmaya devam eder ama ikinci gol sayılmaz.
+   */
+  goalCelebrationSeconds: 2,
+  /** Golden hemen sonra ağır çekim süresi (gerçek sn) ve oranı. */
+  goalSlowMoSeconds: 1,
+  goalSlowMoScale: 0.3,
+  /** Kalan süre bunun altına inince saat kırmızı ve nabızlı. */
+  finalCountdownSeconds: 10,
 } as const;
 
 /**
@@ -241,18 +260,30 @@ export const CONTROLS = {
     super: 'ShiftRight',
   },
   /** Arayüz tuşları (oyun girdisi değildir, tekrar kaydına girmez). */
-  ui: { debugToggle: 'F1', back: 'Escape' },
+  ui: {
+    debugToggle: 'F1',
+    /** Duraklat / devam (herhangi biri). */
+    pause: ['Escape', 'KeyP'],
+    /** Menülerde gezinme ve seçim. */
+    menuUp: ['ArrowUp', 'KeyW'],
+    menuDown: ['ArrowDown', 'KeyS'],
+    menuConfirm: ['Enter', 'NumpadEnter', 'Space'],
+  },
 } as const;
 
 /**
- * Geliştirici kısayolları (URL parametreleri). Örn. `?scene=match&debug=1` menüyü atlayıp
- * doğrudan maça girer ve debug katmanını açık başlatır.
+ * Geliştirici kısayolları (URL parametreleri). Örn. `?scene=match&debug=1&duration=10`
+ * menüyü atlayıp doğrudan 10 sn'lik maça girer ve debug katmanını açık başlatır.
  */
 export const DEV = {
   sceneParam: 'scene',
   matchSceneValue: 'match',
   debugParam: 'debug',
   debugOnValue: '1',
+  /** `?duration=10` → maç süresi 10 sn (altın golü ve maç sonunu hızlı denemek için). */
+  durationParam: 'duration',
+  /** `?debug=1` iken Phaser oyun nesnesi bu adla `window`'a konur (tarayıcı testleri). */
+  globalGameName: '__KAFA_GAME__',
 } as const;
 
 /** Kalıcı kayıt (localStorage) anahtarları. */
@@ -307,7 +338,7 @@ export const PRELOAD = {
 export const MENU = {
   fontFamily: '"Arial Black", "Segoe UI", Arial, sans-serif',
   title: {
-    yRatio: 0.38,
+    yRatio: 0.32,
     fontSizePx: 104,
     strokePx: 12,
     shadowOffsetPx: 6,
@@ -317,13 +348,14 @@ export const MENU = {
     pulseScale: 1.04,
     pulseMs: 1200,
   },
-  prompt: {
+  /** Ana menü seçenekleri (dikey liste). */
+  items: {
     yRatio: 0.6,
-    fontSizePx: 36,
+    fontSizePx: 38,
+    spacingPx: 62,
     strokePx: 6,
-    blinkMinAlpha: 0.25,
-    blinkMs: 700,
   },
+  navHint: { yRatio: 0.8, fontSizePx: 18, alpha: 0.75 },
   footer: {
     fontSizePx: 18,
     marginPx: 16,
@@ -388,23 +420,102 @@ export const GRAYBOX = {
   ball: { fill: 0xf2f2f2, spoke: 0x1a1a1a, spokePx: 3 },
 } as const;
 
-/** Maç ekranı metinleri. */
+/** Maç ekranı: skor çubuğu, saat, gol/altın gol yazıları. */
 export const HUD = {
   fontFamily: '"Arial Black", "Segoe UI", Arial, sans-serif',
-  score: { y: 44, fontSizePx: 48, strokePx: 6 },
+  depth: 100,
+  /** Oyuncu kimlik renkleri: HUD'daki isimler ve kafaların üstündeki P1/P2 etiketleri. */
+  playerColors: ['#ffb347', '#6ec6ff'],
+  /** Üstteki yarı saydam skor çubuğu: ekranın üst kenarından sarkar; `y` metinlerin ortası. */
+  bar: { y: 40, bottomY: 80, halfWidth: 400, radius: 18, color: 0x000000, alpha: 0.4 },
+  clock: {
+    fontSizePx: 40,
+    strokePx: 6,
+    color: '#ffffff',
+    /** Son saniyelerde (MATCH.finalCountdownSeconds) renk ve her saniye nabız. */
+    warningColor: '#ff4b4b',
+    pulseScale: 1.35,
+    pulseMs: 380,
+    /** Altın golde saatin yerinde yazı. */
+    goldenFontSizePx: 24,
+  },
+  score: { offsetX: 118, fontSizePx: 54, strokePx: 6, popScale: 1.6, popMs: 320 },
+  name: { offsetX: 178, fontSizePx: 22, strokePx: 4 },
   goalBanner: {
-    yRatio: 0.32,
+    yRatio: 0.24,
     fontSizePx: 120,
     strokePx: 10,
     popScale: 1.25,
     popMs: 180,
-    holdMs: 800,
+    holdMs: 1100,
     fadeMs: 350,
+    subtitleFontSizePx: 34,
+    subtitleStrokePx: 6,
+    /** Alt yazının ana yazıya göre dikey uzaklığı. */
+    subtitleOffsetY: 82,
   },
+  /** Gol anında ekran sarsıntısı. */
+  goalShake: { durationMs: 220, intensity: 0.006 },
   hint: { marginPx: 10, fontSizePx: 16, alpha: 0.55 },
   /** Oyuncu etiketi (P1/P2) kafanın üstünden bu kadar yukarıda. */
-  label: { gapPx: 8, fontSizePx: 18, alpha: 0.8 },
-  depth: 100,
+  label: { gapPx: 8, fontSizePx: 18, strokePx: 4, alpha: 0.95 },
+  /** Santra dizilişinde ışınlanmayı gizleyen kısa kararıp açılma (ms). */
+  kickoffFadeMs: 220,
+  /** Maç bittikten sonra sonuç ekranı açılana kadar geçen süre (sn, simülasyon). */
+  endScreenDelaySeconds: 1.4,
+  /** Ana menüye dönüşte kararma (ms). */
+  exitFadeMs: 200,
+} as const;
+
+/** Duraklatma ve maç sonu kaplamaları (yarı saydam perde + panel + dikey menü). */
+export const OVERLAY = {
+  depth: 500,
+  dimColor: 0x000000,
+  dimAlpha: 0.55,
+  panel: {
+    width: 640,
+    paddingPx: 36,
+    radius: 24,
+    color: 0x0b1340,
+    alpha: 0.97,
+    strokeColor: 0xffd23f,
+    strokePx: 4,
+  },
+  title: { fontSizePx: 50, strokePx: 8, lineHeightPx: 70 },
+  line: { fontSizePx: 30, lineHeightPx: 46, color: '#ffffff' },
+  /** Başlık/satırlar ile menü arasındaki boşluk. */
+  gapPx: 22,
+  items: {
+    fontSizePx: 34,
+    spacingPx: 60,
+    strokePx: 6,
+    color: '#ffffff',
+    selectedColor: '#ffd23f',
+    selectedScale: 1.12,
+  },
+  hint: { fontSizePx: 16, alpha: 0.6, lineHeightPx: 36 },
+} as const;
+
+/** Web Audio ile sentezlenen sesler. Süreler saniye, frekanslar Hz. */
+export const AUDIO = {
+  masterVolume: 0.5,
+  /**
+   * Düdük: yüksek frekanslı bir ton + hızlı frekans titreşimi (bilyeli düdüğün "trrr"si).
+   * Desenler [çalma, sessizlik, çalma, …] süreleridir.
+   */
+  whistle: {
+    frequency: 2750,
+    trillHz: 32,
+    trillDepthHz: 170,
+    volume: 0.22,
+    attack: 0.012,
+    release: 0.05,
+    patterns: {
+      kickoff: [0.32],
+      goldenGoal: [0.22, 0.1, 0.55],
+      fullTime: [0.3, 0.14, 0.3, 0.14, 0.85],
+    },
+  },
 } as const;
 
 /** F1 debug katmanı. */

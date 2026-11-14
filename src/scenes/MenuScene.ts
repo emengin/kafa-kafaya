@@ -1,17 +1,22 @@
 import Phaser from 'phaser';
-import { COLORS, DISPLAY, MENU, TEXTURES, UNITS } from '../config/gameConfig';
-import { t } from '../i18n';
+import { sfx } from '../audio/Sfx';
+import { CONTROLS, COLORS, DISPLAY, MENU, OVERLAY, TEXTURES, UNITS } from '../config/gameConfig';
+import { getLanguage, setLanguage, t } from '../i18n';
+import { KeyTracker } from '../input/KeyboardInput';
 import { createGameLoop } from '../physics';
+import { TextMenu } from '../ui/TextMenu';
 import { SceneKeys } from './sceneKeys';
 
 /**
- * Ana menü: başlık + "Başlamak için tıkla" + sabit adımlı döngüyle sürülen zıplayan top.
- * Faz 1'de tıklama/tuş iki oyunculu gri kutu maçını başlatır. Mod seçimi sonraki fazlarda.
+ * Ana menü: başlık + seçenekler (2 Oyuncu, Dil) + sabit adımlı döngüyle sürülen zıplayan top.
+ * Klavye (↑/↓, Enter) ve fareyle kullanılır. Diğer modlar sonraki fazlarda eklenecek.
  */
 export class MenuScene extends Phaser.Scene {
   private readonly loop = createGameLoop();
   private ball!: Phaser.GameObjects.Image;
   private shadow!: Phaser.GameObjects.Ellipse;
+  private tracker!: KeyTracker;
+  private menu!: TextMenu;
   private starting = false;
 
   // Demo top durumu: simülasyon yalnızca sabit adımda ilerler, render enterpole edilir.
@@ -78,24 +83,54 @@ export class MenuScene extends Phaser.Scene {
       ease: 'Sine.easeInOut',
     });
 
-    // "Başlamak için tıkla"
-    const prompt = this.add
-      .text(width / 2, height * MENU.prompt.yRatio, t('menu.clickToStart'), {
-        fontFamily: MENU.fontFamily,
-        fontSize: `${MENU.prompt.fontSizePx}px`,
-        color: COLORS.textPrimary,
-        stroke: COLORS.textStroke,
-        strokeThickness: MENU.prompt.strokePx,
-      })
-      .setOrigin(0.5);
-    this.tweens.add({
-      targets: prompt,
-      alpha: MENU.prompt.blinkMinAlpha,
-      duration: MENU.prompt.blinkMs,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
+    // Seçenekler
+    const { ui } = CONTROLS;
+    this.tracker = new KeyTracker(
+      window,
+      new Set<string>([...ui.menuUp, ...ui.menuDown, ...ui.menuConfirm]),
+    ).attach();
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.tracker.detach();
     });
+    const items = MENU.items;
+    this.menu = new TextMenu(
+      this,
+      width / 2,
+      height * items.yRatio,
+      [
+        {
+          label: t('menu.twoPlayers'),
+          onSelect: () => {
+            this.onStart();
+          },
+        },
+        {
+          label: t('menu.language'),
+          onSelect: () => {
+            this.toggleLanguage();
+          },
+        },
+      ],
+      {
+        fontFamily: MENU.fontFamily,
+        fontSizePx: items.fontSizePx,
+        spacingPx: items.spacingPx,
+        strokePx: items.strokePx,
+        color: OVERLAY.items.color,
+        selectedColor: OVERLAY.items.selectedColor,
+        selectedScale: OVERLAY.items.selectedScale,
+        depth: 0,
+      },
+    );
+
+    this.add
+      .text(width / 2, height * MENU.navHint.yRatio, t('menu.navHint'), {
+        fontFamily: MENU.fontFamily,
+        fontSize: `${MENU.navHint.fontSizePx}px`,
+        color: COLORS.textPrimary,
+      })
+      .setOrigin(0.5)
+      .setAlpha(MENU.navHint.alpha);
 
     this.add
       .text(width - MENU.footer.marginPx, height - MENU.footer.marginPx, t('menu.footer'), {
@@ -106,15 +141,11 @@ export class MenuScene extends Phaser.Scene {
       .setOrigin(1, 1)
       .setAlpha(MENU.footer.alpha);
 
-    this.input.on(Phaser.Input.Events.POINTER_DOWN, () => {
-      this.onStart();
-    });
-    this.input.keyboard?.on(Phaser.Input.Keyboard.Events.ANY_KEY_DOWN, () => {
-      this.onStart();
-    });
+    this.cameras.main.fadeIn(MENU.startFadeMs);
   }
 
   override update(_time: number, deltaMs: number): void {
+    if (!this.starting) this.menu.update(this.tracker);
     this.loop.advance(deltaMs / UNITS.msPerSecond, (dt) => {
       this.stepBall(dt);
     });
@@ -145,10 +176,11 @@ export class MenuScene extends Phaser.Scene {
     }
   }
 
-  /** Tıklama/tuş: topa vur, ekranı karart ve iki oyunculu maça geç. */
+  /** "2 Oyuncu": topa vur, ekranı karart ve iki oyunculu maça geç. */
   private onStart(): void {
     if (this.starting) return;
     this.starting = true;
+    sfx.unlock();
     const flash = MENU.clickFlash;
     this.cameras.main.flash(flash.durationMs, flash.red, flash.green, flash.blue);
     this.ballVy = -MENU.demoBall.kickSpeed;
@@ -156,6 +188,14 @@ export class MenuScene extends Phaser.Scene {
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
       this.scene.start(SceneKeys.Match);
     });
+  }
+
+  /** Türkçe ↔ İngilizce; metinler yeniden kurulsun diye sahne yeniden başlatılır. */
+  private toggleLanguage(): void {
+    if (this.starting) return;
+    setLanguage(getLanguage() === 'tr' ? 'en' : 'tr');
+    document.title = t('game.title');
+    this.scene.restart();
   }
 
   private drawBackground(grassTop: number): void {
