@@ -361,11 +361,6 @@ uçtan uca oynatıldı (32 denetim, konsolda hata yok; ayrıntı aşağıda).
 
 ## Faz 3 — Yapay zekâ rakip (2026-11-14)
 
-> **Ara kayıt durumu (wip):** Bitenler — yörünge tahmini, davranış katmanı, zorluklar, sıkışma
-> önleme, menü/CPU modu, `scripts/simulate.ts`, testler (171), tarayıcı doğrulaması ve
-> simülasyon sonuçları (aşağıda). Yarım kalan — yok. Kalanlar — README ve GAME_DESIGN.md
-> güncellemesi, son kontrol ve push.
-
 **Bitti kriteri:**
 
 - **Kolay rahat yenilir, Orta dengeli, Zor zorlayıcı ama adil** ✅ — AI vs AI vekil ölçümüyle;
