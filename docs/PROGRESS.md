@@ -60,7 +60,9 @@
 7. **Fontlar:** harici dosya yasağı nedeniyle sistem fontları (`Arial Black` → `Segoe UI`
    → `Arial` → sans-serif).
 8. **Varsayılan dil Türkçe.**
-9. **CI Node sürümü 24** (yerel geliştirme ortamıyla aynı).
+9. **CI Node sürümü 24** (yerel geliştirme ortamıyla aynı). Action'lar Node 24 tabanlı
+   güncel sürümlerde (checkout/setup-node v5, configure-pages v6, upload-pages-artifact v5,
+   deploy-pages v5); Node 20 kullanımdan kalkma uyarısı alınmaz.
 10. **Tek `tsconfig.json`** hem `src` hem `vite.config.ts` için (sadelik). Tarayıcı
     koduna `node` tipleri de görünüyor; ileride ayrılabilir.
 
