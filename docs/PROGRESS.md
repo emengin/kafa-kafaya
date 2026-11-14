@@ -9,8 +9,9 @@
 | 2   | Maç kuralları ve oyun döngüsü              | ✅ Tamamlandı |
 | 3   | Yapay zekâ rakip                           | ✅ Tamamlandı |
 | 4   | Karakterler, süper şutlar, güçlendiriciler | ✅ Tamamlandı |
-| 5   | —                                          | ⏭️ Sıradaki   |
-| 6–7 | —                                          | Bekliyor      |
+| 5   | Görsel kalite ve ses ("juice")             | ✅ Tamamlandı |
+| 6   | —                                          | ⏭️ Sıradaki   |
+| 7   | —                                          | Bekliyor      |
 
 **Canlı sürüm:** https://emengin.github.io/kafa-kafaya/
 
@@ -844,4 +845,232 @@ Denge değerleri değişirse yeniden ölç: `npm run simulate -- --characters --
 
 ### Sıradaki faz
 
-**Faz 5** — talimat bekleniyor.
+**Faz 5** — tamamlandı (aşağıda).
+
+> Faz 4 notu (Faz 5'te çözüldü): görseller artık basit vektör şekiller değil; `header` olayının
+> tekrarı ses/efektte en kısa aralıkla süzülüyor.
+
+---
+
+## Faz 5 — Görsel kalite ve ses ("juice") (2026-11-15)
+
+**Bitti kriteri:**
+
+- **Mağaza kalitesinde görünüyor ve duyuluyor** ✅ (kendi değerlendirmem; gerçek oyuncu/mağaza
+  incelemesi yapılmadı) — gri kutular yerine kodla çizilmiş özgün karakterler (canlı yüz
+  ifadeleriyle), alacakaranlıkta ışıklandırılmış animasyonlu stadyum, her süper şuta özel efekt,
+  hit-stop/sarsıntı/zoom, tutarlı arayüz; Web Audio ile sentezlenen efektler, kalabalık ve
+  prosedürel müzik. Harici dosya yok: tüm dokular Canvas 2D ile, tüm sesler Web Audio ile.
+- **Düşük güçlü cihazda 60 FPS** ✅ (benzetimle) — gol + süper + balon stres senaryosunda, en
+  yüksek kalitede, CPU **6 kat yavaşlatılmışken** kare başına JS işi ortalama **4,8 ms**, p99
+  **7,9 ms** (bütçe 16,7 ms). Ayrıca uyarlamalı kalite: kare süresi 2,5 sn boyunca bütçeyi aşarsa
+  efektler kademe kademe azalır; düşük güçlü cihaz sezgisi (≤ 4 çekirdek ya da ≤ 4 GB bellek)
+  kenar yumuşatmayı kapatır ve bir kademe aşağıdan başlar. Gerçek düşük güçlü bir telefonda
+  ölçülmedi (bkz. bilinen sorunlar).
+
+### Tamamlananlar
+
+**Görsel**
+
+- **Karakterler (`src/art/looks.ts`, `characterArt.ts`, `faceDraw.ts`, `ui/CharacterRig.ts`):** her
+  karakterin kendi cilt tonu, saç modeli ve aksesuarı — Kor alev saç + ter bandı, Ayaz örgü bere
+  - perçem, Şimşek yıldırım ibiği + alında gözlük, Sis kapüşon + göze düşen perçem, Kaya düz kesim
+  - gür sakal, Bora rüzgârda savrulan saç + uçuşan kurdele, Yay tepe topuzu + sallanan tüy, Demir
+    yana taranmış saç + burma bıyık, Pamuk bulut gibi kabarık saç + yıldız toka, Toprak boncuklu
+    örgüler. Saç/aksesuarlar SVG yol verisi (kafa yarıçapı 100 birim) olarak tanımlı ve `Path2D` ile
+    bir kez dokuya çiziliyor (gradyan, kontur). Kafa: gölgelendirilmiş cilt, kulak, burun; forma
+    (şerit, yaka, rozet, şort), krampon.
+- **Canlı yüz:** iki göz (3/4 görünüm: uzak göz daralmış), göz bebekleri topu takip eder, rastgele
+  aralıklarla göz kırpma (arada çift kırpma), karakterine özgü kaş eğimi/kalınlığı ve ağız.
+  **İfadeler** (öncelik sırasıyla): donmuş (iri gözler, takırdayan dişler, titreme), şaşkın (süper
+  etkisi ya da sert top çarpması), **sevinç** (gol atınca ^^ gözler, kocaman gülüş, zıplama),
+  **üzüntü** (gol yiyince düşük kaşlar, aşağı bakış, ter damlası), efor (şut/zıplama: sıkılmış
+  dişler), süper hazırken sırıtma. Maç sonunda kazanan sevinçli, kaybeden üzgün kalır. HUD
+  portreleri sahadaki oyuncunun yüzünü canlı taklit eder.
+- **Animasyonlar (`fx/BodyAnimator.ts`):** yay tabanlı squash & stretch — zıplamada esneme, inişte
+  düşüş hızıyla basılma, havada hızla uzama; koşuda adım sallanması ve adım basılması; hıza göre
+  öne eğilme; şut savrulmasında geriye yaslanma + ayağın çizdiği yayda beyaz "swoosh"; ayakkabı
+  ayak açısıyla döner; iniş tozu, hızlı koşuda adım tozu.
+- **Stadyum (`art/stadiumArt.ts`, `ui/StadiumView.ts`):** alacakaranlık gökyüzü (gradyan, ufukta
+  güneş parıltısı, soluk yıldızlar), iki katmanlı **parallax bulutlar** (farklı hız/ölçek), iki
+  ışık kulesi (lamba ızgarası, titreyen parlama, ışık hüzmeleri), çatılı iki katlı tribün (uzak
+  sıralar puslu), **takım renklerinde kalabalık** (6 sıra × 8 bölüm; boşta kıpırdar, tehlikeli
+  atakta heyecanlanır, **golde golcünün tarafı ayağa kalkıp kollarını kaldırır ve zıplar**,
+  fotoğraf flaşları), kayan LED panolar (golde "GOL!" yanıp söner), kaçış noktasına yakınsayan
+  **çizgili çim** ve saha çizgileri, vinyet.
+- **Kale ağı (`fx/NetSim.ts`, `ui/GoalView.ts`):** kenarlarından sabit yay ağı (ayrık dalga
+  denklemi); topun çarptığı yerden dalga yayılır ve söner, içeride hareket eden top ağı iter, direk
+  çarpması ağı sarsar. Duran ağ önceden çizilmiş dokudur (her karede çizim maliyeti yok).
+- **Top (`ui/BallView.ts`):** dönen desen + dönmeyen ışık/gölge, hıza göre uzama ve çarpmada yay
+  ile basılma, **yüksekliğe göre küçülüp solan gölge**, hızlı topta beyaz **hız izi**.
+- **Efektler — nesne havuzu (`fx/ParticlePool.ts`, `ui/ParticleLayer.ts`):** sabit kapasiteli,
+  dizi yapılı havuz; oyun sırasında bellek ayrılmaz (doluyken en eski parçacık geri dönüştürülür).
+  İki havuz (normal/toplamalı), tek doku atlası (12 kare) → birkaç çizim çağrısı. 28 ön ayar:
+  toz, çim, kıvılcım, kafa yıldızları, direk kıvılcımı, **konfeti** (kaleden fışkırma + tepeden
+  yağmur), balon parçaları ve pırıltı, havai fişek ve **her süper şuta özel**: Ateş (alev + duman +
+  patlama), Buz (kar taneleri + buz kırıkları + buz bloğu), Zikzak (titreyen şimşek çizgisi +
+  kıvılcım), Işınlanma (mor girdap + belirmede halka), Dev Top (toz + kaya parçaları + sarsıntı),
+  Kasırga (dönen yaylar + yapraklar), Gökkuşağı (altı renkli şerit + yıldızlar), Mıknatıs (kaleye
+  doğru nabız atan alan çizgileri), Serap (pembe pırıltı, sönen yanılsamada duman), Sarsıntı (toz
+  bulutu + kaya). Atışta tipin renginde şok halkası ve ekran parlaması. Vuruş flaşı ve halkalar da
+  tween'siz bir sprite havuzunda.
+- **Oyun hissi (`fx/feel.ts`):** sert vuruşta **hit-stop 40–55 ms** (hızla artar), süper ve golde
+  60 ms — simülasyon adımları değişmez, yalnızca döngüye süre akmaz (determinizm korunur);
+  **travma modeli ekran sarsıntısı** (kare ile ölçek; vuruş, direk, süper, iniş, Sarsıntı, gol);
+  gol anında kaleye doğru **%10 kamera zoom'u** (odak ekranda sabit, kenarda boşluk görünmez);
+  vuruşta temas noktasında yıldız flaşı, sert vuruşta hafif ekran parlaması. Sarsıntı ve zoom
+  yalnızca dünya katmanına uygulanır; HUD sabit kalır.
+- **Arayüz stili (`art/uiArt.ts`):** tüm paneller ve butonlar aynı dilde — yuvarlak köşe, yumuşak
+  gölge, dikey gradyan, üstte iç parlama, ince kenar (kodla dokuya çizilir, önbellekli); başlıklarda
+  altın gradyan. **HUD:** gölgeli skor tabelası, canlı portreler, skor kutuları (değişimde eski
+  rakam yukarı kayar, yenisi sekerek iner, kutu parlar), saat hapı (son saniyeler kırmızı nabız,
+  altın golde altın hap), parıltılı güç barları (süper hazırken karakter renginde nabız + süper adı),
+  sprite rozetli güçlendirici geri sayımları, dönen ışınlı "GOL!" afişi + alt yazı hapı, ipucu
+  hapı. Menü butonları, duraklatma/maç sonu panelleri, karakter seçimi (kartlarda canlı küçük
+  karakterler; panellerde fareyi gözleriyle izleyen, hazır olunca sevinen büyük karakter), ana
+  menü (canlı stadyum, biri topu kafasında sektiren iki karakter), yükleme ekranı aynı stilde.
+
+**Ses (`src/audio`)**
+
+- **Motor (`AudioEngine.ts`):** tek AudioContext; veri yolları efekt → ana, kalabalık → efekt,
+  müzik → ana; kırpılmayı önleyen sıkıştırıcı; beyaz ve pembe gürültü tamponları; aynı anda en
+  fazla 28 ses; sekme gizlenince bağlam askıya alınır.
+- **Efektler (`Sfx.ts`):** şut (güç arttıkça daha yüksek perde, daha uzun ve parlak; sert vuruşta
+  "vınn"), kafa ("bonk"), gövde teması, direk (uyumsuz kısmi tonlarla metalik **"dang"**), zemin
+  sekmesi, duvar, ağ ("fışş"), zıplama (çift zıplamada parlak), iniş, düdük, balon + güçlendirici
+  arpeji (türe göre perde), donma, süper hazır, **her süper tipine özel ses** (Ateş kükreme, Buz
+  kristal pırıltı, Zikzak elektrik, Işınlanma "vuup", Dev Top gümbürtü, Kasırga rüzgâr, Gökkuşağı
+  arp glissandosu, Mıknatıs uğultu, Serap ayrışan tonlar, Sarsıntı alt bas), menü gezinme/seçim/
+  geri, son saniye tıkları, gol kornası. Sık sesler (sekme, iniş, kafa) en kısa aralıkla süzülür.
+- **Kalabalık (`Crowd.ts`, `crowdMood.ts`):** pembe gürültüden süzülmüş sürekli uğultu (iki LFO ile
+  dalgalanır); **atak tehlikesi** (topun kaleye uzaklığı, kaleye doğru hızı, yüksekliği — saf,
+  testli fonksiyon) yükseldikçe uğultu parlaklaşır ve "kükreme" katmanı açılır; golde tezahürat
+  patlaması (kükreme + alkış + ıslıklar); direkte "ooo".
+- **Müzik (`Music.ts`, `musicPatterns.ts`):** ileriye bakan zamanlayıcıyla (AudioContext saati)
+  prosedürel, döngüsel iki parça — menü (100 BPM, Do majör, I–vi–IV–V, pad + arpej + melodi) ve maç
+  (128 BPM, La minör, enerjik davul + senkoplu bas + akor darbeleri). Melodi tohumlu ve dizinin
+  içinde; 8 ölçüde bir trampet dolgusu; arpej/melodiye yankı. Parça geçişinde sönme, golde müzik
+  kısılır.
+- **Ayarlar:** Ana ses / Efektler / Müzik (%10 adım; ←/→ değiştir, Enter/tıklama döngü), ana
+  menüde ve **duraklatma menüsünde**; değişiklik anında duyulur ve `localStorage`'a kaydedilir.
+- **Autoplay kuralı:** AudioContext ilk tuş/tıklama/dokunuşta oluşturulur ve açılır; o ana kadar
+  tüm çalma çağrıları sessizce yok sayılır; istenen müzik kilit açılınca başlar.
+
+**Simülasyon (ses/efekt olayları; fizik değişmedi)**
+
+- Yeni olaylar: `jump` (çift zıplama dahil), `land` (düşüş hızıyla), `ballImpact` (zemin/duvar/
+  tavan/direk, yaklaşma hızı, temas noktası; adım başına en sert çarpma) ve `ballTouch` (pasif
+  temas). Eşikler `SIM_EVENTS`'te. Determinizm testi aynen geçiyor; `npm run simulate` 0 sıkışma.
+
+**Performans**
+
+- İlk ölçümde profil, aktif sürenin ~%70'inin Phaser Graphics'in her karede şekilleri yeniden
+  üçgenlemesine gittiğini gösterdi (`fillCircle`/yay her daireyi ~100 noktayla örnekliyor). Çözüm:
+  yüz parçaları yarıçapa göre 6–24 noktalı çokgenlerle (`ui/shapes.ts`); statik çizimler (direkler,
+  etiketler, portre halkaları, ikonlar, rozetler, duran ağ) doku ya da basit dikdörtgen; top izi
+  sprite; büyük duyuru ve yükselen yazılar maç başında önceden oluşturulup yeniden kullanılıyor.
+- **Uyarlamalı kalite (`QualityGovernor`):** 3 kademe; düşük kademede parçacık kapasitesi ve sayısı,
+  bulut/ışık hüzmesi/parlama/vinyet ve kalabalık kıpırtısı azalır. Öğrenilen kademe oturum boyunca
+  hatırlanır. `?quality=low|medium|high` ile sabitlenir.
+- **Testler: 221 → 264.** Yeni: his olayları (zıplama/iniş/çift zıplama, direk ve zemin çarpması,
+  pasif temas, determinizm); parçacık havuzu (hareket, sürükleme, kapasite, geri dönüşüm, yoğun
+  dizi, sınır küçültme); ağ dalgası (yerellik, yayılma, sönme, sınır, kararlılık); yay ve üstel
+  yaklaşma; squash & stretch, koşu, eğilme, donma; yüz ifadesi önceliği, süreli/kalıcı ifadeler,
+  göz kırpma, bakış; hit-stop, sarsıntı, kamera zoom'u, kalite yöneticisi, düşük güçlü cihaz;
+  ses ayarları (adım, döngü, kayıt); müzik desenleri (akorlar, geçerli notalar, döngü
+  determinizmi, dizi içi notalar, tempo); kalabalık tehlikesi (yakınlık, hız, simetri, yükseklik).
+
+### Tarayıcıda doğrulama
+
+Üretim derlemesi, headless Chrome 157 + DevTools protokolü (betikler depoda değil).
+
+- **Uçtan uca akış: 18/18** — menü → Ses Ayarları (← ile %70, kaydedildi) → CPU'ya Karşı → zorluk →
+  seçim → maç; insan hareketi; Esc ile duraklatma → duraklatmadan Ses Ayarları → geri → devam;
+  gol; süre bitimi → maç sonu ekranı (kazanan sevinçli, kaybeden üzgün) → Ana Menü → 2 Oyuncu →
+  iki tarafın seçimi → maç (AI yok); konsolda hata yok.
+- **Ses: 8/8** — her veri yoluna AnalyserNode bağlanıp RMS ölçüldü (sesler `--mute-audio` ile
+  hoparlöre gitmedi): etkileşimden önce bağlam yok, ilk tuşla açılıyor; menü müziği (RMS 0,053) ve
+  kalabalık (0,027) çalıyor; 28 efekt sesinin hepsi ses üretiyor (0,02–0,26); güçlü şut zayıftan
+  yüksek (0,14 → 0,26); gol tezahüratı uğultunun ~4 katı; müzik %0 → müzik veri yolu kısıldı ve
+  kaydedildi.
+- **Görsel:** ana menü, seçim, maç, gol anı (ışınlı GOL!, konfeti, ayağa kalkan kalabalık, zoom),
+  10 süper şutun her biri, donma/büyük kafa/süper parlaması/balon/HUD rozetleri, duraklatma, ses
+  ayarları ve maç sonu ekran görüntüleriyle incelendi.
+
+### Performans ölçümleri
+
+AI vs AI (Zor–Zor), **en yüksek kalite sabit**, stres senaryosu (2,5 sn'de bir gol ya da süper,
+balonlar), 20 sn. "Kare işi": Phaser güncelleme + çizim gönderimi (ana iş parçacığı, JS). GPU:
+masaüstü (ANGLE D3D11). CPU yavaşlatma: DevTools `Emulation.setCPUThrottlingRate`.
+
+| CPU yavaşlatma | Kare işi ort. | p95    | p99    | En kötü | > 20 ms kare | En çok parçacık |
+| -------------- | ------------- | ------ | ------ | ------- | ------------ | --------------- |
+| 1×             | 0,82 ms       | 1,2 ms | 1,4 ms | 4,3 ms  | 0 / 3601     | 323             |
+| 4×             | 3,04 ms       | 4,1 ms | 5,1 ms | 25,4 ms | 1 / 3598     | 331             |
+| 6×             | 4,82 ms       | 6,7 ms | 7,9 ms | 33,9 ms | 1 / 3389     | 308             |
+
+İlk ölçüm (optimizasyondan önce, 4×, debug katmanı açıkken, stres yok): ortalama 16,6 ms, p95
+23,9 ms — bütçenin sınırındaydı. Yazılım GPU'su (SwiftShader, tamamen CPU ile piksel boyama) en
+kötü durum: JS işi ~1,4–1,8 ms ama piksel doldurma nedeniyle ~20–24 FPS; kalite yöneticisi burada
+kaliteyi kendiliğinden en düşük kademeye indirdi (beklenen davranış). Arka planı tamamen kaldırınca
+bile 39 FPS'te kalması, tavanın SwiftShader'ın kendisi olduğunu gösteriyor.
+
+### Tasarım kararları
+
+1. **Dokular Canvas 2D ile, bir kez:** Phaser Graphics'in `generateTexture`'ı gradyan çizemediği için
+   tüm sanat (gradyanlar, gölgeler, `Path2D` SVG yolları) canvas dokularına çiziliyor. Kalabalık ve
+   LED panolar takım renklerine/dile bağlı olduğundan sahne açılışında üretiliyor; geri kalanı
+   yükleme ekranında, kareler arasına bölünerek (çubuk ilerler, tarayıcı donmaz).
+2. **Saç/aksesuar SVG yolu olarak:** şekil verisi sihirli sayı kuralına takılmadan okunabilir
+   kalıyor ve tasarım ayarı kolay; canlı değişen tek şey yüz.
+3. **Yüz her karede çiziliyor (Graphics), gövde parçaları sprite:** gözler topu izliyor, ifadeler
+   ve göz kırpma sürekli değişiyor. Maliyet, düşük segmentli şekillerle sınırlandı.
+4. **Tek dünya kabı:** sarsıntı ve zoom yalnızca dünyaya; HUD, duraklatma ve yazılar sabit.
+   Arka plan ekrandan 48 px taşar; zoom ≥ 1 ve odak ekran içinde olduğu sürece kenarda boşluk
+   görünmez (testli).
+5. **Hit-stop döngü süresini keser, adımları değil:** girdiler adım başına okunduğu için
+   determinizm ve tekrar sistemi etkilenmez.
+6. **Parçacıklar kendi havuzumuzda:** Phaser'ın parçacık sistemi yerine dizi yapılı, testli bir
+   havuz + önceden kurulmuş Image'lar. Oyun sırasında nesne oluşturulmuyor; kapasite kaliteye göre.
+7. **His olayları simülasyonda:** direk mi, ağ mı, zemin mi — en doğru bilgi çözücüde. Olaylar
+   oyun durumunu değiştirmiyor, snapshot'a girmiyor.
+8. **Kalabalık efekt ayarına bağlı:** "Efektler" kısılınca kalabalık da kısılır; müzik ayrı.
+9. **Müzik prosedürel ama deterministik:** melodi ölçü numarasından tohumlanır; döngü her 8 ölçüde
+   aynen tekrarlar (dinleyici bir "parça" duyar, rastgele nota yağmuru değil).
+10. **Debug modunda ses kancası:** `?debug=1` iken `window.__KAFA_AUDIO__` (motor, efektler,
+    kalabalık, müzik) — tarayıcı testleri ses üretimini ölçebilsin.
+11. **Ana menüde alt menüden dönüşte** açan öğe seçili gelir (Ses Ayarları'ndan Esc → Ses Ayarları).
+
+### Ayarlanması gerektiğini düşündüğüm değerler
+
+Hepsi `src/config/gameConfig.ts` içinde; gerçek oyuncu ve gerçek cihazlarla denenmeli:
+
+| Değer                                  | Şu an            | Neden                                                                 | Öneri             |
+| -------------------------------------- | ---------------- | --------------------------------------------------------------------- | ----------------- |
+| `JUICE.hitStop.hardHitSpeed` / `minMs` | 1150 / 40 ms     | Çok sık tetiklenirse oyun "takılıyor" hissi verebilir.                | 1250 / 35 ms      |
+| `JUICE.shake.goal` / `maxOffsetPx`     | 0,75 / 16 px     | Gol sarsıntısı bazı oyunculara fazla gelebilir (hareket hassasiyeti). | 0,6 / 12 px       |
+| `JUICE.zoom.goal`                      | 1,1              | Zoom kalenin önündeki oyuncuyu kırpabiliyor.                          | 1,06–1,1          |
+| `AUDIO.defaults.music` / `musicGain`   | 0,6 / 0,42       | Maç müziği uzun maçlarda yorucu olabilir.                             | oyun testine göre |
+| `CROWD.danger.rangePx`                 | 460              | Kalabalık her kale önü atağında coşuyor; seçicilik az olabilir.       | 360–420           |
+| `QUALITY.downgradeFrameMs` / sustain   | 19,5 ms / 2,5 sn | 50 Hz ekranlarda (20 ms kare) kalite gereksiz düşebilir.              | 21 ms             |
+| `ANIM.squash.landImpulse`              | 6,5              | Ağır inişte basılma abartılı görünebilir.                             | 5–6               |
+
+### Bilinen sorunlar / sınırlamalar
+
+- **Gerçek düşük güçlü cihazda ölçülmedi.** 60 FPS sonucu, masaüstü GPU + CPU yavaşlatma
+  benzetimine ve uyarlamalı kaliteye dayanıyor; zayıf bir mobil GPU'da piksel doldurma (tam ekran
+  katmanlar) darboğaz olabilir — kalite yöneticisi bunu kademe düşürerek karşılamalı.
+- **"Mağaza kalitesi" öznel:** değerlendirme yalnızca ekran görüntüleri ve ses ölçümleriyle
+  yapıldı; gerçek oyuncu testi ve dinleme testi yapılmadı (sesler headless'ta hoparlöre gitmedi).
+- Düşük güçlü cihazda (≤ 4 çekirdek ya da ≤ 4 GB bellek) WebGL kenar yumuşatma kapalı: yüz
+  çizgilerinde hafif tırtık görülebilir. `deviceMemory` bazı tarayıcılarda (Firefox, Safari) yok.
+- Headless ekran görüntüsü alınırken sayfa takıldığı için tween'ler ileri sarılıyor (yalnızca test
+  yapaylığı; oyunda değil).
+- Karakter seçimi ve menü her açılışta kalabalık dokularını yeniden üretiyor (~1–2 kare, açılış
+  anında); dil değişince LED pano metni yeniden üretiliyor.
+- Faz 4'ten süren: eşleşme bazında karşı karakterler, tarayıcılar arası determinizm, `npm audit`
+  uyarısı, kaleye park etme, debug metin kutusunun HUD'a binmesi.
+
+### Sıradaki faz
+
+**Faz 6** — talimat bekleniyor.

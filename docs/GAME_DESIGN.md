@@ -16,8 +16,11 @@ gerçek kişi, kulüp, marka veya logo kullanılmaz.
 - **Input soyutlaması:** Oyuncular klavyeyi doğrudan okumaz. Her adımda bir
   `InputState { left, right, jump, kick, super }` alır. Klavye, dokunmatik, gamepad, AI
   ve tekrar oynatıcı bu arayüzü üretir.
-- **Varlıklar:** Harici dosya yok. Grafikler `Graphics → generateTexture`, sesler Web Audio
-  API ile sentezlenir.
+- **Varlıklar:** Harici dosya yok. Grafikler kodla dokuya çizilir (Canvas 2D: gradyanlar, SVG
+  yolları; ikonlar `Graphics → generateTexture`), sesler Web Audio API ile sentezlenir.
+- **Simülasyon olayları:** GameSim her adımda ses/efekt için olaylar üretir (şut, kafa, temas, top
+  çarpması — zemin/duvar/tavan/direk —, zıplama, iniş, gol, süper…); olaylar oyun durumunu
+  değiştirmez.
 - **Ayarlar:** Tüm denge değerleri `src/config/gameConfig.ts` içinde.
 
 ## 2. Saha
@@ -54,8 +57,10 @@ gerçek kişi, kulüp, marka veya logo kullanılmaz.
 
 - Klavye eşlemesi `KeyboardEvent.code` ile yapılır (sol/sağ Shift ayrımı ve klavye
   düzeninden bağımsızlık için).
-- Arayüz: **Esc / P** duraklat (Devam · Yeniden Başlat · Ana Menü), **F1** debug katmanı.
-  Menülerde ↑/↓ (veya W/S) + Enter/Space ya da fare; alt menüden Esc/Backspace ile geri.
+- Arayüz: **Esc / P** duraklat, **F1** debug katmanı.
+  Menülerde ↑/↓ (veya W/S) + Enter/Space ya da fare; ses ayarlarında ←/→ (veya A/D) düzeyi
+  değiştirir; alt menüden Esc/Backspace ile geri. Duraklatma menüsü: Devam · Ses Ayarları ·
+  Yeniden Başlat · Ana Menü.
 - CPU'ya karşı modda tek oyuncu (P1) iki tuş takımından herhangi birini kullanabilir.
 - **Gamepad:** sol çubuk/d-pad hareket, A zıpla, X/B şut, RB/RT süper.
 - **Mobil:** yatay ekran, solda ←/→, sağda Zıpla / Şut / Süper dokunmatik butonları.
@@ -215,7 +220,42 @@ karakterin toplamı **14**. Puan → fizik değeri (`CHARACTER_STATS`; 3 puan = 
 
 ## 12. Ses ve görsel stil
 
-- Canlı, çizgi film tadında renkler; kalın konturlu büyük kafalar.
-- Sesler Web Audio ile sentezlenir: vuruş "tok", direk "çın", gol için kalabalık uğultusu
-  (gürültü + filtre), düdük, süper şut efektleri.
-- Ekran sarsıntısı, parçacıklar ve vuruş anında kısa "hit-stop" ile tatmin edici his.
+Ayrıntılar ve ölçümler PROGRESS.md Faz 5'te; tüm değerler `gameConfig.ts` (`STADIUM`,
+`CHARACTER_ART`, `ANIM`, `JUICE`, `NET`, `PARTICLES`, `PARTICLE_PRESETS`, `BALL_FX`, `SUPER_FX`,
+`UI_THEME`, `AUDIO`, `CROWD`, `MUSIC`, `QUALITY`).
+
+### Görsel
+
+- **Stil:** canlı, çizgi film tadında renkler; kalın, koyu mor konturlu büyük kafalar; alacakaranlık
+  bir stadyumda ışıklandırma. Tüm dokular kodla (Canvas 2D) bir kez çizilir.
+- **Karakterler:** her birinin cilt tonu, saç modeli, aksesuarı, göz/kaş/ağız karakteri (bkz. §7
+  temaları). Yüz canlıdır: göz bebekleri topu izler, göz kırpar; ifadeler — sevinç (gol atınca),
+  üzüntü (gol yiyince), şaşkınlık (süper etkisi, sert çarpma), donma (titreme), efor (şut/zıplama),
+  sırıtma (süper hazır). HUD portreleri aynı yüzü gösterir.
+- **Animasyon:** squash & stretch (zıplama, iniş, havada uzama), koşu sallanması, hıza göre eğilme,
+  şut savrulması ve izi, iniş/koşu tozu.
+- **Stadyum:** gradyan gökyüzü + parallax bulutlar, ışık kuleleri ve hüzmeler, takım renklerinde
+  animasyonlu kalabalık (golde golcünün tarafı ayağa kalkar), LED panolar (golde "GOL!"),
+  perspektifli çizgili çim, dalgalanan kale ağı.
+- **Top:** dönme, yüksekliğe göre küçülen gölge, hız izi, hızla uzama/çarpmada basılma.
+- **Efektler:** nesne havuzlu parçacıklar — toz, çim, kıvılcım, konfeti, balon patlaması, havai
+  fişek ve her süper şuta özel iz/patlama/çizim.
+- **Oyun hissi:** sert vuruşta 40–60 ms hit-stop (simülasyon adımları değişmez), travma modeli ekran
+  sarsıntısı, gol anında kameranın kaleye ~%10 yakınlaşması, vuruşta flaş. Sarsıntı/zoom yalnızca
+  dünyaya uygulanır; HUD sabittir.
+- **Arayüz:** tek stil — yuvarlak köşeli, gölgeli, gradyanlı paneller ve butonlar; altın gradyanlı
+  başlıklar; animasyonlu skor değişimi; dönen ışınlı "GOL!" afişi.
+- **Performans:** uyarlamalı kalite (3 kademe): kare süresi uzun süre bütçeyi aşarsa parçacıklar,
+  bulutlar, ışık efektleri ve kalabalık kıpırtısı azaltılır; düşük güçlü cihazda (≤ 4 çekirdek ya da
+  ≤ 4 GB bellek) kenar yumuşatma kapalı ve kalite bir kademe aşağıdan başlar.
+
+### Ses (Web Audio sentezi, harici dosya yok)
+
+- **Efektler:** şut (güce göre ton), kafa, gövde teması, direk "dang", zemin/duvar sekmesi, ağ,
+  zıplama, iniş, düdük, balon + güçlendirici, donma, süper hazır, her süper tipine özel ses, menü
+  sesleri, son saniye tıkları, gol kornası.
+- **Kalabalık:** filtrelenmiş gürültüyle sürekli uğultu; tehlikeli atakta yükselir; golde tezahürat
+  patlaması; direkte "ooo".
+- **Müzik:** prosedürel, döngüsel menü ve maç parçaları; golde kısılır.
+- **Ayarlar:** Ana ses / Efektler (kalabalık dahil) / Müzik; ana menüde ve duraklatma menüsünde;
+  kaydedilir. Ses, tarayıcıların autoplay kuralı gereği ilk tuş/tıklama/dokunuşta başlar.
