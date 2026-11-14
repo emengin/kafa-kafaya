@@ -5,8 +5,9 @@ karakterler, süper şutlar, güçlendiriciler ve gol tekrarı.
 
 **Canlı sürüm:** https://emengin.github.io/kafa-kafaya/
 
-> Durum: **Faz 0 — Kurulum.** Şu an yalnızca menü sahnesi var. Ayrıntılar için
-> [docs/PROGRESS.md](docs/PROGRESS.md).
+> Durum: **Faz 1 — Gri kutu prototip.** İki kişi tek klavyede oynayabiliyor: kendi fizik
+> motoru, şut, kafa vuruşu, gol ve santra. Görseller henüz basit gri şekiller. Ayrıntılar
+> için [docs/PROGRESS.md](docs/PROGRESS.md).
 
 ## Teknoloji
 
@@ -29,6 +30,9 @@ npm run format    # Prettier ile biçimlendir
 npm test          # Vitest birim testleri
 ```
 
+Geliştirme kısayolu: `http://localhost:5173/?scene=match&debug=1` menüyü atlayıp doğrudan
+maça girer ve debug katmanını açık başlatır.
+
 ## Kontroller
 
 | Eylem   | Oyuncu 1  | Oyuncu 2  |
@@ -37,6 +41,8 @@ npm test          # Vitest birim testleri
 | Zıpla   | W         | ↑         |
 | Şut     | Space     | Enter     |
 | Süper   | Sol Shift | Sağ Shift |
+
+**F1:** debug katmanı (collider'lar, hız vektörleri, FPS, fizik adım süresi) · **Esc:** menü
 
 ## Klasör yapısı
 

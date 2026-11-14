@@ -2,11 +2,12 @@
 
 ## Faz durumu
 
-| Faz | Başlık                 | Durum         |
-| --- | ---------------------- | ------------- |
-| 0   | Kurulum ve yayın hattı | ✅ Tamamlandı |
-| 1   | —                      | ⏭️ Sıradaki   |
-| 2–7 | —                      | Bekliyor      |
+| Faz | Başlık                                  | Durum         |
+| --- | --------------------------------------- | ------------- |
+| 0   | Kurulum ve yayın hattı                  | ✅ Tamamlandı |
+| 1   | Çekirdek fizik ve kontroller (gri kutu) | ✅ Tamamlandı |
+| 2   | —                                       | ⏭️ Sıradaki   |
+| 3–7 | —                                       | Bekliyor      |
 
 **Canlı sürüm:** https://emengin.github.io/kafa-kafaya/
 
@@ -80,3 +81,147 @@
 **Faz 1** — talimat bekleniyor (muhtemelen deterministik fizik çekirdeği: vektör
 matematiği, daire–daire / daire–dikdörtgen / daire–doğru parçası çarpışmaları,
 sub-stepping ve saha geometrisi).
+
+> Faz 0 notu (Faz 1'de çözüldü): menü tıklaması artık maça geçiyor; `PHYSICS.gravity`
+> kaldırıldı, demo top kendi `MENU.demoBall.gravity` değerini kullanıyor.
+
+---
+
+## Faz 1 — Çekirdek fizik ve kontroller, gri kutu prototip (2026-11-14)
+
+**Bitti kriteri:** iki kişi tek klavyede oynayıp gol atabiliyor ✅ · top hiçbir durumda
+duvar/kale içinden geçmiyor ✅ (testlerle) · his sıkı ve tepkili (ölçümler aşağıda).
+
+### Tamamlananlar
+
+- **Fizik modülü (`src/physics`, Phaser'dan bağımsız):**
+  - `collision.ts`: daire–daire, daire–dikdörtgen (köşeler yuvarlak; merkez içerideyse en
+    yakın kenardan çıkış), daire–doğru parçası (iki yüzlü ve **tek yüzlü**).
+  - `solver.ts`: ters kütle oranında pozisyon düzeltmesi, sekme katsayılı normal impuls,
+    Coulomb sınırlı sürtünme impulsu; sürtünme topun açısal hızını da değiştirir (yerde
+    kayan top yuvarlanır, kafaya sürtünen top dönüş kazanır).
+  - `ballistics.ts`: yerçekimi, doğrusal + karesel hava direnci, hafif Magnus (falso),
+    dönüş sönümü.
+  - `substeps.ts`: uyarlamalı sub-stepping (en az 4, en çok 64 alt adım; bir alt adımda
+    en fazla 8 px yol).
+  - Sabit 60 Hz adım (Faz 0'daki `FixedStepLoop`) + render enterpolasyonu.
+- **Saha (`src/game/pitch.ts`):** zemin, iki duvar, tavan (tek yüzlü parçalar), iki kale:
+  katı üst direk (dikdörtgen), görsel ön direk, ağ bölgesi. Top üst direğin üstündeki
+  bekleme bölgesinde 2 sn'den uzun kalırsa sahaya doğru itilir.
+- **Oyuncu (`src/game/entities/Player.ts`):** kafa dairesi + gövde + ayak.
+  - Eğrili yatay hareket (yerde/havada ayrı ivme, yavaşlama ve dönüş ivmesi).
+  - Zıplama: coyote time, jump buffer, değişken yükseklik, düşerken artan yerçekimi.
+  - Şut: ayak kalça etrafında yay çizer (swing → hold → return); savrulma başına tek
+    darbe; güç = savrulma fazı (o anki açısal hız) + oyuncunun şut yönündeki hızı; yön =
+    temas normalinin açısı (alttan vuruş yükselir, üstten vuruş yere gider); şut tuşu
+    tamponu.
+  - Kafa vuruşu: fiziksel impuls + oyuncu hızının bir kısmının ek aktarımı.
+  - Oyuncular birbirini iter, içinden geçemez; rakibin kafasına basan "yerde" sayılır.
+- **Simülasyon (`src/game/GameSim.ts`):** deterministik maç durumu, gol (top çizgiyi
+  tamamen geçince), gol sonrası 1,5 sn bekleme ve santra, `snapshot()`, olay listesi
+  (`kick`, `header`, `goal`, `crossbarPush`, `kickoff` — ses/efekt fazı için hazır).
+- **Girdi:** `KeyTracker` + `KeyboardInputSource` (`KeyboardEvent.code`, iki adım
+  arasında basılıp bırakılan tuşu kaçırmayan "latch", odak kaybında tuşları bırakma,
+  Space/oklar/F1 için varsayılan davranışı engelleme), `ScriptedInputSource` (test/tekrar).
+- **Sahne ve çizim:** `MatchScene` (2 oyuncu), `GrayboxRenderer` (gri şekiller, ayak
+  savrulurken açık renk), skor, "GOL!" yazısı, kontrol ipucu. Menüde tıklama/tuş →
+  kararma → maç; maçta **Esc** → menü.
+- **F1 debug katmanı:** statik ve dinamik collider'lar, üst direk bekleme bölgesi, ağ
+  bölgesi, şut vuruş yarıçapı, hız vektörleri, FPS, fizik ms/adım, adım/kare, alt adım
+  sayısı, oyuncu zemin/coyote/buffer/şut durumu.
+- **Testler:** 16 → **85** test. Yeni: çarpışma geometrisi, çözücü (sekme, dinlenme,
+  kütle paylaşımı, momentum, sürtünme→dönüş, yuvarlanma koşulu), tünelleme (1.000.000 px/sn
+  duvara, 150.000 px/sn köşelere, 50.000 px/sn 12 px'lik direğe), oyun içinde her yöne
+  en yüksek hızla 168 atış × 90 adım, oyuncunun topu duvara/direğe ezmesi, **determinizm**
+  (rastgele ama tohumlu girdiyle 600 adım → birebir aynı `snapshot` ve olaylar; tek girdi
+  farkının sonucu değiştirdiği duyarlılık testi; 30 Hz / 144 Hz / düzensiz karelerde aynı
+  sonuç), gol/kısmi gol/direk üstü, direkte bekleme, itme, coyote, buffer, değişken
+  zıplama, şut fazı, koşarak şut, kafa aktarımı, falso, yuvarlanma, klavye.
+- **Tarayıcıda doğrulama:** üretim derlemesi headless Chrome'da DevTools protokolüyle
+  gerçek klavye olayları gönderilerek oynatıldı: iki oyuncu da gol attı (1–1), F1 ve
+  Esc çalışıyor, konsolda hata yok. Fizik adımı ~0,07–0,09 ms.
+
+### Ölçülen his değerleri (headless simülasyon)
+
+| Ölçüm                            | Değer                                |
+| -------------------------------- | ------------------------------------ |
+| Zıplama tepe / havada kalma      | 159 px / 0,60 sn                     |
+| Tek karelik dokunuşla zıplama    | 59 px (değişken yükseklik)           |
+| Tam hıza çıkış / duruş           | 0,10 sn / 0,067 sn (11 px)           |
+| Durağan şut (top ayakta)         | 1236 px/sn, 27° yukarı               |
+| Koşarak şut                      | 1427 px/sn, 26° yukarı               |
+| Zıplayarak kafa (top üstte)      | top 1352 px/sn yukarı                |
+| 280 px'ten bırakılan top sekmesi | 110 → 37 → 12 → 4 px, ~2 sn'de durur |
+
+### Tasarım kararları
+
+1. **Saha sınırları tek yüzlü doğru parçası** ve köşelerden 1000 px taşıyor: merkez
+   duvarın arkasına geçmiş olsa bile ön yüze itilir, yani sınırlar fiilen sonsuz kalın
+   yarı-düzlemlerdir. Hızdan bağımsız olarak tünelleme yapısal olarak imkânsız.
+2. **Üst direk dikdörtgen + uyarlamalı alt adım:** bir alt adımda en fazla 8 px yol
+   (top yarıçapı 22 px), böylece hiçbir merkez direğin içine giremez. 64 alt adım
+   sınırıyla ~84.000 px/sn'ye kadar güvenli; top hızı zaten 2000 px/sn ile sınırlı.
+3. **Çözüm sırası (her alt adımda):** oyuncu–saha → oyuncu–oyuncu → top–oyuncu (şut,
+   kafa) → top–saha (en son: top asla statik geometride kalmaz) → top bir yüzeye
+   dayanıyorsa oyuncuyu toptan dışarı it (top duvara ezilemez; oyuncu topun üstüne
+   basabilir) → oyuncu–saha.
+4. **`penetrationSlop` = 0,01 px:** çözücü bu kadar çakışma bırakır (titreme önleme).
+   Testlerin toleransı bu değere bağlı.
+5. **Oyuncular dönmez**, kütleleri topun 10 katı: top çarpınca hafifçe sarsılırlar ama
+   itilip savrulmazlar (Kaya'nın "Dev Top"u için kütle oranı ayarlanabilir kalıyor).
+6. **Şut modeli oyun hissi için yarı fiziksel:** ayağın açısal hızı ease-out (en hızlı
+   başta) → top ayaktayken basılan şut tam güçte; geç temas zayıf. Yön, temas normalinin
+   yükselme açısından türetilir (alttan/üstten vuruş kuralı korunur), hep ileri.
+   Savrulma sırasında vuruş yarıçapına +6 px tolerans.
+7. **Kafa aktarımı eşikli:** ek hız aktarımı yalnızca oyuncu topa doğru hareket ederken
+   ve yaklaşma hızı ≥ 150 px/sn iken uygulanır; kafada taşınan top kendiliğinden
+   hızlanmaz.
+8. **Bakış yönü sabit** (P1 sağa, P2 sola) — türün alışılmış davranışı; GAME_DESIGN.md'ye
+   eklendi.
+9. **Klavye Phaser yerine doğrudan DOM'dan** (`KeyboardEvent.code`): Phaser `keyCode`
+   kullanır, sol/sağ Shift'i ayıramaz. "Latch" sayesinde 16 ms'den kısa basışlar da
+   kaybolmaz. Arayüz tuşları (F1, Esc) girdi kaydına girmez.
+10. **Gol sonrası simülasyon akmaya devam eder** (top ağda seker, oyuncular hareket
+    edebilir); bu sürede ikinci gol sayılmaz. Ağır çekim/tekrar sonraki fazlarda.
+11. **Geliştirici kısayolu** `?scene=match&debug=1`.
+12. **Faz 0 hatası düzeltildi:** `npm run preview` yerelde siyah ekran veriyordu
+    (`vite preview`'da `command === 'serve'` olduğu için `base` `/` oluyor, derlenmiş
+    dosyalar ise `/kafa-kafaya/` altında). `isPreview` de hesaba katılıyor. CI/Pages
+    etkilenmemişti.
+
+### Ayarlanması gerektiğini düşündüğüm değerler
+
+Hepsi `src/config/gameConfig.ts` içinde. İki kişilik gerçek oyun testinde öncelikle
+bunlara bakılmalı:
+
+| Değer                                      | Şu an              | Neden                                                                                                                     | Öneri                                  |
+| ------------------------------------------ | ------------------ | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| `KICK.baseLift`                            | 0,3 rad            | Yerdeki topa şut ~27° çıkıyor; aşırı düz gelebilir, aşırtma zor.                                                          | Düz geliyorsa 0,4–0,45                 |
+| `KICK.maxSpeed` / `playerVelocityTransfer` | 1250 / 0,5         | Koşarak şut ~1430 px/sn; orta sahadan boş kaleye gol mümkün. Savunma yetişemiyorsa fazla.                                 | maxSpeed 1100–1150                     |
+| `KICK.hitRadiusBonus`                      | 6 px               | Şutu affedici yapıyor; "mıknatıs gibi uzaktan vuruyor" hissi verirse düşürülmeli.                                         | 3–4 px                                 |
+| `KICK.swing/hold/returnSeconds`            | 0,09 / 0,05 / 0,12 | Döngü 0,26 sn → saniyede ~4 şut; şut spam'i baskın olabilir.                                                              | returnSeconds 0,16 veya bekleme süresi |
+| `PLAYER.jump.cutMultiplier`                | 0,55               | Tek karelik dokunuş yalnızca 59 px zıplatıyor; hızlı basanlar "zıplamadı" diyebilir.                                      | 0,65 ya da en kısa zıplama süresi      |
+| `PLAYER.jump.gravity` ↔ `BALL.gravity`     | 3100 ↔ 1500        | Oyuncu toptan ~2 kat hızlı düşüyor; kafa zamanlaması zorsa fark büyük demektir.                                           | Top 1650–1750                          |
+| `PLAYER.move.groundDecel`                  | 6500               | 0,067 sn'de duruş çok keskin; klavyede "titrek" hissedilirse.                                                             | 5000–5500                              |
+| `HEADER.velocityBonus`                     | 0,3                | Zıplayarak kafa topu ~1350 px/sn ile tavana yolluyor; tavan sekmeleri çok sık olabilir.                                   | 0,2                                    |
+| `PITCH.materials.ground.restitution`       | 0,6                | Top hızlı "ölüyor" (110 → 37 → 12 px); türde top daha canlı olur.                                                         | 0,68–0,72                              |
+| `BALL.maxSpin` / `BALL.magnus`             | 35 / 0,015         | Şutlar yalnızca ±5 rad/sn dönüş veriyor (etki hafif); ama kafaya sürtünmeyle yüksek dönüşte top belirgin kavis çizebilir. | maxSpin 20–25                          |
+| `PITCH.goal.mouthHeight`                   | 210 px             | Ayaktaki oyuncu (118 px) ağzın %56'sını kapatıyor, zıplayınca tamamını. Savunma kolaysa.                                  | 220–230                                |
+| `PITCH.goal.depth`                         | 90 px              | Oyuncu kalenin içine tamamen sığıyor (kafa 72 px); "kaleye park etme" güçlü olabilir.                                     | 70 px veya kural                       |
+| `PLAYER.mass`                              | 10                 | En hızlı top duran oyuncuyu ~280 px/sn geri itiyor.                                                                       | 8–14 arası his testi                   |
+
+### Bilinen sorunlar / sınırlamalar
+
+- **Tarayıcılar arası determinizm:** `Math.sin/cos/exp/atan2` son bitlerde JS motorları
+  arasında farklı olabilir. Tekrar aynı makinede/tarayıcıda birebir; çevrimiçi
+  senkronizasyon gerekirse (kapsam dışı) ele alınmalı.
+- Aynı alt adımda iki oyuncu da topa değerse P1 önce işlenir (çok küçük sıra etkisi).
+- Oyuncu kendi kalesinin içine tamamen girebiliyor (kaleye park etme kuralı yok).
+- Debug katmanı metinleri teknik kısaltmalar; çevrilmedi (geliştirici aracı).
+- Maç süresi, altın gol, güç barı ve süper henüz yok (`InputState.super` okunuyor ama
+  kullanılmıyor).
+- `npm audit` uyarısı (Faz 0'dan) sürüyor.
+
+### Sıradaki faz
+
+**Faz 2** — talimat bekleniyor.

@@ -37,6 +37,11 @@ gerçek kişi, kulüp, marka veya logo kullanılmaz.
   vurulan top yükselir, üst kısmıyla vurulan top yere doğru gider.
 - **Kafa vuruşu:** kafa dairesi topla çarpıştığında oyuncunun hızı topa aktarılır
   (zıplarken kafa → güçlü vole, koşarken kafa → ileri itiş).
+- **Bakış yönü sabittir:** oyuncu her zaman rakip kaleye bakar (P1 sağa, P2 sola); şut
+  hep ileri gider. Türün alışılmış davranışı; geriye şut yoktur.
+- **Hareket hissi:** ivmeli/yavaşlamalı yatay hareket (ters yöne dönüş daha keskin),
+  zıplamada coyote time, jump buffer, değişken yükseklik (tuş erken bırakılırsa alçak
+  zıplama) ve düşerken artan yerçekimi.
 
 ## 4. Kontroller
 
@@ -49,6 +54,7 @@ gerçek kişi, kulüp, marka veya logo kullanılmaz.
 
 - Klavye eşlemesi `KeyboardEvent.code` ile yapılır (sol/sağ Shift ayrımı ve klavye
   düzeninden bağımsızlık için).
+- Arayüz: **F1** debug katmanı, **Esc** menüye dön.
 - **Gamepad:** sol çubuk/d-pad hareket, A zıpla, X/B şut, RB/RT süper.
 - **Mobil:** yatay ekran, solda ←/→, sağda Zıpla / Şut / Süper dokunmatik butonları.
 
