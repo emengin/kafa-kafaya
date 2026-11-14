@@ -151,7 +151,8 @@ export const MENU = {
   },
   /** Menüdeki zıplayan top — sabit adımlı döngünün görsel sağlaması. */
   demoBall: {
-    xRatio: 0.5,
+    /** Yazılarla çakışmasın diye sağ tarafta. */
+    xRatio: 0.85,
     startHeightRatio: 0.15,
     restitution: 0.82,
     /** Sekme hızı bunun altına düşerse top yeniden bu hızla fırlatılır (px/sn). */
