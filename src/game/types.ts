@@ -9,8 +9,21 @@ export type MatchEndReason = 'time' | 'goldenGoal';
 
 /** Simülasyonun bir adımda ürettiği olaylar (ses, efekt, HUD için). */
 export type SimEvent =
-  | { readonly type: 'kick'; readonly player: PlayerIndex; readonly speed: number }
-  | { readonly type: 'header'; readonly player: PlayerIndex; readonly speed: number }
+  /** `super`: vuruş süper miydi (bar doluyken Süper ile hazırlanmış). */
+  | {
+      readonly type: 'kick';
+      readonly player: PlayerIndex;
+      readonly speed: number;
+      readonly super: boolean;
+    }
+  | {
+      readonly type: 'header';
+      readonly player: PlayerIndex;
+      readonly speed: number;
+      readonly super: boolean;
+    }
+  /** Oyuncu dolu barla Süper'e bastı: bir sonraki vuruşu süper olacak. */
+  | { readonly type: 'superArmed'; readonly player: PlayerIndex }
   | { readonly type: 'goal'; readonly scorer: PlayerIndex }
   | { readonly type: 'crossbarPush' }
   /** Oyuncular ve top başlangıç konumuna alındı (santra bekleyişi başladı). */

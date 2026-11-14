@@ -80,6 +80,12 @@ export class TextMenu {
     if (tracker.consumeAny(ui.menuConfirm)) this.confirm();
   }
 
+  /** Seçili öğeyi ayarlar (ör. kayıtlı zorluk); aralık dışı değer yok sayılır. */
+  select(index: number): void {
+    this.nav.select(index);
+    this.refresh();
+  }
+
   destroy(): void {
     for (const text of this.texts) text.destroy();
   }

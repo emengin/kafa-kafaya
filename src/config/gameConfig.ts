@@ -91,6 +91,11 @@ export const PITCH = {
     crossbarThickness: 12,
     /** Üst direğin üstündeki "bekleme" bölgesinin yüksekliği; top burada kalırsa itilir. */
     restZoneHeight: 70,
+    /**
+     * Bekleme bölgesinin direğin ön kenarından sahaya taşması (≈ top yarıçapı): direğin ön
+     * köşesinde dengede duran top da bölgede sayılır (yoksa köşede sonsuza dek kalabilir).
+     */
+    restZoneOverhang: 22,
     /** Bekleme süresi (MATCH.crossbarRestMaxSeconds) aşılınca topa verilen hız, px/sn. */
     pushSpeed: 320,
     popSpeed: 280,
@@ -223,6 +228,30 @@ export const HEADER = {
   minImpactSpeed: 150,
 } as const;
 
+/**
+ * Güç barı (0–1). Zamanla ve topa dokundukça dolar; doluyken Süper tuşu bir sonraki vuruşu
+ * (şut ya da kafa) süper yapar ve barı boşaltır. Süper hazırken bar dolmaz.
+ */
+export const POWER = {
+  /** Oyun akarken pasif dolum (bar/sn): ~20 sn'de dolar. */
+  chargePerSecond: 0.05,
+  /** Topa her dokunuşta (şut, kafa, temas) eklenen miktar. */
+  chargePerTouch: 0.08,
+  /** Aynı oyuncunun iki dokunuş dolumu arasındaki en kısa süre (top sürerken bar hızla dolmasın). */
+  touchCooldownSeconds: 0.3,
+} as const;
+
+/**
+ * Genel süper vuruş (karaktere özgü süperler sonraki fazlarda). Süper şut daha hızlı ve daha
+ * düz gider; süper kafa topu en az `headerMinSpeed` hızla gönderir.
+ */
+export const SUPER = {
+  kickSpeedMultiplier: 1.5,
+  /** Şutun yükselme açısı bu katsayıyla çarpılır (düz, "füze" gibi şut). */
+  elevationScale: 0.5,
+  headerMinSpeed: 1500,
+} as const;
+
 /** Maç kuralları (GAME_DESIGN.md ile uyumlu). Süreler saniye. */
 export const MATCH = {
   durationSeconds: 90,
@@ -244,6 +273,329 @@ export const MATCH = {
   goalSlowMoScale: 0.3,
   /** Kalan süre bunun altına inince saat kırmızı ve nabızlı. */
   finalCountdownSeconds: 10,
+} as const;
+
+/** Yapay zekâ zorluk seviyeleri. */
+export type AiDifficulty = 'easy' | 'medium' | 'hard';
+
+export const AI_DIFFICULTIES: readonly AiDifficulty[] = ['easy', 'medium', 'hard'];
+
+/**
+ * Bir zorluk seviyesinin parametreleri. AI yalnızca `InputState` üretir; zorluk farkı
+ * algı, tahmin ve karar kalitesinden gelir — fizik ve kurallar insanla aynıdır.
+ */
+export interface AiProfile {
+  /** Reaksiyon (algı) gecikmesi, ms: top ve rakip bu kadar eski hâliyle görülür. */
+  readonly reactionMs: number;
+  /** Her kararda gecikmeye eklenen rastgele sapmanın std'si (ms). */
+  readonly reactionJitterMs: number;
+  /** Tahmin hatası: yörünge tahmininde topun hızına eklenen gürültünün std'si (hıza oran). */
+  readonly predictionError: number;
+  /** Karar sıklığı: mod ve hedef seçimi arası süre (ms). */
+  readonly decisionIntervalMs: number;
+  /** Yörünge tahmininin periyodik yenilenme aralığı (ms). Çarpışma görülünce hemen yenilenir. */
+  readonly predictionIntervalMs: number;
+  /** Agresiflik 0–1: topa ne kadar istekli gidilir, savunmada ne kadar ileride beklenir. */
+  readonly aggression: number;
+  /** Süper kullanım oranı 0–1: iyi bir süper fırsatında süperi kullanma olasılığı. */
+  readonly superUseRate: number;
+  /** Hedef konuma eklenen insani sapmanın std'si (px). */
+  readonly aimErrorPx: number;
+  /** Yeni bir şut fırsatında tereddüt edip geç kalma olasılığı. */
+  readonly kickHesitation: number;
+  /** Şut seçiciliği 0–1: 0 = her fırsatta vur, 1 = gole gidecek şutu bekle. */
+  readonly shotSelectivity: number;
+  /** Dalgınlık: bir kararın kısa süre ertelenme olasılığı. */
+  readonly distraction: number;
+  /** Şut zamanlaması hatasının std'si (adım): erken basış zayıf şut/ıska, geç basış gecikme. */
+  readonly kickTimingError: number;
+}
+
+export const AI_PROFILES: Readonly<Record<AiDifficulty, AiProfile>> = {
+  easy: {
+    reactionMs: 330,
+    reactionJitterMs: 70,
+    predictionError: 0.2,
+    decisionIntervalMs: 250,
+    predictionIntervalMs: 210,
+    aggression: 0.25,
+    superUseRate: 0.2,
+    aimErrorPx: 45,
+    kickHesitation: 0.4,
+    shotSelectivity: 0,
+    distraction: 0.15,
+    kickTimingError: 2,
+  },
+  medium: {
+    reactionMs: 220,
+    reactionJitterMs: 45,
+    predictionError: 0.1,
+    decisionIntervalMs: 150,
+    predictionIntervalMs: 130,
+    aggression: 0.55,
+    superUseRate: 0.55,
+    aimErrorPx: 20,
+    kickHesitation: 0.15,
+    shotSelectivity: 0.35,
+    distraction: 0.05,
+    kickTimingError: 1,
+  },
+  hard: {
+    reactionMs: 150,
+    reactionJitterMs: 25,
+    predictionError: 0.04,
+    decisionIntervalMs: 80,
+    predictionIntervalMs: 70,
+    aggression: 0.8,
+    superUseRate: 0.95,
+    aimErrorPx: 8,
+    kickHesitation: 0.03,
+    shotSelectivity: 0.7,
+    distraction: 0,
+    kickTimingError: 0.3,
+  },
+};
+
+/**
+ * Yapay zekânın zorluktan bağımsız ayarları (geometri, davranış eşikleri, sıkışma önleme).
+ * Uzunluklar kanonik çerçevede verilir: AI kendini hep "sol kaleyi savunan, sağa hücum eden"
+ * oyuncu olarak görür; P2 için dünya aynalanır.
+ */
+export const AI = {
+  /** Yörünge tahmininin ufku (sn). */
+  predictionHorizonSeconds: 1.5,
+  /**
+   * Şut değerlendirmesinde vuruş sonrası topun izlendiği süre (sn). Sert şutun rakip duvarından
+   * sekip kendi kaleye dönmesini de görecek kadar uzun.
+   */
+  shotHorizonSeconds: 2,
+  /** Desteklenen en uzun reaksiyon gecikmesi (algı geçmişi tamponu), ms. */
+  maxReactionMs: 600,
+  /** Algılanan top hızı bir adımda bundan fazla sıçrarsa (çarpışma) tahmin hemen yenilenir. */
+  eventSpeedChange: 140,
+  /** Periyodik yenilemede tahmin hatası bu oranla küçülür (top yaklaştıkça kestirim iyileşir). */
+  noiseDecayPerRefresh: 0.6,
+  /** Karar aralığına eklenen rastgele sapma (adım). */
+  decisionJitterSteps: 1,
+  /**
+   * Bir çarpışma (şut, sekme) algılanınca sıradaki karar `decisionIntervalMs × bu oran`
+   * içinde verilir: olaylara daha çabuk ama yine zorluğa bağlı gecikmeyle tepki.
+   */
+  eventDecisionFactor: 0.4,
+  /** Dalgın bir karar bu kadar ertelenir (sn); art arda iki dalgınlık olmaz. */
+  distractionSeconds: 0.15,
+  /** Debug katmanında tahmin edilen yörüngenin kaç adımda bir çizileceği. */
+  debugTrajectoryStride: 3,
+  movement: {
+    /** Hedefe bu mesafeden yakınsa durur (px). */
+    deadzonePx: 7,
+    /** Hedefe varış süresi kestiriminde ivmelenme payı (sn). */
+    accelLagSeconds: 0.06,
+  },
+  kick: {
+    /** Yerdeki topa şut için topun arkasında durulacak mesafe (merkezden merkeze, px). */
+    behindBallPx: 50,
+    /** Topun yerden şuta uygun sayılması için merkezinin en küçük y'si. */
+    groundBallMinY: 540,
+    /** Şut tuşuna, temas en geç bu kadar adım sonra gerçekleşecekse basılır. */
+    maxContactTicks: 3,
+    /** Acil değilse, savrulma bu fazın altında topa değecekse (zayıf şut) beklenir. */
+    minSwingFactor: 0.45,
+    /** Seçici AI iyi şut beklerken en çok bu kadar sabreder (sn). */
+    shotPatienceSeconds: 0.45,
+    /** Rakip topa bu kadar yakınsa şut acildir (px). */
+    pressureDistancePx: 170,
+    /** Top kendi kalesine bu kadar yakınsa şut acildir (px, kale çizgisinden). */
+    dangerZonePx: 330,
+    /** Şut değerlendirmesinde rakibe bu kadar yaklaşan top "bloke" sayılır (px). */
+    blockMarginPx: 4,
+    blockCheckSeconds: 0.4,
+    /** Tereddüt süresi (sn). */
+    hesitationSeconds: 0.22,
+    /** Bu kadar adım fırsat görülmezse bir sonraki fırsat "yeni" sayılır. */
+    newOpportunityGapTicks: 12,
+    /** Top bana bundan hızlı geliyorsa (px/sn) vole acildir. */
+    incomingSpeed: 250,
+    /** Yer vuruşu hedefinde nişan sapmasının kullanılan oranı (top yakınında küçük sapma). */
+    aimErrorScale: 0.35,
+    /** Seçicilik eşiği = shotSelectivity × bu katsayı (şut puanı 0–1). */
+    selectivityScale: 0.85,
+    /** Şut puanı: rakibe çarpacak şut / gol değilse taban + mesafe katkısı. */
+    blockedScore: 0.1,
+    progressBase: 0.3,
+    progressScale: 0.4,
+    /** Sekip kendi kaleye dönecek şutun puanı (negatif = asla vurma). */
+    ownGoalScore: -1,
+  },
+  header: {
+    /** Kafa merkezinden topa temas yönünün yataydan açısı (rad): hücumda ileri, savunmada yukarı. */
+    attackAngle: 0.35,
+    defendAngle: 0.75,
+    /** Bu yükseklikten (px) az zıplama gerektiren toplar yerden oynanır. */
+    minRise: 22,
+    maxRise: 152,
+    /** Kafa planı en çok bu kadar ileriye yapılır (sn). */
+    maxLeadSeconds: 1.0,
+    /** Zıplama anı bu kadar adım içindeyse plan kilitlenir (titreme olmasın). */
+    commitTicks: 3,
+    /** Kafa planı en erken bu kadar adım sonrasına yapılır. */
+    minLeadTicks: 2,
+    /** Zıplama tuşu temastan sonra bu kadar adım daha basılı tutulur. */
+    holdExtraTicks: 3,
+    /** Planlanan zıplama anı bu kadar adım kaçarsa plan iptal edilir. */
+    lateToleranceTicks: 2,
+    /** Kafa hedefinde nişan sapmasının kullanılan oranı. */
+    aimErrorScale: 0.3,
+    /** Kale ağzında kafa ile üst direğin alt yüzü arasında bırakılan pay (px). */
+    crossbarClearancePx: 4,
+    /** Zıplama anında oyuncu planlanan noktadan bundan uzaksa (px) kafa iptal edilir. */
+    jumpPositionTolerancePx: 40,
+  },
+  defend: {
+    /** Kale çizgisinin önündeki bekleme noktası (px). */
+    guardOffsetPx: 62,
+    /** Bekleme noktası topa doğru bu oranla kayar. */
+    guardBallFactor: 0.22,
+    /** Arkada kalan alçak topun üstünden zıplamak için yatay mesafe (px). */
+    hopTriggerPx: 85,
+    /** Sıçrayıştan sonra topun ne kadar gerisine inilecek (px). */
+    hopLandingPx: 70,
+    /** Sıçrayış yüksekliği seçilirken topun bu kadar adım içindeki en yüksek noktasına bakılır. */
+    hopLookTicks: 14,
+    /** Gövdenin altı ile topun üstü arasında bırakılan pay (px). */
+    hopMarginPx: 10,
+    /** Top bu yükseklikten (merkez y) aşağıdaysa üstünden atlanmalı. */
+    hopBallMinY: 470,
+    /** Top oyuncunun bu kadar gerisindeyse "arkada" sayılır (px). */
+    behindMarginPx: 14,
+    /** Top şimdi ve bu kadar sn sonra da gerideyse "arkada" sayılır. */
+    behindLookaheadSeconds: 0.3,
+    /** Arkadaki topun üstünden atlayıp gerisine geçmenin ek süresi (sn). */
+    hopPenaltySeconds: 0.35,
+  },
+  position: {
+    /** Bekleme konumu: kale çizgisinden taban uzaklık + topa doğru kayma oranı (agresiflikle artar). */
+    basePx: 90,
+    ballFactorMin: 0.15,
+    ballFactorMax: 0.42,
+    /** Bekleme konumu topun en az bu kadar gerisinde kalır (px). */
+    minBehindBallPx: 140,
+  },
+  utility: {
+    /** Mod değişimi için yeni modun en az bu kadar daha yüksek puan alması gerekir. */
+    hysteresis: 0.06,
+    /** Top rakip kale çizgisine bu mesafeden yakınsa hücum puanına fırsat bonusu eklenir. */
+    goalChanceZonePx: 360,
+    goalChance: 0.35,
+    /**
+     * Düello: iki oyuncu da topa bu kadar yakın zamanlarda (sn) ulaşacaksa ve top sahanın
+     * `contestMinBallXRatio`'dan ilerisindeyse, hücum puanından contestPenalty × (1 − agresiflik)
+     * düşülür: temkinli AI savunmada bekler. Rastgele bir sabır süresinden sonra ceza kalkar
+     * (iki temkinli AI topun başında sonsuza dek beklemesin).
+     */
+    contestSeconds: 0.25,
+    contestPenalty: 0.5,
+    contestMinBallXRatio: 0.35,
+    contestPatienceMin: 0.6,
+    contestPatienceMax: 1.6,
+    /**
+     * Sahipsiz top: bundan yavaş (px/sn) top, bölüm başında rakip en az `looseBallOpponentPx`
+     * uzaktaysa, rastgele [min, max] sn beklendikten sonra hücum puanına `looseBallBonus` ekler.
+     */
+    looseBallSpeed: 90,
+    looseBallOpponentPx: 160,
+    looseBallDelayMin: 0.3,
+    looseBallDelayMax: 1.2,
+    looseBallBonus: 0.5,
+    position: 0.3,
+    threat: 1.25,
+    /** Tehdit uzaktaysa (ufkun sonunda) puan bu oranda azalır. */
+    threatDecay: 0.3,
+    /** Savunma puanı çarpanı = base − aggression × agresiflik. */
+    defendScaleBase: 1.1,
+    defendScaleAggression: 0.4,
+    behind: 0.8,
+    opponentAdvantage: 0.35,
+    attackBase: 0.5,
+    attackAggression: 0.45,
+    /** Rakip topa bu kadar (sn) önce ulaşacaksa "rakip avantajlı" sayılır. */
+    advantageSeconds: 0.15,
+    /**
+     * Rakip avantajlıyken hücum puanından düşülen en büyük değer; rakip `advantageFullSeconds`
+     * kadar önce ulaşacaksa tamamı düşülür (hiçbir seviye topa koşmaz, pozisyonda kalır).
+     */
+    advantagePenalty: 0.6,
+    advantageFullSeconds: 0.5,
+  },
+  super: {
+    /** Süper şut için topun rakip kale çizgisine uzaklık aralığı (px). */
+    minDistancePx: 180,
+    maxDistancePx: 820,
+    /** Süper, vuruşa en çok bu kadar kala hazırlanır (sn). */
+    maxLeadSeconds: 0.6,
+  },
+  /** Kendi kalesine gol önleme refleksi: kale tarafındaki topa önden çarpmamak için fren. */
+  safety: {
+    /** Bu kadar adım ileriye bakılır. */
+    lookTicks: 10,
+    /** Top oyuncunun en az bu kadar gerisindeyse (kale tarafında) sayılır (px). */
+    goalSideMarginPx: 8,
+    /** Temas mesafesine eklenen pay (px). */
+    contactMarginPx: 6,
+  },
+  /** AI'ın kendi sıkışma algısı ve kaçış davranışı. */
+  stuck: {
+    /** Yön tuşuna basılıyken yerdeki oyuncu bundan yavaşsa bir şeye dayanıyordur (px/sn). */
+    pushMinSpeed: 45,
+    pushSeconds: 0.6,
+    /** İtişme süresi sınırı her kaçıştan sonra bu aralıkta rastgele bir çarpanla değişir. */
+    pushPatienceMin: 0.7,
+    pushPatienceMax: 1.5,
+    /** Direğin ya da rakibin kafasının üstünde durma ("yükseltide yerde") süresi sınırı. */
+    elevatedSeconds: 0.25,
+    /** Ayakta duruşun bu kadar üstünde "yerde" olan oyuncu bir şeyin üstündedir (px). */
+    elevatedMarginPx: 36,
+    /** Top kafanın üstünde bu süreden uzun taşınırsa silkelenir. */
+    ballOnHeadSeconds: 0.8,
+    ballOnHeadDx: 30,
+    ballOnHeadGapPx: 6,
+    ballOnHeadMaxVy: 80,
+    /** Yavaş top yakındayken (px) oyuncu bu süre boyunca yerinden kıpırdamazsa kaçış. */
+    idleSeconds: 1.2,
+    idleRadiusPx: 170,
+    idleTravelPx: 6,
+    idleBallMaxSpeed: 60,
+    /** Kaçış hareketinin süresi ve zıplamanın basılı tutulduğu süre (sn). */
+    escapeSeconds: 0.45,
+    escapeJumpSeconds: 0.25,
+    cooldownSeconds: 1.0,
+    /** Duvara bu kadar yakın itişmede kaçış yönü sahanın ortasıdır (px). */
+    wallMarginPx: 40,
+    /** İtişmede geri çekilme (aksi hâlde zıplayıp üstünden geçme) olasılığı. */
+    backOffChance: 0.6,
+    /** "Donup kalma" kaçışında ileri gitme ve zıplama olasılıkları. */
+    forwardChance: 0.6,
+    idleJumpChance: 0.5,
+  },
+  /** Simülasyon raporundaki bağımsız sıkışma gözlemcisi (StuckMonitor) eşikleri. */
+  monitor: {
+    /** Top bu süre boyunca bu yarıçapın dışına çıkmazsa "donmuş top". */
+    ballFrozenSeconds: 3,
+    ballFrozenRadiusPx: 12,
+    /** Oyuncular temas hâlinde ve ikisi de yavaşsa "kilitlenme". */
+    lockedSeconds: 2,
+    lockedSpeed: 40,
+    lockedGapPx: 3,
+    /** Yön tuşuna basan oyuncu bu süre boyunca bu kadar bile ilerleyemezse "sıkışmış oyuncu" (azami hızın ~%3ü). */
+    pinnedSeconds: 2,
+    pinnedTravelPx: 30,
+    /** Oyuncu kale üstünde bu süreden uzun durursa. */
+    crossbarSeconds: 2,
+    /** Top bir oyuncunun kafasında bu süreden uzun taşınırsa. */
+    carriedSeconds: 3,
+    /** Topa bu süre boyunca kimse dokunmazsa ("top unutuldu"). */
+    untouchedSeconds: 10,
+  },
 } as const;
 
 /**
@@ -268,6 +620,8 @@ export const CONTROLS = {
     menuUp: ['ArrowUp', 'KeyW'],
     menuDown: ['ArrowDown', 'KeyS'],
     menuConfirm: ['Enter', 'NumpadEnter', 'Space'],
+    /** Alt menüden geri dönüş. */
+    menuBack: ['Escape', 'Backspace'],
   },
 } as const;
 
@@ -284,6 +638,12 @@ export const DEV = {
   durationParam: 'duration',
   /** `?debug=1` iken Phaser oyun nesnesi bu adla `window`'a konur (tarayıcı testleri). */
   globalGameName: '__KAFA_GAME__',
+  /** `?cpu=easy|medium|hard` → CPU'ya karşı maç (P2 yapay zekâ). */
+  cpuParam: 'cpu',
+  /** `?cpu1=easy|medium|hard` → P1 de yapay zekâ (AI vs AI izleme). */
+  cpu1Param: 'cpu1',
+  /** `?seed=N` → yapay zekânın rastgelelik tohumu (aynı tohum + aynı girdiler → aynı maç). */
+  seedParam: 'seed',
 } as const;
 
 /** Kalıcı kayıt (localStorage) anahtarları. */
@@ -291,6 +651,7 @@ export const STORAGE = {
   prefix: 'kafa-kafaya.',
   keys: {
     language: 'language',
+    aiDifficulty: 'aiDifficulty',
   },
 } as const;
 
@@ -350,12 +711,12 @@ export const MENU = {
   },
   /** Ana menü seçenekleri (dikey liste). */
   items: {
-    yRatio: 0.6,
+    yRatio: 0.53,
     fontSizePx: 38,
-    spacingPx: 62,
+    spacingPx: 58,
     strokePx: 6,
   },
-  navHint: { yRatio: 0.8, fontSizePx: 18, alpha: 0.75 },
+  navHint: { yRatio: 0.85, fontSizePx: 18, alpha: 0.75 },
   footer: {
     fontSizePx: 18,
     marginPx: 16,
@@ -388,6 +749,8 @@ export const MENU = {
   clickFlash: { durationMs: 150, red: 255, green: 255, blue: 255 },
   /** Menüden maça geçerken kararma süresi (ms). */
   startFadeMs: 250,
+  /** Alt menü başlığı ("Zorluk seç"): ilk öğenin bu kadar üstünde. */
+  submenuTitle: { offsetY: 58, fontSizePx: 24, strokePx: 5, color: '#ffd23f' },
 } as const;
 
 /** Faz 1 gri kutu çizimi (Phaser Graphics ile basit şekiller). */
@@ -415,6 +778,8 @@ export const GRAYBOX = {
   ],
   /** Savrulma sırasında ayak bu renge döner (şutun görünür olması için). */
   kickFoot: 0xf5f5f5,
+  /** Süper hazır olan oyuncunun kafasının çevresinde nabız atan halka. */
+  superGlow: { color: 0xffd23f, lineWidthPx: 5, extraRadius: 7, pulseHz: 4, alphaMin: 0.35 },
   /** Göz: bakış yönünü gösterir. Konum kafa yarıçapına oranla. */
   eye: { color: 0x1a1a1a, radius: 5, forwardRatio: 0.5, upRatio: 0.15 },
   ball: { fill: 0xf2f2f2, spoke: 0x1a1a1a, spokePx: 3 },
@@ -459,6 +824,27 @@ export const HUD = {
   hint: { marginPx: 10, fontSizePx: 16, alpha: 0.55 },
   /** Oyuncu etiketi (P1/P2) kafanın üstünden bu kadar yukarıda. */
   label: { gapPx: 8, fontSizePx: 18, strokePx: 4, alpha: 0.95 },
+  /**
+   * Güç barları: isimlerin altında, skor çubuğunun içinde; sahanın ortasına doğru dolar.
+   * Doluyken altın rengi, süper hazırken yanıp söner ve "SÜPER!" yazar.
+   */
+  power: {
+    offsetX: 178,
+    y: 64,
+    width: 150,
+    height: 8,
+    radius: 4,
+    backColor: 0x000000,
+    backAlpha: 0.55,
+    fillColor: 0x9ad7ff,
+    fullColor: 0xffd23f,
+    armedColors: [0xffffff, 0xff8a00],
+    /** Süper hazırken yanıp sönme sıklığı (Hz). */
+    blinkHz: 6,
+    labelGapPx: 8,
+    labelFontSizePx: 14,
+    labelStrokePx: 3,
+  },
   /** Santra dizilişinde ışınlanmayı gizleyen kısa kararıp açılma (ms). */
   kickoffFadeMs: 220,
   /** Maç bittikten sonra sonuç ekranı açılana kadar geçen süre (sn, simülasyon). */
@@ -530,7 +916,12 @@ export const DEBUG = {
     zone: 0xffd23f,
     net: 0x40c0ff,
     velocity: 0xff50ff,
+    /** Yapay zekânın tahmin ettiği top yörüngesi ve hedef konumu. */
+    aiTrajectory: 0x00e5ff,
+    aiTarget: 0xffffff,
   },
+  /** AI hedef işaretinin yüksekliği (px, zeminden yukarı). */
+  aiTargetMarkerPx: 24,
   /** Hız vektörü çizgisinin uzunluğu = hız × bu süre (sn). */
   velocityScaleSeconds: 0.1,
   text: {

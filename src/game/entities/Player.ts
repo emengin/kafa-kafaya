@@ -1,4 +1,4 @@
-import { KICK, PLAYER } from '../../config/gameConfig';
+import { KICK, PLAYER, POWER } from '../../config/gameConfig';
 import type { InputState } from '../../input/InputState';
 import { moveToward, type Circle, type ContactBody, type Vec2 } from '../../physics';
 import type { Facing, PlayerIndex } from '../types';
@@ -59,13 +59,23 @@ export class Player implements ContactBody {
   footAngle: number = KICK.restAngle;
   footAngVel = 0;
 
+  /** Güç barı (0–1). Santrada sıfırlanmaz; maç boyunca birikir. */
+  power = 0;
+  /** Süper hazır: bir sonraki vuruş (şut ya da kafa) süper olur. */
+  superArmed = false;
+  prevSuper = false;
+  /** Dokunuş dolumunun bekleme süresi (sn). */
+  touchCooldown = 0;
+
   constructor(
     readonly index: PlayerIndex,
     readonly facing: Facing,
   ) {}
 
-  /** Konumu ayarlar ve tüm hareket/şut durumunu sıfırlar (santra). */
+  /** Konumu ayarlar ve tüm hareket/şut durumunu sıfırlar (santra). Güç barı ve süper korunur. */
   resetTo(x: number, y: number): void {
+    this.prevSuper = false;
+    this.touchCooldown = 0;
     this.x = x;
     this.y = y;
     this.vx = 0;
@@ -85,13 +95,36 @@ export class Player implements ContactBody {
     this.footAngVel = 0;
   }
 
-  /** Sabit adım başına bir kez: girdiyi hıza ve şut durumuna çevirir. */
+  /** Sabit adım başına bir kez: girdiyi hıza, şut ve süper durumuna çevirir. */
   applyInput(input: InputState, dt: number): void {
     this.applyMovement(input, dt);
     this.applyJump(input, dt);
+    this.applySuperInput(input);
     this.applyKickInput(input, dt);
+    this.touchCooldown = Math.max(0, this.touchCooldown - dt);
     this.prevJump = input.jump;
     this.prevKick = input.kick;
+    this.prevSuper = input.super;
+  }
+
+  /** Bar doluyken Süper'e basmak bir sonraki vuruşu süper yapar ve barı boşaltır. */
+  private applySuperInput(input: InputState): void {
+    if (!input.super || this.prevSuper || this.superArmed || this.power < 1) return;
+    this.superArmed = true;
+    this.power = 0;
+  }
+
+  /** Güç barına ekler (süper hazırken dolmaz). */
+  addPower(amount: number): void {
+    if (this.superArmed) return;
+    this.power = Math.min(1, this.power + amount);
+  }
+
+  /** Topa dokunuş dolumu: oyuncu başına bekleme süresiyle sınırlı. */
+  chargeTouch(): void {
+    if (this.touchCooldown > 0) return;
+    this.addPower(POWER.chargePerTouch);
+    this.touchCooldown = POWER.touchCooldownSeconds;
   }
 
   private applyMovement(input: InputState, dt: number): void {

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS, GRAYBOX, HUD, PLAYER } from '../config/gameConfig';
+import { COLORS, GRAYBOX, HUD, PLAYER, UNITS } from '../config/gameConfig';
 import { footOffset } from '../game/entities/Player';
 import type { GameSim } from '../game/GameSim';
 import type { Pitch } from '../game/pitch';
@@ -30,9 +30,12 @@ export class GrayboxRenderer {
     this.labels = [label('P1', HUD.playerColors[0]), label('P2', HUD.playerColors[1])];
   }
 
-  draw(frame: RenderFrame): void {
+  /** @param nowMs Sahne zamanı (süper halkasının nabzı için). */
+  draw(frame: RenderFrame, nowMs: number): void {
     const g = this.dynamic;
     g.clear();
+    const glow = GRAYBOX.superGlow;
+    const pulse = 0.5 + 0.5 * Math.sin((nowMs / UNITS.msPerSecond) * glow.pulseHz * Math.PI * 2);
     for (const p of this.sim.players) {
       const pose = frame.players[p.index];
       const colors = GRAYBOX.players[p.index];
@@ -66,6 +69,11 @@ export class GrayboxRenderer {
         pose.y - PLAYER.head.radius * eye.upRatio,
         eye.radius,
       );
+      // Süper hazır: kafanın çevresinde nabız atan halka ("oyuncu parlar").
+      if (p.superArmed) {
+        g.lineStyle(glow.lineWidthPx, glow.color, glow.alphaMin + (1 - glow.alphaMin) * pulse);
+        g.strokeCircle(pose.x, pose.y, PLAYER.head.radius + glow.extraRadius);
+      }
 
       const label = this.labels[p.index];
       label.setPosition(pose.x, pose.y - PLAYER.head.radius - HUD.label.gapPx);

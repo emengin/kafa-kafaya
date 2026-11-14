@@ -54,13 +54,16 @@ function makeGoal(defender: PlayerIndex, width: number): GoalDef {
   const crossbarTop = crossbarBottom - goal.crossbarThickness;
   const isLeft = defender === 0;
   const backX = isLeft ? 0 : width - goal.depth;
+  // Bekleme bölgesi sahaya doğru taşar: direğin ön köşesinde dengede duran top da itilir.
+  const zoneWidth = goal.depth + goal.restZoneOverhang;
+  const zoneX = isLeft ? 0 : width - zoneWidth;
   return {
     defender,
     lineX: isLeft ? goal.depth : width - goal.depth,
     fieldDirection: isLeft ? 1 : -1,
     crossbar: makeRect(backX, crossbarTop, goal.depth, goal.crossbarThickness),
     net: makeRect(backX, crossbarBottom, goal.depth, goal.mouthHeight),
-    restZone: makeRect(backX, crossbarTop - goal.restZoneHeight, goal.depth, goal.restZoneHeight),
+    restZone: makeRect(zoneX, crossbarTop - goal.restZoneHeight, zoneWidth, goal.restZoneHeight),
   };
 }
 

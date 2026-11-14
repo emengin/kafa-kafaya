@@ -1,23 +1,39 @@
 import Phaser from 'phaser';
 import { sfx } from '../audio/Sfx';
-import { CONTROLS, COLORS, DEBUG, HUD, UNITS } from '../config/gameConfig';
+import { CONTROLS, COLORS, DEBUG, HUD, UNITS, type AiDifficulty } from '../config/gameConfig';
+import { AiController, AiInputSource } from '../game/ai/AiController';
+import { mixSeed } from '../game/ai/random';
+import { observe } from '../game/ai/worldView';
 import { GameSim } from '../game/GameSim';
+import { resolveMatchSetup, type MatchSetup } from '../game/matchSetup';
 import type { PlayerIndex, SimEvent } from '../game/types';
 import { format, t, upper } from '../i18n';
 import type { InputSource } from '../input/InputState';
 import { KeyboardInputSource, KeyTracker } from '../input/KeyboardInput';
+import { MergedInputSource } from '../input/MergedInput';
 import { createGameLoop, lerp } from '../physics';
 import { DebugOverlay } from '../ui/DebugOverlay';
 import { GrayboxRenderer } from '../ui/GrayboxRenderer';
 import { MatchHud } from '../ui/MatchHud';
 import { MenuOverlay } from '../ui/MenuOverlay';
 import { RenderFrame } from '../ui/renderFrame';
-import { devMatchDuration, wantsDebugOverlay } from './devFlags';
+import { devAiFlags, devMatchDuration, wantsDebugOverlay } from './devFlags';
 import { SceneKeys } from './sceneKeys';
 
+/** Her maç için yeni bir yapay zekâ tohumu (`?seed=N` verilmemişse). */
+function randomSeed(): number {
+  return crypto.getRandomValues(new Uint32Array(1))[0] ?? 0;
+}
+
+/** "CPU · Zor" gibi görünen ad. */
+function cpuName(difficulty: AiDifficulty): string {
+  return format('player.cpu', { level: t(`difficulty.${difficulty}`) });
+}
+
 /**
- * İki oyunculu maç. Kurallar ve durum makinesi GameSim/MatchFlow'dadır (deterministik);
- * sahne girdiyi toplar, sabit adımları koşar, çizer ve arayüzü (HUD, duraklatma, maç sonu)
+ * Maç sahnesi: 2 oyunculu ya da CPU'ya karşı. Kurallar ve durum makinesi GameSim/MatchFlow'dadır
+ * (deterministik); sahne girdiyi toplar (klavye ya da yapay zekâ — ikisi de yalnızca
+ * `InputState` üretir), sabit adımları koşar, çizer ve arayüzü (HUD, duraklatma, maç sonu)
  * yönetir.
  *
  * - **Ağır çekim:** gerçek kare süresi `match.timeScale` ile çarpılarak döngüye verilir;
@@ -34,6 +50,9 @@ export class MatchScene extends Phaser.Scene {
   private hud!: MatchHud;
   private debug!: DebugOverlay;
   private names!: readonly [string, string];
+  private setup!: MatchSetup;
+  /** Yapay zekâ oyuncuları (debug katmanı için). */
+  private ais: AiController[] = [];
 
   /** Açık kaplama (duraklatma menüsü ya da maç sonu ekranı). */
   private overlay: MenuOverlay | null = null;
@@ -50,7 +69,11 @@ export class MatchScene extends Phaser.Scene {
     super(SceneKeys.Match);
   }
 
-  create(): void {
+  /**
+   * @param data Menünün verdiği `MatchSetup`. Veri yoksa (geliştirici kısayoluyla doğrudan
+   *             başlatma) URL bayrakları (`?cpu=`, `?cpu1=`, `?seed=`) kullanılır.
+   */
+  create(data?: unknown): void {
     // Sahne yeniden başlatıldığında alanlar sıfırlanmaz: hepsini burada kur.
     this.tweens.resumeAll();
     this.loop.reset();
@@ -64,7 +87,16 @@ export class MatchScene extends Phaser.Scene {
     this.sim = new GameSim(durationSeconds ? { rules: { durationSeconds } } : {});
     this.prevFrame.copyFrom(this.sim);
     this.currFrame.copyFrom(this.sim);
-    this.names = [t('player.1'), t('player.2')];
+    const fromMenu = typeof data === 'object' && data !== null && 'mode' in data;
+    this.setup = resolveMatchSetup(
+      data,
+      fromMenu ? { cpu: null, cpu1: null, seed: null } : devAiFlags(),
+    );
+    const { mode, difficulty, p1Ai } = this.setup;
+    this.names =
+      mode === 'cpu'
+        ? [p1Ai ? cpuName(p1Ai) : t('player.you'), cpuName(difficulty)]
+        : [t('player.1'), t('player.2')];
 
     const { p1, p2, ui } = CONTROLS;
     const prevent = new Set<string>([
@@ -76,10 +108,10 @@ export class MatchScene extends Phaser.Scene {
       ...ui.menuConfirm,
     ]);
     this.tracker = new KeyTracker(window, prevent).attach();
-    this.inputs = [
+    this.inputs = this.createInputs(
       new KeyboardInputSource(this.tracker, p1),
       new KeyboardInputSource(this.tracker, p2),
-    ];
+    );
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.tracker.detach();
       this.overlay?.destroy();
@@ -87,11 +119,35 @@ export class MatchScene extends Phaser.Scene {
     });
 
     this.view = new GrayboxRenderer(this, this.sim);
-    this.hud = new MatchHud(this, this.names);
-    this.hud.update(this.sim.match);
+    this.hud = new MatchHud(this, this.names, t(mode === 'cpu' ? 'match.hintCpu' : 'match.hint'));
+    this.hud.update(this.sim.match, this.sim.players);
     this.debug = new DebugOverlay(this);
     this.debug.setVisible(wantsDebugOverlay());
     this.cameras.main.fadeIn(HUD.kickoffFadeMs);
+  }
+
+  /**
+   * 2 oyuncu: iki klavye eşlemesi. CPU'ya karşı: insan P1 her iki eşlemeyle de oynar, P2
+   * yapay zekâdır (`?cpu1=` ile P1 de). AI yalnızca simülasyonun görünümünü okur.
+   */
+  private createInputs(
+    kb1: KeyboardInputSource,
+    kb2: KeyboardInputSource,
+  ): readonly [InputSource, InputSource] {
+    this.ais = [];
+    const { mode, difficulty, p1Ai } = this.setup;
+    if (mode === 'versus') return [kb1, kb2];
+    const seed = this.setup.seed ?? randomSeed();
+    const view = (): ReturnType<typeof observe> => observe(this.sim);
+    const ai2 = new AiController({ index: 1, difficulty, seed: mixSeed(seed, 1) });
+    this.ais.push(ai2);
+    let first: InputSource = new MergedInputSource(kb1, kb2);
+    if (p1Ai) {
+      const ai1 = new AiController({ index: 0, difficulty: p1Ai, seed: mixSeed(seed, 0) });
+      this.ais.push(ai1);
+      first = new AiInputSource(ai1, view);
+    }
+    return [first, new AiInputSource(ai2, view)];
   }
 
   override update(_time: number, deltaMs: number): void {
@@ -115,8 +171,11 @@ export class MatchScene extends Phaser.Scene {
     }
 
     this.advanceSimulation(deltaMs);
-    this.view.draw(this.drawFrame.lerpFrom(this.prevFrame, this.currFrame, this.loop.alpha));
-    this.hud.update(this.sim.match);
+    this.view.draw(
+      this.drawFrame.lerpFrom(this.prevFrame, this.currFrame, this.loop.alpha),
+      this.time.now,
+    );
+    this.hud.update(this.sim.match, this.sim.players);
 
     const match = this.sim.match;
     if (
@@ -143,11 +202,11 @@ export class MatchScene extends Phaser.Scene {
     if (steps > 0) {
       this.avgStepMs = lerp(this.avgStepMs, stepTime / steps, DEBUG.statsSmoothing);
     }
-    this.debug.update(this.sim, {
-      fps: this.game.loop.actualFps,
-      stepMs: this.avgStepMs,
-      stepsThisFrame: steps,
-    });
+    this.debug.update(
+      this.sim,
+      { fps: this.game.loop.actualFps, stepMs: this.avgStepMs, stepsThisFrame: steps },
+      this.debug.isVisible ? this.ais.map((ai) => ai.debugInfo()) : [],
+    );
   }
 
   private handleEvents(events: readonly SimEvent[]): void {
@@ -177,6 +236,7 @@ export class MatchScene extends Phaser.Scene {
           break;
         case 'kick':
         case 'header':
+        case 'superArmed':
         case 'crossbarPush':
           // Ses/efekt sonraki fazlarda.
           break;
@@ -256,7 +316,7 @@ export class MatchScene extends Phaser.Scene {
     if (this.leaving) return;
     this.leaving = true;
     this.tweens.resumeAll();
-    this.scene.restart();
+    this.scene.restart(this.setup);
   }
 
   private toMainMenu(): void {

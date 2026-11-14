@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { COLORS, DISPLAY, HUD, MATCH } from '../config/gameConfig';
+import { COLORS, DISPLAY, HUD, MATCH, UNITS } from '../config/gameConfig';
+import type { Player } from '../game/entities/Player';
 import type { MatchFlow } from '../game/rules/MatchFlow';
 import type { PlayerIndex } from '../game/types';
 import { format, t, upper } from '../i18n';
@@ -8,8 +9,9 @@ import { displayedSecond, formatClock } from './format';
 type Text = Phaser.GameObjects.Text;
 
 /**
- * Maç HUD'u: üstte skor çubuğu (isimler, skorlar, geri sayım), ortada büyük duyuru yazısı
- * (GOL!, ALTIN GOL!, MAÇ BİTTİ!) ve altta kontrol ipucu. Durumu `MatchFlow`'dan okur.
+ * Maç HUD'u: üstte skor çubuğu (isimler, skorlar, geri sayım, güç barları), ortada büyük
+ * duyuru yazısı (GOL!, ALTIN GOL!, MAÇ BİTTİ!) ve altta kontrol ipucu. Durumu `MatchFlow`'dan
+ * ve oyunculardan okur.
  */
 export class MatchHud {
   private readonly scores: [Text, Text];
@@ -19,10 +21,13 @@ export class MatchHud {
   private readonly shownScore: [number, number] = [-1, -1];
   private shownSecond = -1;
   private shownGolden = false;
+  private readonly power: Phaser.GameObjects.Graphics;
+  private readonly superLabels: [Text, Text];
 
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly names: readonly [string, string],
+    hint: string,
   ) {
     const { width, height } = DISPLAY;
     const cx = width / 2;
@@ -66,6 +71,25 @@ export class MatchHud {
     nameText(0, cx - name.offsetX, 1);
     nameText(1, cx + name.offsetX, 0);
 
+    // Güç barları ve "SÜPER!" etiketleri (barın dış ucunda).
+    const pw = HUD.power;
+    this.power = scene.add.graphics().setDepth(HUD.depth);
+    const superLabel = (i: PlayerIndex): Text => {
+      const outer = cx + (i === 0 ? -1 : 1) * (pw.offsetX + pw.width + pw.labelGapPx);
+      return scene.add
+        .text(outer, pw.y + pw.height / 2, t('hud.super'), {
+          fontFamily: HUD.fontFamily,
+          fontSize: `${pw.labelFontSizePx}px`,
+          color: COLORS.textAccent,
+          stroke: COLORS.textStroke,
+          strokeThickness: pw.labelStrokePx,
+        })
+        .setOrigin(i === 0 ? 1 : 0, 0.5)
+        .setDepth(HUD.depth)
+        .setVisible(false);
+    };
+    this.superLabels = [superLabel(0), superLabel(1)];
+
     this.clock = scene.add
       .text(cx, bar.y, '', {
         fontFamily: HUD.fontFamily,
@@ -102,7 +126,7 @@ export class MatchHud {
       .setVisible(false);
 
     scene.add
-      .text(cx, height - HUD.hint.marginPx, t('match.hint'), {
+      .text(cx, height - HUD.hint.marginPx, hint, {
         fontFamily: HUD.fontFamily,
         fontSize: `${HUD.hint.fontSizePx}px`,
         color: COLORS.textPrimary,
@@ -112,8 +136,9 @@ export class MatchHud {
       .setDepth(HUD.depth);
   }
 
-  /** Her karede: skorlar ve saat (yalnızca değiştiğinde yeniden yazılır). */
-  update(match: MatchFlow): void {
+  /** Her karede: skorlar, saat (yalnızca değiştiğinde yeniden yazılır) ve güç barları. */
+  update(match: MatchFlow, players: readonly Player[]): void {
+    this.drawPower(players);
     for (const i of [0, 1] as const) {
       if (this.shownScore[i] === match.score[i]) continue;
       const first = this.shownScore[i] < 0;
@@ -145,6 +170,36 @@ export class MatchHud {
     const warning = second <= MATCH.finalCountdownSeconds;
     this.clock.setColor(warning ? clock.warningColor : clock.color);
     if (warning && second > 0) this.pop(this.clock, clock.pulseScale, clock.pulseMs);
+  }
+
+  /** Güç barları: sahanın ortasına doğru dolar; doluyken altın, süper hazırken yanıp söner. */
+  private drawPower(players: readonly Player[]): void {
+    const pw = HUD.power;
+    const cx = DISPLAY.width / 2;
+    const g = this.power;
+    g.clear();
+    const blinkOn =
+      Math.floor((this.scene.time.now / UNITS.msPerSecond) * pw.blinkHz * 2) % 2 === 0;
+    for (const p of players) {
+      const inner = cx + (p.index === 0 ? -pw.offsetX : pw.offsetX);
+      const left = p.index === 0 ? inner - pw.width : inner;
+      g.fillStyle(pw.backColor, pw.backAlpha);
+      g.fillRoundedRect(left, pw.y, pw.width, pw.height, pw.radius);
+      const full = p.superArmed ? 1 : p.power;
+      const w = pw.width * full;
+      if (w > 0) {
+        const color = p.superArmed
+          ? pw.armedColors[blinkOn ? 0 : 1]
+          : full >= 1
+            ? pw.fullColor
+            : pw.fillColor;
+        g.fillStyle(color, 1);
+        // P1 soldan sağa (ortaya doğru), P2 sağdan sola dolar.
+        const x = p.index === 0 ? inner - w : inner;
+        g.fillRect(x, pw.y, w, pw.height);
+      }
+      this.superLabels[p.index].setVisible(p.superArmed && blinkOn);
+    }
   }
 
   onGoal(scorer: PlayerIndex): void {

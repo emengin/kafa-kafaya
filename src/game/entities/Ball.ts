@@ -26,6 +26,11 @@ export class Ball implements ContactBody, BallisticBody, Circle {
   crossbarTimer = 0;
   /** Topa son dokunan oyuncu (güçlendiriciler için); −1 = henüz kimse. */
   lastTouch: PlayerIndex | -1 = -1;
+  /**
+   * Oyuncu–top temaslarının toplam sayısı (şut, kafa, gövde/ayak teması). Yalnızca artar;
+   * fiziği etkilemez — istatistik ve sıkışma gözlemcisi içindir.
+   */
+  touches = 0;
 
   resetTo(x: number, y: number): void {
     this.x = x;

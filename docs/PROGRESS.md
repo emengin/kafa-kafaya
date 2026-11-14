@@ -7,8 +7,9 @@
 | 0   | Kurulum ve yayın hattı                  | ✅ Tamamlandı |
 | 1   | Çekirdek fizik ve kontroller (gri kutu) | ✅ Tamamlandı |
 | 2   | Maç kuralları ve oyun döngüsü           | ✅ Tamamlandı |
-| 3   | —                                       | ⏭️ Sıradaki   |
-| 4–7 | —                                       | Bekliyor      |
+| 3   | Yapay zekâ rakip                        | ✅ Tamamlandı |
+| 4   | —                                       | ⏭️ Sıradaki   |
+| 5–7 | —                                       | Bekliyor      |
 
 **Canlı sürüm:** https://emengin.github.io/kafa-kafaya/
 
@@ -352,3 +353,250 @@ uçtan uca oynatıldı (32 denetim, konsolda hata yok; ayrıntı aşağıda).
 ### Sıradaki faz
 
 **Faz 3** — talimat bekleniyor.
+
+> Faz 2 notu (Faz 3'te çözüldü): güç barı ve (genel) süper vuruş eklendi; "aynı alt adımda iki
+> oyuncu topa değerse P1 önce işlenir" sıra etkisi giderildi (ayrıntı Faz 3'te).
+
+---
+
+## Faz 3 — Yapay zekâ rakip (2026-11-14)
+
+> **Ara kayıt durumu (wip):** Bitenler — yörünge tahmini, davranış katmanı, zorluklar, sıkışma
+> önleme, menü/CPU modu, `scripts/simulate.ts`, testler (171), tarayıcı doğrulaması ve
+> simülasyon sonuçları (aşağıda). Yarım kalan — yok. Kalanlar — README ve GAME_DESIGN.md
+> güncellemesi, son kontrol ve push.
+
+**Bitti kriteri:**
+
+- **Kolay rahat yenilir, Orta dengeli, Zor zorlayıcı ama adil** ✅ — AI vs AI vekil ölçümüyle;
+  gerçek oyuncu testi yapılmadı (aşağıya bakın). İki tarafta oynanan maçların ortalamasında Orta
+  Kolay'ı %86,5, Zor Orta'yı %83,5, Zor Kolay'ı %94 oranında yeniyor; aynı seviyeler kendi
+  aralarında dengede. Zor'un üstünlüğü yalnızca algı ve karar kalitesinden geliyor: 150 ms
+  reaksiyon (hızlı bir insan düzeyi), yalnızca ekranda görünen bilgi, aynı fizik ve kurallar.
+- **Simülasyonda sıkışma yok** ✅ — 9 eşleşme × 100 = **900 maçta 0 sıkışma olayı** (bağımsız
+  gözlemci, 6 tür). Üç farklı tohumla oynanan 900 aynı-seviye maçında da 0.
+
+### Tamamlananlar
+
+- **Yörünge tahmini (`src/game/ai/BallPredictor.ts`):** ayrı bir "hayalet" dünyada (kendi top +
+  saha kopyası) topu ~1,5 sn ileri simüle eder. GameSim ile **aynı kod**: top–saha fiziği
+  `src/game/ballPhysics.ts`'e taşındı (`collideBallWithPitch`, `applyCrossbarRest`,
+  `stepBallAlone`); duvar/tavan/direk sekmeleri, falso ve üst direk kuralı dahil. Test:
+  oyuncular dokunmadıkça tahmin GameSim ile **bit bit aynı**. Önceden ayrılmış bir tamponla
+  çalışır, tahmin sırasında bellek ayırmaz. Her karede değil, `predictionIntervalMs`
+  aralıklarla ya da algılanan topta bir çarpışma (hız sıçraması) görülünce yenilenir.
+- **Hareket modelleri (`motion.ts`):** zıplama profili ve alçak sıçrayış yükseklikleri,
+  oyuncunun gerçek `Player` koduyla bir hayalet kopyada ölçülür. **Hayalet ayak**
+  (`KickSimulator`) "şimdi şut tuşuna basarsam ayak topa değer mi, savrulmanın hangi fazında?"
+  sorusunu alt adım çözünürlüğünde, GameSim'deki vuruş testinin aynısıyla yanıtlar.
+- **Şut formülü paylaşıldı (`src/game/kick.ts`):** GameSim ve AI'ın şut değerlendirmesi aynı
+  `computeKick`'i kullanır. AI şutu "kafasında" dener: top gole mi gidiyor, rakibe mi çarpıyor,
+  duvardan sekip kendi kalesine mi dönüyor (2 sn ufuk)?
+- **Davranış katmanı (`AiController.ts`):** utility + plan + refleks.
+  - **Algı:** top ve rakip `reactionMs` kadar gecikmeli görülür (geçmiş tamponu); kendi bedeni
+    gecikmesiz. Tahmin gecikmeli durumdan "şimdi"ye ve ileriye uzatılır (insan da böyle
+    kestirir); çarpışmalar ancak gecikmeden sonra fark edilir.
+  - **Karar** (`decisionIntervalMs`; bir çarpışma görülünce aralığın 0,4'ü içinde):
+    **Savun** (top kaleye gidiyor / top benimle kalem arasında / rakip topa önce ulaşacak),
+    **Hücum** (topun arkasına geç, rakip kaleye vur), **Kafa** (havadaki topa kafa planı; zıplama
+    anı gerçek zıplama profilinden), **Bekle/Pozisyon al**. Puanlar histerezisle seçilir.
+  - **Refleks (her adım):** hedefe yürüme; planlanan anda zıplama (oyuncu yerinde değilse
+    iptal); arkada kalan alçak topun üstünden değişken yükseklikte sıçrayış (aşılamıyorsa
+    bekleme); şut zamanlaması (hayalet ayak + şut değerlendirmesi); süper (bar dolu, hücumda,
+    top rakip kaleye 180–820 px, vuruş ≤ 0,6 sn uzakta; fırsat başına bir kez `superUseRate`
+    olasılığıyla).
+  - **Savunma kuralları:** rakip topa açıkça önce ulaşacaksa topa koşmaz (aşırtılıp kaleyi boş
+    bırakmaz); topa aynı anda ulaşılacaksa temkinli AI rastgele bir sabır süresi boyunca düelloya
+    girmez; sahipsiz topa rastgele bir gecikmeyle mutlaka biri gider; kendi kalesine koşarken
+    kale tarafındaki topa önden çarpacaksa fren yapar; top kendi üst direğinin üstündeyse kale
+    önünde bekler.
+- **Yalnızca `InputState`:** AI'ın gördüğü tek şey `observe(sim)` ile üretilen düz bir kopya
+  (`worldView.ts`: top konum/hız/dönüş, oyuncu konum/hız/şut evresi/güç barı, maç evresi).
+  Test: AI'ın `update` çağrısı simülasyonun snapshot'ını hiç değiştirmez; görünüm bir kopyadır.
+- **Zorluklar (`gameConfig.ts` → `AI_PROFILES`)** ve insani rastgelelik. Tüm rastgelelik
+  tohumlanabilir `SeededRandom`'dan (mulberry32) gelir: aynı tohum + aynı maç → birebir aynı
+  kararlar (test). Oyunda tohum her maç rastgele, `?seed=N` ile sabitlenebilir.
+
+  | Parametre                   | Kolay | Orta | Zor  |
+  | --------------------------- | ----- | ---- | ---- |
+  | Reaksiyon gecikmesi (ms)    | 330   | 220  | 150  |
+  | Reaksiyon sapması (ms, std) | 70    | 45   | 25   |
+  | Tahmin hatası (hız oranı)   | 0,20  | 0,10 | 0,04 |
+  | Karar aralığı (ms)          | 250   | 150  | 80   |
+  | Tahmin yenileme (ms)        | 210   | 130  | 70   |
+  | Agresiflik                  | 0,25  | 0,55 | 0,80 |
+  | Süper kullanım oranı        | 0,20  | 0,55 | 0,95 |
+  | Nişan sapması (px, std)     | 45    | 20   | 8    |
+  | Şutta tereddüt olasılığı    | 0,40  | 0,15 | 0,03 |
+  | Şut zamanlama hatası (adım) | 2     | 1    | 0,3  |
+  | Şut seçiciliği              | 0     | 0,35 | 0,70 |
+  | Dalgınlık olasılığı         | 0,15  | 0,05 | 0    |
+
+- **Sıkışma önleme (AI içi):** yön tuşuna basılıyken ilerleyememe (itişme/duvar/köşe), direğin
+  ya da rakibin kafasının üstünde durma, topu kafada taşıma ve yavaş topun yanında donup kalma
+  algılanır → kısa kaçış (savunmaya dönüyorsa rakibin üstünden atla, değilse çoğunlukla çekil;
+  duvar dibinde sahanın ortasına). İtişme sabrı her bölümde rastgele: iki AI aynı adımda kaçıp
+  havada yine çarpışmasın.
+- **Bağımsız sıkışma gözlemcisi (`StuckMonitor.ts`):** donmuş top (3 sn), oyuncu kilitlenmesi
+  (2 sn), sıkışmış oyuncu (2 sn'de < 30 px), direkte kamp (2 sn), kafada taşınan top (3 sn),
+  topa kimsenin dokunmaması (10 sn). Dokunuşlar yeni `Ball.touches` sayacıyla izlenir.
+- **Güç barı ve genel süper vuruş** (önkoşul; GAME_DESIGN §6): bar zamanla (0,05/sn) ve
+  dokunuşla (+0,08, oyuncu başına 0,3 sn bekleme) dolar; doluyken Süper bir sonraki vuruşu
+  süper yapar ve barı boşaltır. Süper şut ×1,5 hız ve yarı yükselme açısıyla ("füze"), süper
+  kafa en az 1500 px/sn. Karaktere özgü süperler sonraki fazlarda. HUD'da isimlerin altında güç
+  barları (doluyken altın; hazırken yanıp söner ve "SÜPER!" yazar), oyuncunun kafasında nabız
+  atan halka. Olaylar: `superArmed`; `kick`/`header` olaylarında `super` alanı.
+- **Menü:** **CPU'ya Karşı** → **Zorluk seç** (Kolay / Orta / Zor / Geri; Esc ya da Backspace ile
+  geri; son seçim kaydedilir) · 2 Oyuncu · Dil. CPU modunda insan P1'dir ve iki tuş takımıyla da
+  oynar (`MergedInputSource`); isimler "SEN" / "CPU · ZOR"; Yeniden Başlat kurulumu korur.
+- **Geliştirici:** `?cpu=easy|medium|hard` doğrudan CPU maçı, `?cpu1=…` P1 de AI (AI vs AI
+  izleme), `?seed=N`. F1 debug katmanında AI'ın tahmin ettiği yörünge, hedef işareti, modu ve o
+  anki algı gecikmesi.
+- **`scripts/simulate.ts`** (`npm run simulate`): AI vs AI headless maçlar — kazanma oranları,
+  skor ve fark dağılımı, gol ortalaması, santradan gole süre, şut/süper sayıları, sıkışma olayları
+  (ilk 10'u yer ve zamanla), AI kaçış sayıları, mod payları, süre. Seçenekler: `--p1/--p2`,
+  `--matches`, `--seed`, `--matrix` (9 eşleşme), `--json`, `--verbose`, `--max-overtime`. Yeni
+  bağımlılık yok: `scripts/run-ts.js`, projedeki Vite'ın modül çalıştırıcısıyla (`runnerImport`)
+  TypeScript'i çalıştırır.
+- **Testler:** 121 → **171**. Yeni: tahmin = GameSim (bit bit; duvar, tavan, direk), gol girişi;
+  PRNG (tohum, dağılım); zıplama/sıçrayış profilleri, hayalet ayak = GameSim şutu, vole
+  zamanlaması; AI'ın simülasyonu değiştirmemesi, tohum determinizmi, P1/P2 ayna simetrisi, duran
+  topa gidip ileri vurma (iki taraf), kaleye giden topu uzaklaştırma (Orta/Zor), süperi kullanma
+  ve kullanmama, direkte kalmama, kilitlenmede kaçış, kısa maçlarda Zor > Kolay ve 0 sıkışma;
+  gözlemcinin 6 türü; güç barı ve süper; direk köşesi kuralı; maç kurulumu; girdi birleştirme.
+- **Tarayıcıda uçtan uca doğrulama** (üretim derlemesi, headless Chrome + DevTools protokolü;
+  betik depoda değil): **24/24 denetim**, konsolda hata yok. Menü → CPU'ya Karşı → zorluk alt
+  menüsü, Esc ile geri, Zor ile maç; kurulum, isimler ve zorluğun kaydı; CPU hareket edip topa
+  vuruyor (insan beklerken ~3 sn'de gol attı); insan hem D hem → ile yürüyor; dolu barla Sol
+  Shift süperi hazırlıyor; F1 aç/kapa; Duraklat → Yeniden Başlat (CPU/Zor korunuyor) → Ana Menü
+  → 2 Oyuncu (AI yok); İngilizce alt menü; `?cpu=hard&cpu1=medium&duration=12&seed=7` ile AI vs
+  AI maçı altın golle sonuna kadar. **Fizik + AI adımı tarayıcıda 0,04–0,11 ms.**
+
+### Simülasyon sonuçları
+
+Komut: `npm run simulate -- --p1 <a> --p2 <b>` (her eşleşme 100 maç, tohum 1; gerçek kurallar:
+90 sn, gol kutlaması, santra, altın gol). Toplam **900 maç, 0 sıkışma olayı**.
+
+**Kazanma oranları** (satır P1, sütun P2; P1 % / P2 % · maç başı gol):
+
+| P1 \ P2   | Kolay           | Orta             | Zor              |
+| --------- | --------------- | ---------------- | ---------------- |
+| **Kolay** | 53% / 47% · 9,5 | 18% / 82% · 14,4 | 5% / 95% · 14,5  |
+| **Orta**  | 91% / 9% · 15,0 | 46% / 54% · 14,1 | 19% / 81% · 11,9 |
+| **Zor**   | 93% / 7% · 13,8 | 86% / 14% · 12,0 | 63% / 37% · 8,6  |
+
+Beraberlik yok (eşitlikte altın gol); altın golle biten maç 100'de 2–15.
+
+**En sık skorlar** (P1–P2):
+
+| Eşleşme     | En sık 5 skor                                   |
+| ----------- | ----------------------------------------------- |
+| Kolay–Kolay | 5–4 (7), 5–7 (5), 6–5 (5), 7–3 (5), 7–4 (5)     |
+| Orta–Kolay  | 11–5 (5), 10–6 (4), 13–3 (4), 13–6 (4), 8–7 (4) |
+| Orta–Orta   | 8–7 (8), 6–5 (7), 6–8 (7), 7–8 (7), 6–7 (6)     |
+| Zor–Orta    | 6–5 (6), 9–5 (6), 7–6 (5), 8–5 (5), 10–4 (4)    |
+| Zor–Kolay   | 11–3 (6), 10–3 (5), 11–4 (5), 9–4 (4), 10–2 (3) |
+| Zor–Zor     | 5–3 (8), 3–2 (7), 5–4 (7), 4–3 (6), 4–5 (5)     |
+
+**Varsayılan koşu** (`npm run simulate` = Orta vs Orta, 100 maç): P1 46 – P2 54 galibiyet; gol
+ortalaması 6,94 – 7,11; fark dağılımı: 1 gol 41 maç, 2 gol 18, 3 gol 16, 4+ gol 25.
+
+| Ölçüm (100 maç)                      | Kolay–Kolay | Orta–Orta   | Zor–Zor     |
+| ------------------------------------ | ----------- | ----------- | ----------- |
+| Şut tuşu / maç (oyuncu başına)       | 41          | 70          | 76          |
+| Süper / maç (oyuncu başına)          | 3,7         | 6,5         | 8,0         |
+| Süperle gelen gol payı               | %4,5        | %6,2        | %8,7        |
+| Santradan sonraki 4 sn içinde gol    | %18         | %40         | %14         |
+| AI kaçış davranışı (toplam)          | 12          | 71          | 43          |
+| Zaman payı: kafa / hücum / bekle (%) | 7 / 26 / 40 | 27 / 30 / 8 | 40 / 28 / 7 |
+| **Sıkışma olayı**                    | **0**       | **0**       | **0**       |
+
+**Taraf eğilimi:** aynı seviye eşleşmelerinde üç tohumla (1–3) P1 toplam 477/900 = %53 (Kolay
+%48,7, Orta %52,7, Zor %57,7). Kalan fark simetrik santra düellosundaki tam eşzamanlı
+temaslardan geliyor (bkz. bilinen sorunlar). Simülasyon hızı tek çekirdekte ~0,35–0,7 sn/maç.
+
+### Tasarım kararları
+
+1. **Güç barı ve genel süper bu fazda eklendi:** "süper kullanımı" davranışının önkoşulu.
+   Karakterler gelene kadar tek ve genel bir süper (daha hızlı ve düz şut / hızlı kafa).
+   Değerler `POWER` ve `SUPER` altında.
+2. **Tahmin = gerçek fizik:** top–saha kodu ortak modülde; tahminci GameSim'in top adımını
+   oyuncusuz çalıştırır (oyuncular dururken alt adım sayısı bile aynı). Şut formülü de ortak
+   (`computeKick`). Zıplama ve şut zamanlaması gerçek `Player` kodunun hayalet kopyasıyla.
+3. **Kanonik çerçeve:** AI kendini hep "sol kaleyi savunan, sağa hücum eden" olarak görür; P2
+   için x ekseni aynalanır (saha ve fizik simetrik, falso işareti dahil). Test: aynı tohumla
+   simetrik santrada P1 ve P2 temasa kadar birbirinin aynası girdiler üretir.
+4. **Gecikme algıda, kontrol gecikmesiz:** gecikmeli top durumu fizikle "şimdi"ye uzatılır;
+   düzgün hareket iyi izlenir, beklenmedik olaylar (şut, sekme) ancak gecikmeden sonra fark
+   edilir. Tahmin hatası hıza orantılı bir gürültüdür: çarpışmada yeniden çekilir, her
+   yenilemede 0,6 ile küçülür (top yaklaştıkça kestirim iyileşir; ilk yanılgı yine yanlış yöne
+   adım attırır).
+5. **Karar sıklığı + olay tepkisi:** kararlar periyodik; bir çarpışma görülünce sıradaki karar
+   aralığın 0,4'üne öne alınır. Zorluk farkı korunur, olaylara tepki makul kalır.
+6. **Dalgınlık kararı erteler (0,15 sn), atlatmaz; art arda iki kez olmaz.** İlk sürümde kararı
+   atlatıyordu: Kolay'da üç dalgınlık üst üste gelince top kaleye giderken plan 0,6 sn hiç
+   güncellenmiyordu.
+7. **Savunma derinliği:** rakip topa açıkça önce ulaşacaksa hücum cezası avantajla ölçeklenir
+   (0,5 sn avantajda tamamı). İlk sürümde Kolay santrada ortaya koşup her seferinde aynı
+   aşırtmayla gol yiyordu (Orta–Kolay 19–4). Düello cezası + rastgele sabır ve sahipsiz top
+   bonusu (rakip yaklaşınca iptal olmaz), iki temkinli AI'ın topun başında beklemesini önler.
+8. **Kendi kalesine gol önleme** (ilk ölçümde Zor'un yediği gollerin %43'ü kendi dokunuşuydu):
+   (a) seçici AI şutu kafasında dener, sekip kendi kalesine dönecekse acilken bile vurmaz;
+   (b) zıplama anında planlanan noktada değilse kafa iptal; (c) kale tarafındaki topa önden
+   çarpacaksa fren; (d) alçak sıçrayış, topun önümüzdeki 14 adımdaki en yüksek noktasına göre.
+9. **Top–oyuncu çözüm sırası adil hâle getirildi** (fizik değişikliği): eskiden hep P1 önce
+   çözülüyordu ve Zor–Zor'da P1 %66 kazanıyordu. Önce adım paritesi denendi; santra
+   zamanlamasıyla hizalanıp bu kez P2 ~%55 kazandı. Şimdi sırayı adım numarasının çarpımsal
+   karıştırılmış bir biti seçiyor: deterministik, periyodik yapıyla hizalanmaz.
+10. **Üst direk bekleme bölgesi sahaya 22 px taştı:** top direğin **ön köşesinde** dengede
+    kalabiliyordu (merkez bölgenin 2 px dışında, yuvarlanma direnci topu durduruyordu) ve itme
+    kuralı devreye girmiyordu. Simülasyon bunu yakaladı.
+11. **Gözlemci AI'dan bağımsız:** sıkışma raporu AI'ın kendi kaçış sayaçlarına değil, dışarıdan
+    simülasyon durumuna bakar. Eşikler `AI.monitor`'da.
+12. **CPU modunda insan hep P1 (solda), AI P2.** İnsan iki tuş takımını da kullanabilir; tek
+    oyunculu oyunda hangi elle oynanacağı serbest.
+13. **Simülasyon betiği bağımlılıksız:** `tsx` eklemek yerine Vite'ın `runnerImport` API'si
+    (Vite 6.1+). `scripts/` artık `tsconfig` ve lint kapsamında.
+14. **Menü yerleşimi:** 3 öğe ve alt menü başlığı sığsın diye öğeler biraz yukarı
+    (`MENU.items.yRatio` 0,6 → 0,53, aralık 62 → 58), ipucu çimenin üstüne (0,8 → 0,85).
+
+### Ayarlanması gerektiğini düşündüğüm değerler
+
+Zorluk ayarı yalnızca AI'ların birbirine karşı oynamasıyla yapıldı; **gerçek oyuncularla deneme
+şart**. Önce bunlara bakılmalı:
+
+| Değer                                             | Şu an       | Neden                                                                                                     | Öneri             |
+| ------------------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------- | ----------------- |
+| `AI_PROFILES.easy.reactionMs` / `kickTimingError` | 330 ms / 2  | Yeni başlayan biri Kolay'ı zor buluyorsa.                                                                 | 380 ms / 3        |
+| `AI_PROFILES.hard.reactionMs`                     | 150 ms      | Hızlı insan düzeyi; deneyimli oyunculara az gelirse. 130 ms'nin altı "insanüstü" hissettirebilir.         | 130–150           |
+| `AI_PROFILES.medium` (tümü)                       | tabloda     | "Dengeli" ortalama bir oyuncuya göre: oyuncu Orta'yı %60+ yeniyorsa reaksiyon 200 ms, tahmin hatası 0,08. | oyun testine göre |
+| `POWER.chargePerSecond` / `chargePerTouch`        | 0,05 / 0,08 | AI maç başı 4–8 süper kullanıyor (12–20 sn'de bir); süper sıradanlaşabilir.                               | 0,035 / 0,06      |
+| `SUPER.kickSpeedMultiplier`                       | 1,5         | Süper şut ~1900 px/sn; karşılamak zor, ama süperle gol payı yalnızca %5–9.                                | 1,4–1,6           |
+| `KICK.maxSpeed`, `PITCH.goal.mouthHeight`         | 1250 / 210  | Gol sayısı yüksek (AI vs AI maç başı 9–15; Orta–Orta'da gollerin %40'ı santradan sonraki 4 sn'de).        | Faz 1 tablosu     |
+| `AI.utility.contestPenalty`                       | 0,5         | Temkinli AI santrada düelloya girmiyor; insan bunu "pasif" bulursa.                                       | 0,3–0,4           |
+
+Fizik değerleri değişirse zorluklar yeniden ölçülmeli: `npm run simulate -- --matrix`.
+
+### Bilinen sorunlar / sınırlamalar
+
+- **Zorluk hissi gerçek oyuncuyla ölçülmedi.** "Kolay rahat yenilir / Orta dengeli / Zor
+  zorlayıcı ama adil" sonucu, AI vs AI vekil ölçümüne ve parametrelerin insan sınırları içinde
+  kalmasına dayanıyor.
+- **Kalan taraf eğilimi:** simetrik santrada iki oyuncu topa aynı alt adımda değerse önce
+  çözülen avantajlı; sıra artık deterministik ama karışık. Zor–Zor'da (çok düşük gürültü, hep
+  aynı santra) P1 ~%58. İnsan–AI maçında tam eşzamanlı temas pratikte olmaz. Kökten çözüm:
+  eşzamanlı temasları iki sırayla çözüp ortalamak.
+- **Gol sayısı yüksek** (bkz. ayar tablosu): oyuncu hızı (430 px/sn) şut hızına göre düşük,
+  orta sahadan aşırtma çoğu zaman gol. AI buna göre ayarlandı; fizik dengesi değişirse AI'ın
+  yeniden ayarlanması gerekir.
+- AI rakibin gelecekteki hareketini yalnızca doğrusal kestirir; çalım/aldatma yapmaz; çift
+  zıplama ve güçlendiricileri bilmez (henüz yoklar).
+- Genel süper tek tip; karakter süperleri gelince AI'ın süper kararı karaktere göre
+  genişletilmeli (ör. Gökkuşağı için yüksek, Alev Topu için düz şut fırsatı).
+- Debug katmanının metin kutusu HUD'daki P1 adının üstüne biniyor (geliştirici aracı).
+- `header` olayının tekrarı (Faz 2) sürüyor; güç barı dolumu bekleme süresiyle korunuyor.
+- Faz 1'den süren: tarayıcılar arası determinizm, `npm audit` uyarısı, kaleye park etme.
+
+### Sıradaki faz
+
+**Faz 4** — talimat bekleniyor.

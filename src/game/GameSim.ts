@@ -1,20 +1,12 @@
-import { BALL, HEADER, KICK, LOOP, MATCH, PHYSICS, PITCH, PLAYER } from '../config/gameConfig';
+import { BALL, HEADER, KICK, LOOP, PHYSICS, PLAYER, POWER, SUPER } from '../config/gameConfig';
 import { EMPTY_INPUT, type InputState } from '../input/InputState';
-import {
-  circleVsCircle,
-  circleVsRect,
-  circleVsSegment,
-  clamp,
-  computeSubSteps,
-  moveToward,
-  resolveContact,
-  type Circle,
-  type Contact,
-} from '../physics';
+import { circleVsCircle, computeSubSteps, resolveContact } from '../physics';
+import { applyCrossbarRest, collideBallWithPitch, collideStatic } from './ballPhysics';
 import { Ball } from './entities/Ball';
 import { Player, PLAYER_STAND_OFFSET, type KickPhase, type PlayerPart } from './entities/Player';
-import { createPitch, type GoalDef, type Pitch, type StaticCollider } from './pitch';
-import { isBallInGoal, isBallOnCrossbar } from './rules/ballRules';
+import { computeKick } from './kick';
+import { createPitch, type Pitch } from './pitch';
+import { isBallInGoal } from './rules/ballRules';
 import {
   DEFAULT_MATCH_RULES,
   MatchFlow,
@@ -27,6 +19,9 @@ import type { PlayerIndex, SimEvent } from './types';
 export const STEP_SECONDS = 1 / LOOP.stepHz;
 
 const STATIC_PARTS: readonly PlayerPart[] = ['head', 'body'];
+/** Top–oyuncu çözüm sırası için Knuth çarpımsal karıştırma sabiti ve en üst bit. */
+const ORDER_HASH = 0x9e3779b1;
+const ORDER_SHIFT = 31;
 const BALL_PARTS: readonly PlayerPart[] = ['head', 'body', 'foot'];
 const GROUND_MIN = PHYSICS.groundNormalMinY;
 
@@ -47,6 +42,10 @@ export interface PlayerSnapshot {
   readonly kickHitDone: boolean;
   readonly footAngle: number;
   readonly footAngVel: number;
+  readonly power: number;
+  readonly superArmed: boolean;
+  readonly prevSuper: boolean;
+  readonly touchCooldown: number;
 }
 
 /** Simülasyonun tam durumu (düz veri). Determinizm testi ve gol tekrarı için. */
@@ -73,12 +72,6 @@ export interface GameSimOptions {
   readonly skipKickoff?: boolean;
 }
 
-function collideStatic(circle: Circle, collider: StaticCollider): Contact | null {
-  return collider.type === 'segment'
-    ? circleVsSegment(circle, collider.shape)
-    : circleVsRect(circle, collider.shape);
-}
-
 /**
  * Deterministik maç simülasyonu: saha + top + iki oyuncu. Phaser'a bağımlı değildir.
  * Aynı başlangıç durumu ve aynı `InputState` dizisi → birebir aynı sonuç.
@@ -87,7 +80,8 @@ function collideStatic(circle: Circle, collider: StaticCollider): Contact | null
  * 1. Oyuncu girdileri (hareket eğrisi, zıplama, şut tetikleme).
  * 2. Uyarlamalı sayıda alt adım; her birinde: entegrasyon → oyuncu–saha → oyuncu–oyuncu →
  *    top–oyuncu (şut, kafa) → top–saha → (top sıkıştıysa) oyuncuyu toptan it.
- * 3. Kurallar: üst direkte bekleme, gol algılama → maç durum makinesi (`MatchFlow`).
+ * 3. Kurallar: güç barı dolumu, üst direkte bekleme, gol algılama → maç durum makinesi
+ *    (`MatchFlow`).
  *
  * Santra beklemesinde ve maç bitince girdiler yok sayılır; santrada top ortada tutulur.
  */
@@ -118,8 +112,11 @@ export class GameSim {
     this.events.length = 0;
     const [p1, p2] = this.players;
     const active = this.match.playersActive;
-    p1.applyInput(active ? inputs[0] : EMPTY_INPUT, STEP_SECONDS);
-    p2.applyInput(active ? inputs[1] : EMPTY_INPUT, STEP_SECONDS);
+    for (const p of this.players) {
+      const wasArmed = p.superArmed;
+      p.applyInput(active ? inputs[p.index] : EMPTY_INPUT, STEP_SECONDS);
+      if (p.superArmed && !wasArmed) this.events.push({ type: 'superArmed', player: p.index });
+    }
     this.ball.clampSpeed();
 
     const n = computeSubSteps(this.maxPointSpeed(), STEP_SECONDS, PHYSICS);
@@ -150,7 +147,14 @@ export class GameSim {
 
     for (const p of this.players) this.collidePlayerStatic(p);
     this.collidePlayers();
-    for (const p of this.players) this.collideBallPlayer(p);
+    // Aynı alt adımda iki oyuncu da topa değerse önce çözülen avantajlı olur (eşzamanlı
+    // kafa/şut düellosu, ör. simetrik santra). Sıra adım numarasının karıştırılmış bir bitiyle
+    // seçilir: deterministik (tekrar bozulmaz) ama santra gibi düzenli zamanlamalarla hizalanmaz.
+    // (Basit parite hizalanıyordu: simetrik AI maçlarında bir taraf ~%55 kazanıyordu.)
+    const [p1, p2] = this.players;
+    const p1First = Math.imul(this.tick, ORDER_HASH) >>> ORDER_SHIFT === 0;
+    this.collideBallPlayer(p1First ? p1 : p2);
+    this.collideBallPlayer(p1First ? p2 : p1);
     const pinned = this.collideBallStatic(h);
     if (pinned) {
       // Top bir yüzeye dayalıyken oyuncu onu içine itemez: oyuncuyu toptan dışarı it.
@@ -203,7 +207,11 @@ export class GameSim {
         PLAYER.materials[part],
         PHYSICS,
       );
-      if (result.impulse > 0) ball.lastTouch = p.index;
+      if (result.impulse > 0) {
+        ball.lastTouch = p.index;
+        ball.touches++;
+        p.chargeTouch();
+      }
 
       // Kafa vuruşu: oyuncu topa doğru hareket ediyorsa hızının bir kısmı topa aktarılır
       // (zıplarken kafa → güçlü vole, koşarken kafa → ileri itiş).
@@ -211,7 +219,9 @@ export class GameSim {
       if (part === 'head' && movingIntoBall && result.approachSpeed >= HEADER.minImpactSpeed) {
         ball.vx += p.vx * HEADER.velocityBonus;
         ball.vy += p.vy * HEADER.velocityBonus;
-        this.events.push({ type: 'header', player: p.index, speed: ball.speed });
+        const superHit = p.superArmed;
+        if (superHit) this.applySuperHeader(p);
+        this.events.push({ type: 'header', player: p.index, speed: ball.speed, super: superHit });
       }
     }
   }
@@ -238,27 +248,23 @@ export class GameSim {
     const nx = d > PHYSICS.epsilon ? dx / d : p.facing;
     const ny = d > PHYSICS.epsilon ? dy / d : 0;
 
-    // Temas normalinin yükselme açısı (yukarı pozitif) → şut açısı.
-    const contactElevation = Math.atan2(-ny, Math.abs(nx));
-    const elevation = clamp(
-      KICK.baseLift + contactElevation * KICK.contactAngleFactor,
-      KICK.minElevation,
-      KICK.maxElevation,
-    );
-    const dirX = p.facing * Math.cos(elevation);
-    const dirY = -Math.sin(elevation);
-
-    const runUp = Math.max(0, p.vx * dirX + p.vy * dirY) * KICK.playerVelocityTransfer;
-    const targetSpeed = KICK.minSpeed + (KICK.maxSpeed - KICK.minSpeed) * p.swingFactor + runUp;
-    const along = ball.vx * dirX + ball.vy * dirY;
-    const perpX = ball.vx - along * dirX;
-    const perpY = ball.vy - along * dirY;
-    const newAlong = Math.max(along, targetSpeed);
-    ball.vx = dirX * newAlong + perpX * KICK.perpendicularRetain;
-    ball.vy = dirY * newAlong + perpY * KICK.perpendicularRetain;
-    // Alttan vuruş (ny < 0) → geri dönüş (backspin); üstten vuruş → ileri dönüş.
-    ball.angVel += KICK.spinFromContact * ny * p.facing;
+    const superShot = p.superArmed;
+    const kick = computeKick({
+      facing: p.facing,
+      playerVx: p.vx,
+      playerVy: p.vy,
+      swingFactor: p.swingFactor,
+      nx,
+      ny,
+      ballVx: ball.vx,
+      ballVy: ball.vy,
+      superShot,
+    });
+    ball.vx = kick.vx;
+    ball.vy = kick.vy;
+    ball.angVel += kick.spin;
     ball.clampSpeed();
+    p.superArmed = false;
 
     // Gerçekten çakışıyorsa topu ayağın dışına taşı.
     if (d < touch) {
@@ -267,28 +273,27 @@ export class GameSim {
     }
     p.kickHitDone = true;
     ball.lastTouch = p.index;
-    this.events.push({ type: 'kick', player: p.index, speed: ball.speed });
+    ball.touches++;
+    p.chargeTouch();
+    this.events.push({ type: 'kick', player: p.index, speed: ball.speed, super: superShot });
+  }
+
+  /** Süper kafa: top yönünü korur, en az `SUPER.headerMinSpeed` hızla gider. */
+  private applySuperHeader(p: Player): void {
+    const ball = this.ball;
+    const speed = ball.speed;
+    if (speed > PHYSICS.epsilon && speed < SUPER.headerMinSpeed) {
+      const k = SUPER.headerMinSpeed / speed;
+      ball.vx *= k;
+      ball.vy *= k;
+    }
+    ball.clampSpeed();
+    p.superArmed = false;
   }
 
   /** @returns Top bu alt adımda herhangi bir statik yüzeye değdiyse true. */
   private collideBallStatic(h: number): boolean {
-    const ball = this.ball;
-    let touched = false;
-    let onGround = false;
-    for (const collider of this.pitch.colliders) {
-      const contact = collideStatic(ball, collider);
-      if (!contact) continue;
-      resolveContact(ball, ball.radius, null, 0, contact, collider.material, PHYSICS);
-      touched = true;
-      if (contact.ny <= -GROUND_MIN) onGround = true;
-    }
-    if (onGround) {
-      ball.grounded = true;
-      // Yuvarlanma direnci: top yüzeyde sonsuza dek yuvarlanmasın.
-      ball.vx = moveToward(ball.vx, 0, BALL.rollingDecel * h);
-      ball.angVel = moveToward(ball.angVel, 0, (BALL.rollingDecel / ball.radius) * h);
-    }
-    return touched;
+    return collideBallWithPitch(this.ball, this.pitch, h);
   }
 
   private pushPlayerOutOfBall(p: Player): void {
@@ -306,7 +311,10 @@ export class GameSim {
     const match = this.match;
     // Santra beklemesinde top ortada tutulur; düdükle birlikte serbest düşer.
     if (match.ballHeld) this.holdBallAtCenter();
-    this.applyCrossbarRule(dt);
+    if (match.goalsAllowed) {
+      for (const p of this.players) p.addPower(POWER.chargePerSecond * dt);
+    }
+    if (applyCrossbarRest(this.ball, this.pitch, dt)) this.events.push({ type: 'crossbarPush' });
 
     const scorer = match.goalsAllowed ? this.detectGoal() : null;
     const firstNew = this.events.length;
@@ -326,26 +334,6 @@ export class GameSim {
 
   private holdBallAtCenter(): void {
     this.ball.resetTo(this.pitch.width / 2, BALL.kickoffY);
-  }
-
-  /** Top üst direğin üstünde süreden uzun kalırsa sahaya doğru itilir. */
-  private applyCrossbarRule(dt: number): void {
-    const ball = this.ball;
-    let zoneGoal: GoalDef | null = null;
-    for (const goal of this.pitch.goals) {
-      if (isBallOnCrossbar(ball, goal)) zoneGoal = goal;
-    }
-    if (!zoneGoal) {
-      ball.crossbarTimer = 0;
-      return;
-    }
-    ball.crossbarTimer += dt;
-    if (ball.crossbarTimer > MATCH.crossbarRestMaxSeconds) {
-      ball.vx = zoneGoal.fieldDirection * PITCH.goal.pushSpeed;
-      ball.vy = -PITCH.goal.popSpeed;
-      ball.crossbarTimer = 0;
-      this.events.push({ type: 'crossbarPush' });
-    }
   }
 
   /** Santra dizilişi: oyuncular başlangıç konumlarına, top ortada (yukarıda). */
@@ -396,5 +384,9 @@ function snapshotPlayer(p: Player): PlayerSnapshot {
     kickHitDone: p.kickHitDone,
     footAngle: p.footAngle,
     footAngVel: p.footAngVel,
+    power: p.power,
+    superArmed: p.superArmed,
+    prevSuper: p.prevSuper,
+    touchCooldown: p.touchCooldown,
   };
 }

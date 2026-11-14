@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { DEBUG, KICK } from '../config/gameConfig';
+import type { AiDebugInfo } from '../game/ai/AiController';
 import type { GameSim } from '../game/GameSim';
 import type { Player, PlayerPart } from '../game/entities/Player';
 
@@ -53,7 +54,8 @@ export class DebugOverlay {
     this.setVisible(!this.visible);
   }
 
-  update(sim: GameSim, stats: FrameStats): void {
+  /** @param ai Yapay zekâ oyuncularının özeti (tahmin edilen yörünge, mod, hedef). */
+  update(sim: GameSim, stats: FrameStats, ai: readonly AiDebugInfo[] = []): void {
     if (!this.visible) return;
     const g = this.g;
     const c = DEBUG.colors;
@@ -99,6 +101,8 @@ export class DebugOverlay {
     g.strokeCircle(ball.x, ball.y, ball.radius);
     this.drawVelocity(ball.x, ball.y, ball.vx, ball.vy);
 
+    for (const info of ai) this.drawAi(info, sim.pitch.groundY);
+
     const d = DEBUG.decimals;
     this.text.setText(
       [
@@ -111,8 +115,25 @@ export class DebugOverlay {
         `ball ground ${flag(ball.grounded)}  crossbar ${ball.crossbarTimer.toFixed(d)} s`,
         playerLine(sim.players[0]),
         playerLine(sim.players[1]),
+        ...ai.map(
+          (info) =>
+            `AI P${info.index + 1} ${info.mode}  target ${info.targetX.toFixed(0)}  ` +
+            `delay ${info.delayMs.toFixed(0)} ms`,
+        ),
       ].join('\n'),
     );
+  }
+
+  /** AI'ın tahmin ettiği top yörüngesi (çoklu çizgi) ve zeminde hedef konumu. */
+  private drawAi(info: AiDebugInfo, groundY: number): void {
+    const g = this.g;
+    const pts = info.trajectory;
+    g.lineStyle(DEBUG.lineWidthPx, DEBUG.colors.aiTrajectory, DEBUG.alpha);
+    for (let i = 2; i + 1 < pts.length; i += 2) {
+      g.lineBetween(pts[i - 2] ?? 0, pts[i - 1] ?? 0, pts[i] ?? 0, pts[i + 1] ?? 0);
+    }
+    g.lineStyle(DEBUG.lineWidthPx, DEBUG.colors.aiTarget, DEBUG.alpha);
+    g.lineBetween(info.targetX, groundY, info.targetX, groundY - DEBUG.aiTargetMarkerPx);
   }
 
   private drawVelocity(x: number, y: number, vx: number, vy: number): void {

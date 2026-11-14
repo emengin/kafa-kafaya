@@ -15,7 +15,8 @@
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "simulate": "node scripts/run-ts.js scripts/simulate.ts"
   },
   "dependencies": {
     "phaser": "^3.90.0"
