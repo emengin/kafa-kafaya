@@ -497,6 +497,19 @@ export const MATCH = {
   finalCountdownSeconds: 10,
 } as const;
 
+/**
+ * Simülasyonun ses/efekt için ürettiği "his" olaylarının eşikleri (oyun durumunu etkilemez;
+ * yalnızca hangi temasın olay sayılacağını belirler).
+ */
+export const SIM_EVENTS = {
+  /** Top bir saha yüzeyine en az bu yaklaşma hızıyla çarparsa `ballImpact` (px/sn). */
+  ballImpactMinSpeed: 70,
+  /** Oyuncu yere en az bu düşüş hızıyla inerse `land` (px/sn). */
+  landMinSpeed: 160,
+  /** Top oyuncuya (şut/kafa dışında) en az bu hızla değerse `ballTouch` (px/sn). */
+  touchMinSpeed: 120,
+} as const;
+
 /** Yapay zekâ zorluk seviyeleri. */
 export type AiDifficulty = 'easy' | 'medium' | 'hard';
 
@@ -900,6 +913,9 @@ export const CONTROLS = {
     menuUp: ['ArrowUp', 'KeyW'],
     menuDown: ['ArrowDown', 'KeyS'],
     menuConfirm: ['Enter', 'NumpadEnter', 'Space'],
+    /** Ayarlanabilir menü öğeleri (ses düzeyi). */
+    menuLeft: ['ArrowLeft', 'KeyA'],
+    menuRight: ['ArrowRight', 'KeyD'],
     /** Alt menüden geri dönüş. */
     menuBack: ['Escape', 'Backspace'],
   },
@@ -918,6 +934,8 @@ export const DEV = {
   durationParam: 'duration',
   /** `?debug=1` iken Phaser oyun nesnesi bu adla `window`'a konur (tarayıcı testleri). */
   globalGameName: '__KAFA_GAME__',
+  /** `?debug=1` iken ses sistemi (motor, efektler, kalabalık, müzik) bu adla `window`'a konur. */
+  globalAudioName: '__KAFA_AUDIO__',
   /** `?cpu=easy|medium|hard` → CPU'ya karşı maç (P2 yapay zekâ). */
   cpuParam: 'cpu',
   /** `?cpu1=easy|medium|hard` → P1 de yapay zekâ (AI vs AI izleme). */
@@ -938,6 +956,10 @@ export const STORAGE = {
     /** Tercih edilen karakterler (P1, 2 oyunculu modda P2). */
     character1: 'character1',
     character2: 'character2',
+    /** Ses düzeyleri (0–1). */
+    volumeMaster: 'volumeMaster',
+    volumeSfx: 'volumeSfx',
+    volumeMusic: 'volumeMusic',
   },
 } as const;
 
@@ -959,21 +981,6 @@ export const COLORS = {
   progressFill: 0xffd23f,
 } as const;
 
-/** Kod ile üretilen doku anahtarları ve boyutları. */
-export const TEXTURES = {
-  ball: {
-    key: 'tex-ball',
-    radius: 28,
-    outlinePx: 3,
-    /** Ortadaki beşgen yamanın yarıçapı / top yarıçapı. */
-    centerPatchRatio: 0.3,
-    /** Çevredeki yuvarlak yamalar: yarıçap ve merkeze uzaklık oranları. */
-    outerPatchRatio: 0.17,
-    outerPatchDistanceRatio: 0.7,
-    patchCount: 5,
-  },
-} as const;
-
 /** Yükleme ekranı. */
 export const PRELOAD = {
   bar: { width: 420, height: 18, borderRadius: 9 },
@@ -985,90 +992,42 @@ export const PRELOAD = {
 export const MENU = {
   fontFamily: '"Arial Black", "Segoe UI", Arial, sans-serif',
   title: {
-    yRatio: 0.32,
+    yRatio: 0.2,
     fontSizePx: 104,
-    strokePx: 12,
-    shadowOffsetPx: 6,
-    shadowBlurPx: 0,
-    shadowColor: '#000000',
+    strokePx: 13,
     /** Başlığın hafif "nefes alma" ölçek animasyonu. */
-    pulseScale: 1.04,
-    pulseMs: 1200,
+    pulseScale: 1.035,
+    pulseMs: 1300,
   },
-  /** Ana menü seçenekleri (dikey liste). */
+  /** Ana menü butonları (dikey liste). */
   items: {
-    yRatio: 0.53,
-    fontSizePx: 38,
-    spacingPx: 58,
-    strokePx: 6,
+    yRatio: 0.43,
+    fontSizePx: 28,
+    spacingPx: 66,
+    strokePx: 5,
+    buttonWidth: 380,
   },
-  navHint: { yRatio: 0.85, fontSizePx: 18, alpha: 0.75 },
+  navHint: { yRatio: 0.935, fontSizePx: 16, alpha: 0.85 },
   footer: {
-    fontSizePx: 18,
-    marginPx: 16,
-    alpha: 0.7,
+    fontSizePx: 13,
+    marginPx: 10,
+    alpha: 0.6,
   },
-  grass: {
-    heightRatio: 0.18,
-    stripeCount: 10,
-    lineWidthPx: 4,
-  },
-  /** Menüdeki zıplayan top — sabit adımlı döngünün görsel sağlaması. */
+  /** Menüdeki top — sağdaki karakterin kafasında seker (sabit adımlı döngünün görsel sağlaması). */
   demoBall: {
-    /** Yazılarla çakışmasın diye sağ tarafta. */
-    xRatio: 0.85,
-    startHeightRatio: 0.15,
     /** Yalnızca bu dekoratif top için; oyun fiziği BALL.gravity kullanır. */
     gravity: 1800,
-    restitution: 0.82,
-    /** Sekme hızı bunun altına düşerse top yeniden bu hızla fırlatılır (px/sn). */
-    minBounceSpeed: 650,
-    relaunchSpeed: 1050,
-    /** Tıklamada topa verilen yukarı hız (px/sn). */
-    kickSpeed: 1400,
+    /** Kafadan sekme hızı ve menüden çıkarken topa verilen hız (px/sn). */
+    relaunchSpeed: 820,
+    kickSpeed: 1600,
     /** Dönüş hızı (radyan/sn). */
     spinSpeed: 3,
-    /** Gölge elipsi boyutu (top çapına oran). */
-    shadowWidthRatio: 1.1,
-    shadowHeightRatio: 0.25,
   },
   clickFlash: { durationMs: 150, red: 255, green: 255, blue: 255 },
   /** Menüden maça geçerken kararma süresi (ms). */
   startFadeMs: 250,
   /** Alt menü başlığı ("Zorluk seç"): ilk öğenin bu kadar üstünde. */
-  submenuTitle: { offsetY: 58, fontSizePx: 24, strokePx: 5, color: '#ffd23f' },
-} as const;
-
-/** Faz 1 gri kutu çizimi (Phaser Graphics ile basit şekiller). */
-export const GRAYBOX = {
-  background: 0x262626,
-  ground: 0x454545,
-  groundLine: 0x8c8c8c,
-  lineWidthPx: 3,
-  centerLine: 0x363636,
-  centerCircleRadius: 80,
-  net: 0xbdbdbd,
-  netAlpha: 0.3,
-  netSpacingPx: 15,
-  netLineWidthPx: 1,
-  crossbar: 0xdedede,
-  post: 0xbdbdbd,
-  postWidthPx: 4,
-  outline: 0x1a1a1a,
-  outlinePx: 2,
-  legWidthPx: 6,
-  /** Oyuncu başına gri tonları (P1 açık, P2 koyu). */
-  players: [
-    { head: 0xd6d6d6, body: 0xa8a8a8, foot: 0x6e6e6e },
-    { head: 0x9e9e9e, body: 0x767676, foot: 0x4a4a4a },
-  ],
-  /** Savrulma sırasında ayak bu renge döner (şutun görünür olması için). */
-  kickFoot: 0xf5f5f5,
-  /** Süper hazır olan oyuncunun kafasının çevresinde nabız atan halka. */
-  superGlow: { color: 0xffd23f, lineWidthPx: 5, extraRadius: 7, pulseHz: 4, alphaMin: 0.35 },
-  /** Göz: bakış yönünü gösterir. Konum kafa yarıçapına oranla. */
-  eye: { color: 0x1a1a1a, radius: 5, forwardRatio: 0.5, upRatio: 0.15 },
-  ball: { fill: 0xf2f2f2, spoke: 0x1a1a1a, spokePx: 3 },
+  submenuTitle: { offsetY: 62, fontSizePx: 22, strokePx: 4, color: '#ffd23f' },
 } as const;
 
 /** Maç ekranı: skor çubuğu, saat, gol/altın gol yazıları. */
@@ -1077,58 +1036,82 @@ export const HUD = {
   depth: 100,
   /** Oyuncu kimlik renkleri: HUD'daki isimler ve kafaların üstündeki P1/P2 etiketleri. */
   playerColors: ['#ffb347', '#6ec6ff'],
-  /** Üstteki yarı saydam skor çubuğu: ekranın üst kenarından sarkar; `y` metinlerin ortası. */
-  bar: { y: 40, bottomY: 80, halfWidth: 400, radius: 18, color: 0x000000, alpha: 0.4 },
+  /**
+   * Skor tabelası (Faz 5): üstte ortada gölgeli panel — iki yanda canlı yüz ifadeli portreler,
+   * isimler ve güç barları, ortada iki skor kutusu ve saat hapı. x değerleri ortaya göre.
+   */
+  board: {
+    y: 54,
+    width: 760,
+    height: 92,
+    portraitX: 334,
+    portraitR: 31,
+    nameX: 288,
+    nameY: 38,
+    scoreX: 84,
+    scoreW: 70,
+    scoreH: 64,
+    clockW: 112,
+    clockH: 50,
+  },
   clock: {
-    fontSizePx: 40,
-    strokePx: 6,
+    fontSizePx: 34,
+    strokePx: 5,
     color: '#ffffff',
     /** Son saniyelerde (MATCH.finalCountdownSeconds) renk ve her saniye nabız. */
-    warningColor: '#ff4b4b',
-    pulseScale: 1.35,
+    warningColor: '#ff5a5a',
+    pulseScale: 1.3,
     pulseMs: 380,
     /** Altın golde saatin yerinde yazı. */
-    goldenFontSizePx: 24,
+    goldenFontSizePx: 20,
   },
-  score: { offsetX: 118, fontSizePx: 54, strokePx: 6, popScale: 1.6, popMs: 320 },
-  name: { offsetX: 178, fontSizePx: 22, strokePx: 4 },
+  /** Skor değişiminde eski rakam yukarı kayıp söner, yeni rakam yukarıdan sekerek iner. */
+  score: { fontSizePx: 50, strokePx: 6, dropPx: 34, popScale: 1.45, popMs: 420, flashAlpha: 0.75 },
+  name: { fontSizePx: 20, strokePx: 4 },
   goalBanner: {
-    yRatio: 0.24,
-    fontSizePx: 120,
-    strokePx: 10,
-    popScale: 1.25,
-    popMs: 180,
+    yRatio: 0.26,
+    fontSizePx: 132,
+    strokePx: 12,
+    popScale: 1.4,
+    popMs: 260,
     holdMs: 1100,
     fadeMs: 350,
-    subtitleFontSizePx: 34,
-    subtitleStrokePx: 6,
-    /** Alt yazının ana yazıya göre dikey uzaklığı. */
-    subtitleOffsetY: 82,
+    subtitleFontSizePx: 30,
+    subtitleStrokePx: 5,
+    /** Alt yazının ana yazıya göre dikey uzaklığı ve hap boyutu. */
+    subtitleOffsetY: 96,
+    subtitlePadX: 28,
+    subtitleH: 48,
+    /** Arkadaki dönen ışınlar: boyut (px), saydamlık, dönüş (rad/sn). */
+    raysSize: 560,
+    raysAlpha: 0.5,
+    raysSpin: 0.6,
+    wobbleRad: 0.06,
   },
   /** Gol anında ekran sarsıntısı. */
   goalShake: { durationMs: 220, intensity: 0.006 },
-  hint: { marginPx: 10, fontSizePx: 16, alpha: 0.55 },
+  hint: { marginPx: 12, fontSizePx: 15, alpha: 0.8, padX: 18, height: 30 },
   /** Oyuncu etiketi (P1/P2) kafanın üstünden bu kadar yukarıda. */
   label: { gapPx: 8, fontSizePx: 18, strokePx: 4, alpha: 0.95 },
   /**
-   * Güç barları: isimlerin altında, skor çubuğunun içinde; sahanın ortasına doğru dolar.
-   * Doluyken altın rengi, süper hazırken yanıp söner ve "SÜPER!" yazar.
+   * Güç barları: isimlerin altında; sahanın ortasına doğru dolar. Doluyken altın (üzerinde
+   * kayan parıltı), süper hazırken karakter renginde nabız atar ve süper adını yazar.
    */
   power: {
-    offsetX: 178,
     y: 64,
-    width: 150,
-    height: 8,
-    radius: 4,
-    backColor: 0x000000,
-    backAlpha: 0.55,
-    fillColor: 0x9ad7ff,
+    width: 168,
+    height: 12,
+    backColor: 0x050a26,
+    backAlpha: 0.85,
+    fillColor: 0x63c7ff,
+    fillLight: 0xb8ecff,
     fullColor: 0xffd23f,
-    armedColors: [0xffffff, 0xff8a00],
-    /** Süper hazırken yanıp sönme sıklığı (Hz). */
-    blinkHz: 6,
-    labelGapPx: 8,
-    labelFontSizePx: 14,
+    fullLight: 0xfff3b0,
+    /** Parıltının bar boyunca geçiş süresi (sn) ve genişliği (px). */
+    shineSeconds: 1.1,
+    shinePx: 26,
+    pulseHz: 5,
+    labelFontSizePx: 13,
     labelStrokePx: 3,
   },
   /**
@@ -1136,7 +1119,7 @@ export const HUD = {
    * geri sayım halkası. İkonlar ortadan dışa doğru dizilir.
    */
   powerUps: {
-    y: 108,
+    y: 132,
     firstOffsetX: 120,
     spacingPx: 46,
     radius: 18,
@@ -1231,6 +1214,12 @@ export const FX = {
 export const SELECT = {
   titleY: 54,
   titleFontSizePx: 44,
+  /** Stadyum arka planını koyulaştıran perde. */
+  dimColor: 0x070b26,
+  dimAlpha: 0.55,
+  /** Kart ve paneldeki karakterlerin ölçeği. */
+  cardRigScale: 0.55,
+  panelRigScale: 1.1,
   grid: { columns: 5, cellW: 150, cellH: 128, gapPx: 16, top: 104 },
   /** Kartın içindeki kafa çizimi (yarıçap kafa puanıyla büyür). */
   headY: 50,
@@ -1243,11 +1232,20 @@ export const SELECT = {
   cursorWidthPx: 5,
   /** İki imleç aynı karttaysa P2 çerçevesi bu kadar içeride. */
   cursorInsetPx: 7,
-  panel: { y: 386, width: 560, height: 284, marginX: 50, radius: 18, alpha: 0.82 },
-  statBar: { width: 200, height: 12, gapY: 26, labelWidth: 110, segments: 5 },
+  panel: {
+    y: 374,
+    width: 560,
+    height: 296,
+    marginX: 50,
+    radius: 18,
+    alpha: 0.82,
+    rigInset: 100,
+    textInset: 200,
+  },
+  statBar: { width: 200, height: 12, gapY: 24, labelWidth: 110, segments: 5 },
   fontSizePx: 20,
-  descFontSizePx: 17,
-  hintY: 690,
+  descFontSizePx: 16,
+  hintY: 698,
   hintFontSizePx: 17,
   /** İki taraf hazır olunca maça geçmeden önceki bekleme (ms). */
   startDelayMs: 450,
@@ -1296,7 +1294,22 @@ export const OVERLAY = {
 
 /** Web Audio ile sentezlenen sesler. Süreler saniye, frekanslar Hz. */
 export const AUDIO = {
-  masterVolume: 0.5,
+  /** Varsayılan ses düzeyleri (0–1; ayarlar menüsünden %10 adımlarla değişir, kaydedilir). */
+  defaults: { master: 0.8, sfx: 0.9, music: 0.6 },
+  volumeStep: 0.1,
+  /** Veri yolu kazançları (düzey 1'deyken): ana çıkış ve müziğin efektlere göre payı. */
+  masterGain: 0.62,
+  musicGain: 0.42,
+  crowdGain: 0.75,
+  /** Kırpılmayı önleyen sıkıştırıcı. */
+  compressor: { threshold: -16, knee: 12, ratio: 5, attack: 0.004, release: 0.22 },
+  /** Aynı anda çalabilecek en fazla tek seferlik ses (düşük güçlü cihaz koruması). */
+  maxVoices: 28,
+  /** Aynı sesin iki çalınışı arasındaki en kısa süre (sn): sekme sesleri üst üste binmesin. */
+  minGap: { bounce: 0.05, touch: 0.06, header: 0.08, land: 0.07, net: 0.12, post: 0.08 },
+  /** Gürültü tamponlarının uzunluğu (sn). */
+  noiseSeconds: 2,
+  crowdNoiseSeconds: 4,
   /**
    * Düdük: yüksek frekanslı bir ton + hızlı frekans titreşimi (bilyeli düdüğün "trrr"si).
    * Desenler [çalma, sessizlik, çalma, …] süreleridir.
@@ -1305,7 +1318,7 @@ export const AUDIO = {
     frequency: 2750,
     trillHz: 32,
     trillDepthHz: 170,
-    volume: 0.22,
+    volume: 0.2,
     attack: 0.012,
     release: 0.05,
     patterns: {
@@ -1314,14 +1327,1182 @@ export const AUDIO = {
       fullTime: [0.3, 0.14, 0.3, 0.14, 0.85],
     },
   },
-  /** Vuruş: kısa, alçak "tok" (frekansı düşen sinüs). */
-  kick: { startHz: 180, endHz: 60, duration: 0.09, volume: 0.35 },
-  /** Süper: yükselen testere dişi "vuuş". */
-  super: { startHz: 220, endHz: 880, duration: 0.28, volume: 0.16 },
-  /** Balon patlaması: kısa gürültü patlaması. */
-  pop: { duration: 0.07, volume: 0.3, filterHz: 1800 },
-  /** Donma: iki yüksek ton (çınlama). */
-  freeze: { tones: [1320, 1760], toneDuration: 0.09, volume: 0.12 },
+  /** Şut: güce göre ton — sert vuruş daha yüksek perdeden başlar, daha uzun ve parlak. */
+  kick: {
+    thumpFrom: [130, 230],
+    thumpTo: [52, 70],
+    duration: [0.1, 0.17],
+    volume: [0.45, 0.85],
+    clickHz: [1400, 3800],
+    clickVolume: [0.15, 0.4],
+    clickDuration: 0.035,
+    /** Bu güçten sonra "vınn" (havayı yaran top) eklenir. */
+    whooshFrom: 0.65,
+    whooshVolume: 0.16,
+    whooshDuration: 0.22,
+  },
+  header: { from: 520, to: 210, duration: 0.11, volume: 0.42, clickHz: 1100, clickVolume: 0.18 },
+  touch: { from: 260, to: 130, duration: 0.07, volume: 0.22 },
+  /** Direk: metalik çınlama — uyumsuz kısmi tonlar (çan benzeri). */
+  post: {
+    base: 560,
+    partials: [1, 2.76, 5.4, 8.93],
+    decays: [1.3, 0.8, 0.45, 0.25],
+    gains: [0.42, 0.26, 0.16, 0.08],
+    clickHz: 3200,
+    clickVolume: 0.3,
+  },
+  bounce: { from: 120, to: 55, duration: 0.09, volume: 0.32, noiseHz: 500 },
+  wall: { from: 180, to: 80, duration: 0.07, volume: 0.22, noiseHz: 900 },
+  net: { fromHz: 3200, toHz: 1100, duration: 0.42, volume: 0.32, q: 0.8 },
+  /** Hız → ses düzeyi: bu hızda tam düzey (px/sn). */
+  impactFullSpeed: 1500,
+  jump: { from: 290, to: 540, duration: 0.09, volume: 0.13, airFrom: 520, airTo: 1180 },
+  land: { from: 95, to: 45, duration: 0.1, volume: 0.32, noiseHz: 650 },
+  /** Balon patlaması ve güçlendirici çınlaması (yükselen arpej). */
+  pop: { duration: 0.07, volume: 0.32, filterHz: 1800 },
+  powerUp: { notes: [72, 76, 79, 84], gap: 0.055, decay: 0.22, volume: 0.15 },
+  freeze: { tones: [1320, 1760, 2350], toneDuration: 0.08, volume: 0.12 },
+  /** Süper hazır: yükselen parıltı. */
+  superArmed: { from: 300, to: 2600, duration: 0.45, volume: 0.12, chime: 88 },
+  /** Süper şutlar: tipine özel sentez (Sfx.superShot). */
+  superVolume: 0.3,
+  /** Süper şut seslerinin notaları (MIDI) ve Serap'ın ayrışma oranları. */
+  superNotes: {
+    ice: [96, 93, 89, 86, 84],
+    rainbow: [72, 74, 76, 79, 81, 84, 86, 88],
+    mirageSplit: [-0.18, 0, 0.22],
+  },
+  menu: {
+    moveHz: 880,
+    moveVolume: 0.08,
+    selectFrom: 660,
+    selectTo: 990,
+    selectVolume: 0.12,
+    duration: 0.06,
+  },
+  countdown: { hz: 1250, finalHz: 1650, duration: 0.05, volume: 0.13 },
+  horn: { notes: [57, 61, 64], duration: 1.25, volume: 0.15, cutoff: 1800, detune: 7 },
+} as const;
+
+/**
+ * Faz 5 — kalabalık sesi: filtrelenmiş gürültüyle sürekli uğultu (yavaş dalgalanan), tehlikeli
+ * atakta yükselen "kükreme", golde tezahürat patlaması (ıslıklar ve alkış), direkte "ooo".
+ */
+export const CROWD = {
+  murmur: {
+    centerHz: 520,
+    q: 0.55,
+    lowpassHz: 1900,
+    base: 0.16,
+    perIntensity: 0.22,
+    hzPerIntensity: 520,
+  },
+  /** Yavaş genlik dalgalanması (Hz) ve derinliği. */
+  swell: { hz: 0.21, depth: 0.25, slowHz: 0.067, slowDepth: 0.18 },
+  roar: { centerHz: 1350, q: 0.7, perIntensity: 0.32, exponent: 2 },
+  /** Gol tezahüratı: yükselme, tutma, sönme (sn) ve tepe düzeyi. */
+  cheer: {
+    attack: 0.12,
+    hold: 1.6,
+    release: 2.8,
+    peak: 0.85,
+    applauseHz: 2600,
+    applauseQ: 0.9,
+    applause: 0.35,
+  },
+  whistles: { count: 7, spread: 2.2, fromHz: 2100, toHz: 3300, duration: 0.35, volume: 0.06 },
+  ooh: { formants: [310, 820], q: 6, attack: 0.25, decay: 1.1, peak: 0.55, glide: 0.86 },
+  /** Atak tehlikesi: kaleye bu mesafede tam (px), hız katkısı ve yumuşatma (1/sn). */
+  danger: { rangePx: 460, refSpeed: 900, speedWeight: 0.5, rate: 2.2, heightPx: 320 },
+  /** Kalabalık sesinin değişim zaman sabiti (sn). */
+  smoothing: 0.25,
+} as const;
+
+/** Faz 5 — prosedürel müzik (döngüsel; menü ve maç parçası). */
+export const MUSIC = {
+  /** Müzik kuramı: akor aralıkları (yarım ton), diziler ve akor darbelerinin adımları. */
+  theory: {
+    intervals: {
+      maj: [0, 4, 7],
+      min: [0, 3, 7],
+      maj7: [0, 4, 7, 11],
+      m7: [0, 3, 7, 10],
+      dom7: [0, 4, 7, 10],
+    },
+    major: [0, 2, 4, 5, 7, 9, 11],
+    minor: [0, 2, 3, 5, 7, 8, 10],
+    stabSteps: [0, 6, 10],
+  },
+  lookaheadSeconds: 0.14,
+  tickMs: 25,
+  /** Parça geçişinde sönme (sn); golde müziğin kısılması (oran, sn). */
+  fadeSeconds: 0.7,
+  duck: { level: 0.35, seconds: 2.4 },
+  /** Gecikme (yankı) efekti. */
+  delay: { seconds: 0.27, feedback: 0.32, wet: 0.22 },
+  tracks: {
+    menu: {
+      bpm: 100,
+      root: 60,
+      mode: 'major',
+      /** [kök (yarım ton), akor tipi] — I–vi–IV–V. */
+      progression: [
+        [0, 'maj7'],
+        [9, 'm7'],
+        [5, 'maj7'],
+        [7, 'dom7'],
+      ],
+      kick: 'x.....x...x.....',
+      snare: '....x.......x...',
+      hat: 'x.x.x.x.x.x.x.xo',
+      bass: '0.....0...2.0...',
+      arp: '0.1.2.3.2.1.0.1.',
+      pad: true,
+      lead: 0.45,
+      loopBars: 8,
+      gain: 0.9,
+    },
+    match: {
+      bpm: 128,
+      root: 57,
+      mode: 'minor',
+      progression: [
+        [0, 'min'],
+        [8, 'maj'],
+        [3, 'maj'],
+        [10, 'maj'],
+      ],
+      kick: 'x...x...x...x...',
+      snare: '....x.......x..o',
+      hat: '.xox.xox.xox.xxx',
+      bass: '0.0r..0.0.2r..0.',
+      arp: '0120120120120121',
+      pad: false,
+      lead: 0.3,
+      loopBars: 8,
+      gain: 0.75,
+    },
+  },
+  /** Enstrüman sesleri. */
+  voices: {
+    kick: { from: 150, to: 42, duration: 0.22, volume: 0.55 },
+    snare: { hz: 1800, duration: 0.14, volume: 0.28, toneHz: 190 },
+    hat: { hz: 7500, duration: 0.035, volume: 0.09, openDuration: 0.16 },
+    bass: { cutoff: 520, duration: 0.85, volume: 0.32 },
+    pad: { cutoff: 1300, attack: 0.35, volume: 0.07, detune: 9 },
+    arp: { cutoff: 2600, duration: 0.6, volume: 0.07 },
+    lead: { cutoff: 3200, volume: 0.075, vibratoHz: 5.5, vibratoCents: 12 },
+  },
+} as const;
+
+/**
+ * Faz 5 — oyun hissi ("juice"): hit-stop, ekran sarsıntısı, gol zoom'u, vuruş flaşı.
+ * Süreler ms (aksi belirtilmedikçe); sarsıntı "travma" modeliyle (0–1) birikir ve söner.
+ */
+export const JUICE = {
+  hitStop: {
+    /** Bu hızın üstündeki şut/kafa sert vuruş sayılır (px/sn). */
+    hardHitSpeed: 1150,
+    /** Sert vuruşta hit-stop: hızla `minMs` → `maxMs` arası. */
+    minMs: 40,
+    maxMs: 55,
+    /** Süper atış ve gol anında hit-stop. */
+    superMs: 60,
+    goalMs: 60,
+  },
+  shake: {
+    /** Travma 1'deyken en büyük kayma (px) ve dönüş (rad). Etki travmanın karesiyle ölçeklenir. */
+    maxOffsetPx: 16,
+    maxAngleRad: 0.012,
+    /** Travmanın sönme hızı (1/sn). */
+    decayPerSecond: 1.6,
+    /** Gürültü frekansı (Hz). */
+    frequencyHz: 22,
+    /** Olay başına eklenen travma. */
+    hardHit: 0.32,
+    superLaunch: 0.45,
+    goal: 0.75,
+    post: 0.3,
+    quake: 0.8,
+    giantBounce: 0.35,
+    heavyLanding: 0.18,
+  },
+  zoom: {
+    /** Gol anında dünya katmanının yakınlaşması ve süreleri. */
+    goal: 1.1,
+    /** Yakınlaşmanın odağı: kale ağzı ile ekran ortası arasında (0 = kale, 1 = orta). */
+    focusTowardCenter: 0.35,
+    /** Yakınlaşma/uzaklaşma hızları (1/sn, üstel yaklaşma). */
+    inRate: 7,
+    outRate: 3.5,
+    /** Golden bu kadar gerçek saniye sonra uzaklaşmaya başlar. */
+    holdSeconds: 1.3,
+  },
+  flash: {
+    /** Vuruş flaşı: temas noktasında büyüyüp sönen parlak yıldız. */
+    durationMs: 140,
+    minScale: 0.35,
+    maxScale: 1.25,
+    /** Sert vuruşta tüm ekranda kısa beyaz parlama (ms, 0–255 renk). */
+    screenMs: 60,
+    screenRgb: [255, 255, 255],
+  },
+} as const;
+
+/**
+ * Faz 5 — karakter animasyonu: squash & stretch, eğilme, koşu sallanması, şut savrulması,
+ * göz kırpma ve ifadeler.
+ */
+export const ANIM = {
+  squash: {
+    /** Yay sabiti ve sönümü (1/sn²; 1/sn). */
+    stiffness: 260,
+    damping: 15,
+    /** Zıplamada esneme ve inişte basılma darbeleri (ölçek/sn). */
+    jumpImpulse: 4.2,
+    landImpulse: 6.5,
+    /** İniş darbesinin tam etki gösterdiği düşüş hızı (px/sn). */
+    landReferenceSpeed: 1300,
+    /** Havada dikey hızla esneme (ölçek / (px/sn)) ve üst sınırı. */
+    airStretchPerSpeed: 0.00009,
+    maxAirStretch: 0.1,
+    /** Esneme/basılmada genişliğin korunma oranı (hacim korunumu hissi). */
+    widthPreserve: 0.7,
+    /** Ölçek sınırları. */
+    min: -0.3,
+    max: 0.3,
+  },
+  run: {
+    /** Koşu adımı uzunluğu (px) ve dikey sallanma genliği (px, tam hızda). */
+    stridePx: 46,
+    bobPx: 4,
+    /** Adım vuruşunda hafif basılma (ölçek). */
+    stepSquash: 0.04,
+    /** Bu hız oranının altında koşu animasyonu yok. */
+    minSpeedRatio: 0.15,
+  },
+  lean: {
+    /** Tam hızda öne eğilme (rad) ve yaklaşma hızı (1/sn). */
+    maxRad: 0.12,
+    rate: 12,
+    /** Şut savrulmasında gövdenin geriye yaslanması (rad). */
+    kickRad: 0.22,
+  },
+  /** Ayakkabı ayak açısıyla döner (oran). */
+  shoeRotation: 0.85,
+  blink: {
+    /** Göz kırpmaları arası (sn) ve kırpma süresi (sn); arada bir çift kırpma. */
+    minInterval: 1.6,
+    maxInterval: 4.8,
+    duration: 0.13,
+    doubleChance: 0.2,
+  },
+  eyes: {
+    /** Gözbebeğinin kayabileceği en uzak mesafe (göz yarıçapına oran) ve takip hızı (1/sn). */
+    maxPupilOffset: 0.42,
+    followRate: 14,
+    /** Topa bu mesafeden yakınken gözler biraz büyür (px). */
+    alertDistancePx: 220,
+  },
+  expressions: {
+    /** Gol atınca sevinç, gol yiyince üzüntü (sn). */
+    happySeconds: 2.6,
+    sadSeconds: 2.6,
+    /** Süper etkisi ya da sert top çarpması (sn). */
+    shockedSeconds: 0.7,
+    /** Sert top çarpmasında şaşkınlık eşiği (px/sn). */
+    shockedImpactSpeed: 900,
+    /** Donunca titreme genliği (px) ve frekansı (Hz). */
+    shiverPx: 1.6,
+    shiverHz: 28,
+    /** Sevinçte zıplama (px) ve frekansı (Hz) — yalnızca yüz/baş, fizik değil. */
+    cheerBobPx: 3,
+    cheerHz: 5,
+  },
+} as const;
+
+/**
+ * Faz 5 — stadyum (kodla üretilen dokular). y değerleri mantıksal piksel; sahne 1280×720.
+ * Arka plan ekran kenarlarından `bleedPx` taşar: sarsıntı ve zoom kenarda boşluk göstermez.
+ */
+export const STADIUM = {
+  bleedPx: 48,
+  sky: {
+    bottomY: 330,
+    /** [konum 0–1, renk] — alacakaranlık. */
+    stops: [
+      [0, 0x121845],
+      [0.38, 0x2f3486],
+      [0.72, 0xb4659c],
+      [1, 0xffb27a],
+    ],
+  },
+  sun: { x: 1000, y: 318, radius: 260, color: 0xffd9a8, alpha: 0.55 },
+  stars: { count: 54, maxY: 170, minSize: 0.6, maxSize: 1.9, alpha: 0.75, seed: 11 },
+  clouds: {
+    variants: 4,
+    width: 300,
+    height: 120,
+    light: 0xffeaf4,
+    shade: 0x8f78c4,
+    seed: 23,
+    layers: [
+      { count: 4, minY: 64, maxY: 150, minScale: 0.45, maxScale: 0.7, speed: 6, alpha: 0.45 },
+      { count: 3, minY: 120, maxY: 220, minScale: 0.8, maxScale: 1.15, speed: 15, alpha: 0.72 },
+    ],
+  },
+  towers: {
+    xs: [128, 1152],
+    top: 26,
+    panelW: 136,
+    panelH: 64,
+    lampCols: 5,
+    lampRows: 3,
+    poleW: 14,
+    frame: 0x1d2240,
+    pole: 0x2b3158,
+    lamp: 0xfff8e0,
+    glowColor: 0xfff1c8,
+    glowScale: 2.6,
+    glowAlpha: 0.55,
+    /** Golde ışıklar parlar: ek saydamlık ve sönme hızı (1/sn). */
+    goalBoost: 0.4,
+    boostDecay: 0.8,
+    beamAlpha: 0.075,
+    beamLength: 700,
+    beamWidth: 420,
+  },
+  roof: {
+    y: 226,
+    height: 26,
+    color: 0x161b33,
+    edge: 0x6c7cb8,
+    supports: 11,
+    supportColor: 0x0e1226,
+  },
+  stands: {
+    top: 252,
+    bottom: 522,
+    back: 0x1a1f3d,
+    seatA: 0x2b3770,
+    seatB: 0x253064,
+    rowHeight: 36,
+    concourseY: 382,
+    concourseH: 14,
+    concourse: 0x10142c,
+    rail: 0x8d9ad0,
+    haze: 0x161c4a,
+    /** Üst tribün daha uzakta: puslu. */
+    upperHaze: 0.32,
+    lowerHaze: 0.14,
+  },
+  crowd: {
+    /** Sıraların taban y'leri (arkadan öne) ve ölçekleri (uzaktaki sıra küçük). */
+    rows: [
+      { y: 290, scale: 0.78, haze: 0.34 },
+      { y: 322, scale: 0.82, haze: 0.3 },
+      { y: 354, scale: 0.86, haze: 0.26 },
+      { y: 418, scale: 0.94, haze: 0.16 },
+      { y: 454, scale: 0.98, haze: 0.1 },
+      { y: 490, scale: 1, haze: 0.04 },
+    ],
+    rowHeight: 48,
+    spacing: 21,
+    jitterPx: 5,
+    headR: 7,
+    bodyW: 17,
+    bodyH: 17,
+    /** Ayakta/tezahüratta baş ne kadar yükselir (px). */
+    standLift: 7,
+    segments: 8,
+    /** Kendi tarafında takım rengi giyen taraftar oranı. */
+    teamShare: 0.68,
+    /** Taraftarın bayrak/atkı taşıma olasılığı (tezahürat dokusunda). */
+    scarfChance: 0.35,
+    skins: [0xf6d2b8, 0xe8b58e, 0xc98a5a, 0x9a6440, 0x6e4428, 0xf0c7a0],
+    hairs: [0x241a12, 0x4a3020, 0x8a5a2b, 0xd9b26a, 0x1a1a1a, 0x9a9a9a],
+    neutrals: [0xdedede, 0x3a3f5a, 0x7a7f9a, 0xa8483a, 0x4a7a5a, 0xd9c24a],
+    seed: 77,
+    /** Boşta hafif kıpırtı; heyecanla genlik ve sıklık artar; tezahüratta zıplama. */
+    idleBobPx: 1.2,
+    idleHz: 0.9,
+    exciteBobPx: 4,
+    cheerBobPx: 10,
+    cheerHz: 3.1,
+    /** Golden sonra tezahürat süresi (sn) ve heyecanın sönme hızı (1/sn). */
+    cheerSeconds: 3.6,
+    exciteRate: 2.5,
+  },
+  boards: {
+    y: 522,
+    height: 36,
+    tileWidth: 880,
+    speed: 46,
+    back: 0x0b0e2a,
+    colors: [0xffd23f, 0x5be3ff, 0xff5fa8, 0x7cff8a],
+    goalBack: 0xffd23f,
+    goalText: 0x1a1240,
+    glowAlpha: 0.22,
+  },
+  field: {
+    top: 558,
+    vanishY: -1100,
+    stripes: 14,
+    a: 0x3c9a44,
+    b: 0x4aad50,
+    far: 0x1f5a35,
+    near: 0x1d4a2a,
+    line: 0xffffff,
+    lineAlpha: 0.78,
+    centerRx: 118,
+    centerRy: 34,
+    boxDepth: 165,
+    noiseCount: 900,
+    seed: 5,
+  },
+  vignette: { alpha: 0.5, inner: 0.55 },
+} as const;
+
+/** Faz 5 — karakter çizimi (kodla üretilen dokular + her karede çizilen yüz). */
+export const CHARACTER_ART = {
+  /** Kafa katmanlarının üretildiği yarıçap (px): en büyük kafadan (Büyük Kafa ×1,4) büyük. */
+  headBakeRadius: 58,
+  /** Gövde ve ayakkabı dokularının çözünürlük çarpanı. */
+  bakeScale: 2,
+  /** Kontur rengi ve kalınlığı (üretim çözünürlüğünde px). */
+  outline: 0x2a1f3d,
+  outlinePx: 3.4,
+  /** Saç gradyanı (kafa biriminde dikey aralık) ve ton farkları. */
+  hairGradient: { top: -170, bottom: 60, lighten: 0.14, darken: -0.24 },
+  /** Ekranda yüz çizgilerinin kalınlığı (kafa yarıçapı 36 px iken, px). */
+  faceLinePx: 2.2,
+  /** Ek (kurdele/tüy) sallanması: genlik (rad), frekans (Hz), hıza göre eğim (rad / (px/sn)). */
+  extraSwayRad: 0.18,
+  extraSwayHz: 2.2,
+  extraSpeedTilt: 0.0006,
+  /** Süper hazırken kafanın arkasındaki parlama (kafa yarıçapına oran) ve nabız. */
+  glowScale: 3.1,
+  glowAlphaMin: 0.35,
+  glowAlphaMax: 0.85,
+  glowPulseHz: 4,
+  /** Donmuş oyuncuyu saran buz bloğu (kafa yarıçapına oran) ve saydamlığı. */
+  iceAlpha: 0.78,
+  /** Oyuncunun yerdeki gölgesi: en geniş hâli (kafa yarıçapına oran), yükseldikçe küçülür. */
+  shadowWidth: 2.2,
+  shadowHeight: 0.42,
+  shadowAlpha: 0.32,
+  /** Gölgenin tamamen küçüldüğü yükseklik (px). */
+  shadowFadeHeight: 420,
+  /** Kafa üstü etiketi (P1/P2/CPU) ve oku. */
+  tag: { gapPx: 14, fontSizePx: 15, padX: 8, padY: 3, alpha: 0.92, arrowPx: 6 },
+} as const;
+
+/** Faz 5 — top görseli: gölge, hız izi, hızla uzama ve çarpmada basılma. */
+export const BALL_FX = {
+  /** Gölge: zeminde en geniş hâli (top yarıçapına oran) ve en yüksekte küçülme. */
+  shadowWidth: 2.3,
+  shadowHeight: 0.55,
+  shadowAlpha: 0.38,
+  shadowFadeHeight: 520,
+  shadowMinScale: 0.35,
+  /** Hız izi: tutulan nokta sayısı, görünmeye başladığı ve tam görünür olduğu hızlar (px/sn). */
+  trailPoints: 14,
+  trailMinSpeed: 650,
+  trailFullSpeed: 1600,
+  trailAlpha: 0.32,
+  trailColor: 0xffffff,
+  /** Santra/ışınlanma: bu mesafeden uzun sıçrama izi sıfırlar (px). */
+  trailResetPx: 180,
+  /** Hızla uzama (ölçek / (px/sn)) ve üst sınırı. */
+  stretchPerSpeed: 0.00008,
+  maxStretch: 0.16,
+  /** Çarpmada basılma: yay sabiti, sönüm, darbe (ölçek/sn / (px/sn)). */
+  squashStiffness: 420,
+  squashDamping: 16,
+  squashPerSpeed: 0.0045,
+  maxSquash: 0.32,
+} as const;
+
+/** Faz 5 — süper şut görselleri (parlama, izler, özel çizimler). */
+export const SUPER_FX = {
+  /** Süper topun arkasındaki parlama (top yarıçapına oran) ve saydamlığı. */
+  glowScale: 4.2,
+  glowAlpha: 0.75,
+  /** İz parçacıklarının saniyedeki sayısı (kalite 2'de; düşük kalitede ölçeklenir). */
+  trailRate: 55,
+  /** Renkli iz şeridi: nokta sayısı, kalınlık (top yarıçapına oran). */
+  ribbonPoints: 16,
+  ribbonWidth: 1.1,
+  ribbonAlpha: 0.55,
+  /** Gökkuşağı şeridinin bant sayısı ve bant kalınlığı (px). */
+  rainbowBands: 6,
+  rainbowBandPx: 5,
+  /** Zikzak: şimşek çizgisinin titreşimi (px) ve kalınlığı. */
+  boltJitterPx: 9,
+  boltWidthPx: 3,
+  /** Mıknatıs: alan çizgilerinin sayısı, uzunluğu (px) ve nabzı (Hz). */
+  magnetArcs: 3,
+  magnetArcPx: 70,
+  magnetPulseHz: 3,
+  /** Işınlanma: görünmez topun yerindeki girdap (top yarıçapına oran) ve dönüş (Hz). */
+  vortexScale: 1.6,
+  vortexHz: 2.5,
+  /** Atış anında şok halkası: süre (sn) ve ölçek. */
+  launchRingSeconds: 0.45,
+  launchRingScale: 2.4,
+  /** Atışta ekran rengi parlaması (ms) ve saydamlık. */
+  launchFlashMs: 110,
+  /** Kaliteye göre iz parçacığı yoğunluğu [düşük, orta, yüksek]. */
+  qualityRate: [0.35, 0.65, 1],
+} as const;
+
+/**
+ * Faz 5 — arayüz stili: tüm paneller, butonlar ve yazılar aynı dili konuşur (yuvarlak köşe,
+ * yumuşak gölge, dikey gradyan, ince parlak kenar). Paneller kodla dokuya çizilir.
+ */
+export const UI_THEME = {
+  radius: 18,
+  shadow: { offsetY: 6, blur: 16, alpha: 0.5 },
+  borderPx: 3,
+  /** Üst kenardaki iç parlama (saydamlık). */
+  highlightAlpha: 0.22,
+  styles: {
+    panel: { top: 0x24357f, bottom: 0x0f1747, border: 0x93a8ff, borderAlpha: 0.5 },
+    overlay: { top: 0x26378a, bottom: 0x0e1543, border: 0xffd23f, borderAlpha: 1 },
+    button: { top: 0x31449a, bottom: 0x1a2462, border: 0x7d93f0, borderAlpha: 0.75 },
+    active: { top: 0xffe680, bottom: 0xffae22, border: 0xfff6cf, borderAlpha: 1 },
+    dark: { top: 0x161d4a, bottom: 0x0a0f30, border: 0x5a6cc0, borderAlpha: 0.6 },
+    card: { top: 0x2a3b8a, bottom: 0x121a52, border: 0x6f86e8, borderAlpha: 0.6 },
+  },
+  text: {
+    stroke: '#0b1340',
+    shadow: '#000000',
+    shadowOffset: 3,
+    shadowBlur: 4,
+    /** Seçili butonun yazı rengi (açık zemin üstünde koyu). */
+    activeColor: '#3a1e00',
+    gold: ['#fff6b8', '#ffd23f', '#ff9a1f'],
+  },
+  button: { height: 54, padX: 36, minWidth: 300, fontSizePx: 30, selectedScale: 1.06, popMs: 140 },
+} as const;
+
+/** Faz 5 — kale ağı dalgalanması (yay ağı). */
+export const NET = {
+  /** Ağ düğüm aralığı (px). */
+  spacingPx: 15,
+  /** Düğümün yerine dönme yayı, komşu bağı ve sönüm (1/sn², 1/sn², 1/sn). */
+  stiffness: 140,
+  coupling: 520,
+  damping: 7,
+  /** Düğüm başına en büyük sapma (px). */
+  maxOffsetPx: 16,
+  /** Darbe: etki yarıçapı (px) ve topun hızından aktarılan oran. */
+  impulseRadiusPx: 46,
+  impulseScale: 0.11,
+  /** İçeride hareket eden topun ağı itme oranı (her kare). */
+  pushScale: 0.012,
+  /** Toplam sapma bunun altına inince ağ durur (çizim atlanır). */
+  restEpsilon: 0.02,
+  /** Kararlılık için en büyük alt adım (sn). */
+  maxSubStepSeconds: 1 / 120,
+  /** Çizim: ağ ipi rengi, saydamlığı ve kalınlığı; kalenin içindeki gölge. */
+  color: 0xffffff,
+  alpha: 0.55,
+  lineWidthPx: 1.6,
+  interior: 0x0a1020,
+  interiorAlpha: 0.42,
+  /** Direkler: beyaz, kontur ve gölge tonu. */
+  post: 0xf4f6ff,
+  postShade: 0xb8c0dc,
+  postOutline: 0x2a1f3d,
+  postWidthPx: 8,
+  /** Golde ağın sarsılması (px/sn) — topun hızına ek. */
+  goalKick: 420,
+} as const;
+
+/**
+ * Faz 5 — parçacıklar (nesne havuzu). Kapasiteler kaliteye göre: [düşük, orta, yüksek].
+ * Ön ayarlar: sayı ve aralıklar [min, max]; açı radyan (0 = sağ, −π/2 = yukarı).
+ */
+export const PARTICLES = {
+  capacity: { normal: [140, 260, 420], additive: [100, 200, 320] },
+  /** Düşük kalitede patlamalardaki parçacık sayısı çarpanı. */
+  countScale: [0.4, 0.7, 1],
+  /** Hız yönüne dönen parçacıkların hızla uzama oranı (1 / (px/sn)). */
+  stretchPerSpeed: 0.0022,
+  /** Konfetinin dönerek düşerken genişlik salınımı (rad oranı). */
+  flutterRate: 1.7,
+} as const;
+
+/** Parçacık atlasındaki kareler (doku fxArt.ts içinde kodla çizilir). */
+export const PARTICLE_FRAME_NAMES = [
+  'dot',
+  'puff',
+  'spark',
+  'star',
+  'confetti',
+  'shard',
+  'flake',
+  'leaf',
+  'ring',
+  'blade',
+  'rock',
+  'heart',
+] as const;
+
+export type ParticleFrameName = (typeof PARTICLE_FRAME_NAMES)[number];
+
+/** Bir parçacık patlamasının tanımı. Aralıklar [min, max]; açı radyan (−π/2 = yukarı). */
+export interface ParticlePresetDef {
+  readonly frame: ParticleFrameName;
+  /** Toplamalı karışım (ışık, kıvılcım, alev). */
+  readonly additive: boolean;
+  readonly count: readonly [number, number];
+  readonly speed: readonly [number, number];
+  readonly angle: number;
+  /** Açının iki yana yayılımı (rad). */
+  readonly spread: number;
+  readonly life: readonly [number, number];
+  readonly size: readonly [number, number];
+  /** Ömür sonundaki boy (başlangıca oran). */
+  readonly sizeEnd: number;
+  readonly gravity: number;
+  readonly drag: number;
+  readonly spin: readonly [number, number];
+  readonly alpha: number;
+  readonly alphaEnd: number;
+  readonly colors: readonly number[];
+  /** Doğum noktasının rastgele yayılımı (px). */
+  readonly jitter: number;
+  readonly align?: boolean;
+  readonly flutter?: boolean;
+}
+
+const UP = -Math.PI / 2;
+const DOWN = Math.PI / 2;
+const ALL = Math.PI;
+const CONFETTI_COLORS = [0xff4b6e, 0xffd23f, 0x4bd8ff, 0x7cff8a, 0xb07cff, 0xffffff, 0xff9a3c];
+const GRASS = [0x5cc45a, 0x3e9e44, 0x7ad86a, 0x2f8a3a];
+const DUST = [0xe9dcc0, 0xd9c7a2, 0xc8b48c];
+const FIRE = [0xfff3a0, 0xffa020, 0xff5a10];
+const SPARK = [0xffffff, 0xfff1a8, 0xffe070];
+
+/** Parçacık ön ayarları (her süper şutun kendine özel efektleri dahil). */
+export const PARTICLE_PRESETS = {
+  landDust: {
+    frame: 'puff',
+    additive: false,
+    count: [7, 11],
+    speed: [50, 170],
+    angle: UP,
+    spread: 1.35,
+    life: [0.35, 0.65],
+    size: [10, 16],
+    sizeEnd: 2.3,
+    gravity: -40,
+    drag: 4.5,
+    spin: [-2, 2],
+    alpha: 0.6,
+    alphaEnd: 0,
+    colors: DUST,
+    jitter: 10,
+  },
+  runDust: {
+    frame: 'puff',
+    additive: false,
+    count: [1, 1],
+    speed: [20, 60],
+    angle: UP,
+    spread: 1.1,
+    life: [0.3, 0.45],
+    size: [6, 9],
+    sizeEnd: 2,
+    gravity: -20,
+    drag: 3,
+    spin: [-1, 1],
+    alpha: 0.45,
+    alphaEnd: 0,
+    colors: DUST,
+    jitter: 4,
+  },
+  grass: {
+    frame: 'blade',
+    additive: false,
+    count: [5, 9],
+    speed: [140, 330],
+    angle: UP,
+    spread: 0.85,
+    life: [0.4, 0.75],
+    size: [12, 18],
+    sizeEnd: 0.8,
+    gravity: 950,
+    drag: 1.2,
+    spin: [-14, 14],
+    alpha: 1,
+    alphaEnd: 0,
+    colors: GRASS,
+    jitter: 8,
+  },
+  kickSpark: {
+    frame: 'spark',
+    additive: true,
+    count: [7, 11],
+    speed: [320, 720],
+    angle: 0,
+    spread: 0.75,
+    life: [0.12, 0.24],
+    size: [30, 46],
+    sizeEnd: 0.3,
+    gravity: 0,
+    drag: 3,
+    spin: [0, 0],
+    alpha: 1,
+    alphaEnd: 0,
+    colors: SPARK,
+    jitter: 4,
+    align: true,
+  },
+  headerStars: {
+    frame: 'star',
+    additive: true,
+    count: [4, 6],
+    speed: [120, 260],
+    angle: UP,
+    spread: ALL,
+    life: [0.3, 0.5],
+    size: [14, 20],
+    sizeEnd: 0.2,
+    gravity: 200,
+    drag: 2,
+    spin: [-6, 6],
+    alpha: 1,
+    alphaEnd: 0,
+    colors: SPARK,
+    jitter: 6,
+  },
+  postSpark: {
+    frame: 'spark',
+    additive: true,
+    count: [8, 12],
+    speed: [250, 600],
+    angle: 0,
+    spread: ALL,
+    life: [0.15, 0.3],
+    size: [26, 40],
+    sizeEnd: 0.3,
+    gravity: 600,
+    drag: 2,
+    spin: [0, 0],
+    alpha: 1,
+    alphaEnd: 0,
+    colors: [0xffffff, 0xfff6c0],
+    jitter: 2,
+    align: true,
+  },
+  confetti: {
+    frame: 'confetti',
+    additive: false,
+    count: [60, 80],
+    speed: [360, 820],
+    angle: UP,
+    spread: 0.65,
+    life: [2.2, 3.2],
+    size: [26, 36],
+    sizeEnd: 1,
+    gravity: 560,
+    drag: 1.7,
+    spin: [-14, 14],
+    alpha: 1,
+    alphaEnd: 0,
+    colors: CONFETTI_COLORS,
+    jitter: 12,
+    flutter: true,
+  },
+  confettiRain: {
+    frame: 'confetti',
+    additive: false,
+    count: [50, 70],
+    speed: [40, 140],
+    angle: DOWN,
+    spread: 0.5,
+    life: [2.2, 3.4],
+    size: [22, 32],
+    sizeEnd: 1,
+    gravity: 160,
+    drag: 1,
+    spin: [-10, 10],
+    alpha: 1,
+    alphaEnd: 0,
+    colors: CONFETTI_COLORS,
+    jitter: 640,
+    flutter: true,
+  },
+  popBits: {
+    frame: 'confetti',
+    additive: false,
+    count: [14, 18],
+    speed: [200, 440],
+    angle: UP,
+    spread: ALL,
+    life: [0.5, 0.9],
+    size: [22, 30],
+    sizeEnd: 0.8,
+    gravity: 700,
+    drag: 2,
+    spin: [-12, 12],
+    alpha: 1,
+    alphaEnd: 0,
+    colors: [0xffffff],
+    jitter: 10,
+    flutter: true,
+  },
+  popSparkle: {
+    frame: 'star',
+    additive: true,
+    count: [9, 12],
+    speed: [100, 300],
+    angle: UP,
+    spread: ALL,
+    life: [0.35, 0.6],
+    size: [16, 24],
+    sizeEnd: 0.2,
+    gravity: -60,
+    drag: 2.5,
+    spin: [-5, 5],
+    alpha: 1,
+    alphaEnd: 0,
+    colors: SPARK,
+    jitter: 12,
+  },
+  fireTrail: {
+    frame: 'dot',
+    additive: true,
+    count: [2, 3],
+    speed: [20, 90],
+    angle: UP,
+    spread: ALL,
+    life: [0.22, 0.42],
+    size: [16, 24],
+    sizeEnd: 0.2,
+    gravity: -260,
+    drag: 2,
+    spin: [0, 0],
+    alpha: 0.95,
+    alphaEnd: 0,
+    colors: FIRE,
+    jitter: 8,
+  },
+  smoke: {
+    frame: 'puff',
+    additive: false,
+    count: [1, 1],
+    speed: [10, 40],
+    angle: UP,
+    spread: 0.8,
+    life: [0.5, 0.8],
+    size: [10, 14],
+    sizeEnd: 2.4,
+    gravity: -90,
+    drag: 2,
+    spin: [-1, 1],
+    alpha: 0.35,
+    alphaEnd: 0,
+    colors: [0x4a3a3a, 0x6a5a5a],
+    jitter: 6,
+  },
+  fireBurst: {
+    frame: 'dot',
+    additive: true,
+    count: [16, 22],
+    speed: [150, 420],
+    angle: UP,
+    spread: ALL,
+    life: [0.25, 0.5],
+    size: [18, 28],
+    sizeEnd: 0.2,
+    gravity: -120,
+    drag: 3,
+    spin: [0, 0],
+    alpha: 1,
+    alphaEnd: 0,
+    colors: FIRE,
+    jitter: 8,
+  },
+  iceTrail: {
+    frame: 'flake',
+    additive: true,
+    count: [1, 2],
+    speed: [20, 70],
+    angle: UP,
+    spread: ALL,
+    life: [0.4, 0.7],
+    size: [12, 18],
+    sizeEnd: 0.4,
+    gravity: 60,
+    drag: 2,
+    spin: [-4, 4],
+    alpha: 0.9,
+    alphaEnd: 0,
+    colors: [0xffffff, 0xbff4ff, 0x9be8ff],
+    jitter: 10,
+  },
+  iceBurst: {
+    frame: 'shard',
+    additive: true,
+    count: [12, 16],
+    speed: [160, 420],
+    angle: UP,
+    spread: ALL,
+    life: [0.35, 0.65],
+    size: [14, 22],
+    sizeEnd: 0.5,
+    gravity: 700,
+    drag: 1.5,
+    spin: [-10, 10],
+    alpha: 1,
+    alphaEnd: 0,
+    colors: [0xffffff, 0xbff4ff, 0x7fd8ff],
+    jitter: 10,
+  },
+  zigzagSpark: {
+    frame: 'spark',
+    additive: true,
+    count: [2, 3],
+    speed: [120, 380],
+    angle: 0,
+    spread: ALL,
+    life: [0.08, 0.18],
+    size: [24, 38],
+    sizeEnd: 0.3,
+    gravity: 0,
+    drag: 4,
+    spin: [0, 0],
+    alpha: 1,
+    alphaEnd: 0,
+    colors: [0xffffff, 0xfff04a, 0xffd000],
+    jitter: 10,
+    align: true,
+  },
+  teleportSwirl: {
+    frame: 'star',
+    additive: true,
+    count: [12, 16],
+    speed: [60, 220],
+    angle: UP,
+    spread: ALL,
+    life: [0.3, 0.6],
+    size: [12, 20],
+    sizeEnd: 0.2,
+    gravity: -60,
+    drag: 3,
+    spin: [-8, 8],
+    alpha: 1,
+    alphaEnd: 0,
+    colors: [0xffffff, 0xd2b0ff, 0xb07cff],
+    jitter: 18,
+  },
+  rockDebris: {
+    frame: 'rock',
+    additive: false,
+    count: [6, 10],
+    speed: [160, 380],
+    angle: UP,
+    spread: 1.1,
+    life: [0.45, 0.8],
+    size: [12, 20],
+    sizeEnd: 0.8,
+    gravity: 1100,
+    drag: 0.8,
+    spin: [-12, 12],
+    alpha: 1,
+    alphaEnd: 0.4,
+    colors: [0x9a8a78, 0x7a6a5a, 0xb5a58c],
+    jitter: 10,
+  },
+  tornadoLeaf: {
+    frame: 'leaf',
+    additive: false,
+    count: [1, 2],
+    speed: [80, 220],
+    angle: UP,
+    spread: ALL,
+    life: [0.4, 0.7],
+    size: [14, 20],
+    sizeEnd: 0.6,
+    gravity: -40,
+    drag: 1.5,
+    spin: [-14, 14],
+    alpha: 0.95,
+    alphaEnd: 0,
+    colors: [0xc8ffe4, 0x7ad86a, 0xb8ffd9],
+    jitter: 30,
+  },
+  rainbowStar: {
+    frame: 'star',
+    additive: true,
+    count: [1, 2],
+    speed: [10, 60],
+    angle: UP,
+    spread: ALL,
+    life: [0.4, 0.7],
+    size: [14, 20],
+    sizeEnd: 0.2,
+    gravity: 40,
+    drag: 2,
+    spin: [-6, 6],
+    alpha: 1,
+    alphaEnd: 0,
+    colors: [0xff4b4b, 0xffa53b, 0xfff04a, 0x5be37a, 0x4bb8ff, 0xa875ff],
+    jitter: 14,
+  },
+  magnetSpark: {
+    frame: 'spark',
+    additive: true,
+    count: [1, 2],
+    speed: [60, 200],
+    angle: 0,
+    spread: ALL,
+    life: [0.12, 0.25],
+    size: [22, 32],
+    sizeEnd: 0.3,
+    gravity: 0,
+    drag: 3,
+    spin: [0, 0],
+    alpha: 1,
+    alphaEnd: 0,
+    colors: [0xff4d5a, 0x5aa0ff, 0xffffff],
+    jitter: 14,
+    align: true,
+  },
+  miragePoof: {
+    frame: 'puff',
+    additive: false,
+    count: [8, 12],
+    speed: [60, 180],
+    angle: UP,
+    spread: ALL,
+    life: [0.3, 0.55],
+    size: [10, 15],
+    sizeEnd: 2,
+    gravity: -40,
+    drag: 3,
+    spin: [-2, 2],
+    alpha: 0.7,
+    alphaEnd: 0,
+    colors: [0xffc2e0, 0xffe3f0, 0xff8ac0],
+    jitter: 8,
+  },
+  mirageShimmer: {
+    frame: 'heart',
+    additive: true,
+    count: [1, 1],
+    speed: [10, 50],
+    angle: UP,
+    spread: ALL,
+    life: [0.3, 0.5],
+    size: [12, 16],
+    sizeEnd: 0.3,
+    gravity: -60,
+    drag: 2,
+    spin: [-3, 3],
+    alpha: 0.9,
+    alphaEnd: 0,
+    colors: [0xffc2e0, 0xff8ac0],
+    jitter: 12,
+  },
+  quakeDust: {
+    frame: 'puff',
+    additive: false,
+    count: [10, 14],
+    speed: [80, 260],
+    angle: UP,
+    spread: 1.4,
+    life: [0.45, 0.8],
+    size: [12, 18],
+    sizeEnd: 2.2,
+    gravity: -20,
+    drag: 3.5,
+    spin: [-2, 2],
+    alpha: 0.6,
+    alphaEnd: 0,
+    colors: [0xc98a45, 0xd9a86a, 0xa87038],
+    jitter: 16,
+  },
+  fireworks: {
+    frame: 'spark',
+    additive: true,
+    count: [34, 44],
+    speed: [220, 420],
+    angle: UP,
+    spread: ALL,
+    life: [0.8, 1.3],
+    size: [24, 36],
+    sizeEnd: 0.4,
+    gravity: 220,
+    drag: 1.6,
+    spin: [0, 0],
+    alpha: 1,
+    alphaEnd: 0,
+    colors: CONFETTI_COLORS,
+    jitter: 4,
+    align: true,
+  },
+  cameraFlash: {
+    frame: 'star',
+    additive: true,
+    count: [1, 1],
+    speed: [0, 0],
+    angle: 0,
+    spread: 0,
+    life: [0.1, 0.18],
+    size: [14, 22],
+    sizeEnd: 0.4,
+    gravity: 0,
+    drag: 0,
+    spin: [0, 0],
+    alpha: 1,
+    alphaEnd: 0,
+    colors: [0xffffff],
+    jitter: 0,
+  },
+  superCharge: {
+    frame: 'dot',
+    additive: true,
+    count: [1, 1],
+    speed: [30, 90],
+    angle: UP,
+    spread: 0.6,
+    life: [0.3, 0.5],
+    size: [8, 14],
+    sizeEnd: 0.2,
+    gravity: -160,
+    drag: 1,
+    spin: [0, 0],
+    alpha: 1,
+    alphaEnd: 0,
+    colors: [0xffffff],
+    jitter: 26,
+  },
+} as const satisfies Record<string, ParticlePresetDef>;
+
+export type ParticlePresetName = keyof typeof PARTICLE_PRESETS;
+
+/** Faz 5 — uyarlamalı kalite: kare süresi uzun süre bütçeyi aşarsa efektler azaltılır. */
+export const QUALITY = {
+  /** Kare süresi üstel ortalaması (ms) bunu `sustainSeconds` boyunca aşarsa bir kademe düş. */
+  downgradeFrameMs: 19.5,
+  sustainSeconds: 2.5,
+  /** Sahne açılışındaki takılmalar sayılmasın (sn). */
+  warmupSeconds: 2,
+  /** Sekme arka plandayken gelen dev kareler yok sayılır (ms). */
+  ignoreFrameMs: 120,
+  smoothing: 0.08,
+  /** `?quality=low|medium|high` ile sabitlenebilir. */
+  param: 'quality',
+  /** Bu kadar ya da daha az çekirdek/bellek (GB) → düşük güçlü cihaz. */
+  lowPowerCores: 4,
+  lowPowerMemoryGb: 4,
 } as const;
 
 /** F1 debug katmanı. */

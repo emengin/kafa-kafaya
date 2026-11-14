@@ -1,4 +1,5 @@
-import { DEV, type AiDifficulty } from '../config/gameConfig';
+import { DEV, QUALITY, type AiDifficulty } from '../config/gameConfig';
+import { parseQuality, type QualityLevel } from '../fx/feel';
 import { isCharacterId, type CharacterId } from '../game/characters';
 import { isDifficulty } from '../game/matchSetup';
 
@@ -52,4 +53,9 @@ export function devMatchDuration(): number | undefined {
   if (raw === null) return undefined;
   const value = Number(raw);
   return Number.isFinite(value) && value > 0 ? value : undefined;
+}
+
+/** `?quality=low|medium|high` → görsel kalite sabitlenir (yoksa null: uyarlamalı). */
+export function devQuality(): QualityLevel | null {
+  return parseQuality(params().get(QUALITY.param));
 }

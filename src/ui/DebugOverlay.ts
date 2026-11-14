@@ -11,6 +11,10 @@ export interface FrameStats {
   readonly stepMs: number;
   /** Son karede koşulan sabit adım sayısı. */
   readonly stepsThisFrame: number;
+  /** Ortalama kare süresi (ms), görsel kalite kademesi (0–2) ve canlı parçacık sayısı. */
+  readonly frameMs?: number;
+  readonly quality?: number;
+  readonly particles?: number;
 }
 
 const PARTS: readonly PlayerPart[] = ['head', 'body', 'foot'];
@@ -106,7 +110,8 @@ export class DebugOverlay {
     const d = DEBUG.decimals;
     this.text.setText(
       [
-        `FPS ${stats.fps.toFixed(1)}`,
+        `FPS ${stats.fps.toFixed(1)}  frame ${(stats.frameMs ?? 0).toFixed(d)} ms  ` +
+          `quality ${stats.quality ?? '-'}  particles ${stats.particles ?? 0}`,
         `phys ${stats.stepMs.toFixed(d + 1)} ms/step  steps/frame ${stats.stepsThisFrame}`,
         `substeps ${sim.lastSubSteps}  tick ${sim.tick}`,
         `match ${sim.match.phase}  t ${sim.match.phaseTime.toFixed(d)} s  ` +

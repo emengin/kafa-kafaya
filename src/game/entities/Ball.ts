@@ -6,6 +6,7 @@ import {
   type Circle,
   type ContactBody,
 } from '../../physics';
+import type { StaticKind } from '../pitch';
 import { advanceSuperEffect, applySuperForces, ballisticParamsFor } from '../superEffects';
 import type { Facing, PlayerIndex } from '../types';
 
@@ -48,6 +49,14 @@ export class Ball implements ContactBody, BallisticBody, Circle, BallSuperState 
    * fiziği etkilemez — istatistik ve sıkışma gözlemcisi içindir.
    */
   touches = 0;
+  /**
+   * Bu adımdaki en sert saha çarpması (yalnızca ses/efekt olayı için; fiziği etkilemez,
+   * snapshot'a girmez). GameSim her adımın başında sıfırlar.
+   */
+  impactSpeed = 0;
+  impactKind: StaticKind = 'ground';
+  impactX = 0;
+  impactY = 0;
 
   superType: SuperType | null = null;
   superOwner: PlayerIndex | -1 = -1;

@@ -1,10 +1,35 @@
 import Phaser from 'phaser';
+import { crowd } from '../audio/Crowd';
+import { attackDanger } from '../audio/crowdMood';
+import { music } from '../audio/Music';
 import { sfx } from '../audio/Sfx';
-import { CONTROLS, COLORS, DEBUG, FX, HUD, UNITS, type AiDifficulty } from '../config/gameConfig';
+import {
+  BALL,
+  CONTROLS,
+  CROWD,
+  DEBUG,
+  DISPLAY,
+  FX,
+  HUD,
+  JUICE,
+  MATCH,
+  SUPER_FX,
+  UNITS,
+  type AiDifficulty,
+} from '../config/gameConfig';
+import {
+  HitStop,
+  hitStopForSpeed,
+  QualityGovernor,
+  rememberQuality,
+  sessionQuality,
+} from '../fx/feel';
+import { approach } from '../fx/Spring';
 import { AiController, AiInputSource } from '../game/ai/AiController';
 import { mixSeed } from '../game/ai/random';
 import { observe } from '../game/ai/worldView';
 import { getCharacter, loadoutFor, type CharacterDef } from '../game/characters';
+import { POWER_UP_TYPES } from '../game/entities/Player';
 import { GameSim } from '../game/GameSim';
 import { resolveMatchSetup, type MatchSetup } from '../game/matchSetup';
 import type { PlayerIndex, SimEvent } from '../game/types';
@@ -14,19 +39,17 @@ import { KeyboardInputSource, KeyTracker } from '../input/KeyboardInput';
 import { MergedInputSource } from '../input/MergedInput';
 import { createGameLoop, lerp } from '../physics';
 import { DebugOverlay } from '../ui/DebugOverlay';
-import { GrayboxRenderer, superColor } from '../ui/GrayboxRenderer';
+import { displayedSecond } from '../ui/format';
 import { MatchHud } from '../ui/MatchHud';
+import { MatchRenderer } from '../ui/MatchRenderer';
 import { MenuOverlay } from '../ui/MenuOverlay';
 import { RenderFrame } from '../ui/renderFrame';
-import { devAiFlags, devMatchDuration, wantsDebugOverlay } from './devFlags';
+import { volumeMenuItems } from '../ui/settingsMenu';
+import { devAiFlags, devMatchDuration, devQuality, wantsDebugOverlay } from './devFlags';
 import { SceneKeys } from './sceneKeys';
 
-/** Kayan yazıların rengi için sayısal rengi CSS'e çevirir. */
-function cssColor(color: number): string {
-  return `#${color.toString(HEX).padStart(HEX_DIGITS, '0')}`;
-}
-const HEX = 16;
-const HEX_DIGITS = 6;
+/** Sık kullanılan renk. */
+const WHITE = 0xffffff;
 
 /** Her maç için yeni bir yapay zekâ tohumu (`?seed=N` verilmemişse). */
 function randomSeed(): number {
@@ -41,20 +64,23 @@ function cpuName(difficulty: AiDifficulty): string {
 /**
  * Maç sahnesi: 2 oyunculu ya da CPU'ya karşı. Kurallar ve durum makinesi GameSim/MatchFlow'dadır
  * (deterministik); sahne girdiyi toplar (klavye ya da yapay zekâ — ikisi de yalnızca
- * `InputState` üretir), sabit adımları koşar, çizer ve arayüzü (HUD, duraklatma, maç sonu)
- * yönetir.
+ * `InputState` üretir), sabit adımları koşar, çizer (`MatchRenderer`), sesi (`sfx`, `crowd`,
+ * `music`) ve arayüzü (HUD, duraklatma, maç sonu) yönetir.
  *
  * - **Ağır çekim:** gerçek kare süresi `match.timeScale` ile çarpılarak döngüye verilir;
  *   simülasyon yine sabit adımla ilerler, yalnızca saniyedeki adım sayısı azalır.
+ * - **Hit-stop:** sert vuruşta döngüye 40–60 ms boyunca süre verilmez (dünya donar);
+ *   simülasyon adımları değişmez, determinizm korunur.
  * - **Duraklatma:** döngü hiç ilerletilmez (her durumdan açılır, aynı yerden devam eder);
  *   sahne tween'leri de dondurulur.
+ * - **Kalite:** kare süresi uzun süre bütçeyi aşarsa efektler bir kademe azaltılır.
  */
 export class MatchScene extends Phaser.Scene {
   private readonly loop = createGameLoop();
   private sim!: GameSim;
   private tracker!: KeyTracker;
   private inputs!: readonly [InputSource, InputSource];
-  private view!: GrayboxRenderer;
+  private view!: MatchRenderer;
   private hud!: MatchHud;
   private debug!: DebugOverlay;
   private names!: readonly [string, string];
@@ -62,6 +88,12 @@ export class MatchScene extends Phaser.Scene {
   private characters!: readonly [CharacterDef, CharacterDef];
   /** Yapay zekâ oyuncuları (debug katmanı için). */
   private ais: AiController[] = [];
+  private readonly hitStop = new HitStop();
+  private governor!: QualityGovernor;
+  private screenFlash!: Phaser.GameObjects.Rectangle;
+  private danger = 0;
+  private lastCountdown = -1;
+  private readonly decoyTrack: { x: number; y: number }[] = [];
 
   /** Açık kaplama (duraklatma menüsü ya da maç sonu ekranı). */
   private overlay: MenuOverlay | null = null;
@@ -73,6 +105,7 @@ export class MatchScene extends Phaser.Scene {
   private readonly currFrame = new RenderFrame();
   private readonly drawFrame = new RenderFrame();
   private avgStepMs = 0;
+  private avgFrameMs = 0;
 
   constructor() {
     super(SceneKeys.Match);
@@ -86,11 +119,16 @@ export class MatchScene extends Phaser.Scene {
     // Sahne yeniden başlatıldığında alanlar sıfırlanmaz: hepsini burada kur.
     this.tweens.resumeAll();
     this.loop.reset();
+    this.hitStop.reset();
     this.overlay = null;
     this.paused = false;
     this.endShown = false;
     this.leaving = false;
     this.avgStepMs = 0;
+    this.avgFrameMs = 0;
+    this.danger = 0;
+    this.lastCountdown = -1;
+    this.decoyTrack.length = 0;
 
     const fromMenu = typeof data === 'object' && data !== null && 'mode' in data;
     const dev = devAiFlags();
@@ -132,17 +170,44 @@ export class MatchScene extends Phaser.Scene {
       this.tracker.detach();
       this.overlay?.destroy();
       this.overlay = null;
+      crowd.stop();
     });
 
-    this.view = new GrayboxRenderer(this, this.sim, this.characters);
-    this.hud = new MatchHud(this, this.names, t(mode === 'cpu' ? 'match.hintCpu' : 'match.hint'), [
-      this.characters[0].superType,
-      this.characters[1].superType,
-    ]);
+    const fixed = devQuality();
+    this.governor = new QualityGovernor(fixed ?? sessionQuality(), fixed !== null);
+    const tags: readonly [string, string] =
+      mode === 'cpu' ? [p1Ai ? 'CPU' : 'P1', 'CPU'] : ['P1', 'P2'];
+    this.view = new MatchRenderer(this, this.sim, this.characters, tags, this.governor.level, {
+      title: t('game.title'),
+      goal: t('board.goal'),
+    });
+    for (const c of this.characters) {
+      this.view.prewarmText(
+        upper(t(`super.${c.superType}`)),
+        FX.superColors[c.superType],
+        HUD.superText,
+      );
+    }
+    for (const type of POWER_UP_TYPES)
+      this.view.prewarmText(t(`powerUp.${type}`), FX.powerUpColors[type], HUD.popText);
+    this.hud = new MatchHud(
+      this,
+      this.names,
+      t(mode === 'cpu' ? 'match.hintCpu' : 'match.hint'),
+      [this.characters[0].superType, this.characters[1].superType],
+      this.characters,
+      [this.view.rigs[0].face, this.view.rigs[1].face],
+    );
     this.hud.update(this.sim.match, this.sim.players);
+    this.screenFlash = this.add
+      .rectangle(0, 0, DISPLAY.width, DISPLAY.height, WHITE, 0)
+      .setOrigin(0)
+      .setDepth(HUD.depth - 1);
     this.debug = new DebugOverlay(this);
     this.debug.setVisible(wantsDebugOverlay());
     this.cameras.main.fadeIn(HUD.kickoffFadeMs);
+    music.play('match');
+    crowd.start();
   }
 
   /**
@@ -169,13 +234,18 @@ export class MatchScene extends Phaser.Scene {
     return [first, new AiInputSource(ai2, view)];
   }
 
-  override update(_time: number, deltaMs: number): void {
+  override update(time: number, deltaMs: number): void {
     if (this.leaving) return;
     const { ui } = CONTROLS;
     if (this.tracker.consumePress(ui.debugToggle)) this.debug.toggle();
+    if (this.governor.sample(deltaMs)) {
+      this.view.setQuality(this.governor.level);
+      rememberQuality(this.governor.level);
+    }
+    this.avgFrameMs = lerp(this.avgFrameMs || deltaMs, deltaMs, DEBUG.statsSmoothing);
 
     if (this.paused) {
-      if (this.tracker.consumeAny(ui.pause)) {
+      if (this.tracker.consumeAny(ui.pause) && !this.inSettings) {
         this.resume();
       } else {
         this.overlay?.update(this.tracker);
@@ -189,11 +259,20 @@ export class MatchScene extends Phaser.Scene {
       return;
     }
 
-    this.advanceSimulation(deltaMs);
+    const realDt = Math.min(deltaMs, MAX_FRAME_MS) / UNITS.msPerSecond;
+    this.view.rememberBalloon();
+    this.trackDecoys();
+    const simMs = this.hitStop.filter(deltaMs);
+    this.advanceSimulation(simMs);
+    const worldDt = (Math.min(simMs, MAX_FRAME_MS) / UNITS.msPerSecond) * this.sim.match.timeScale;
     this.view.draw(
       this.drawFrame.lerpFrom(this.prevFrame, this.currFrame, this.loop.alpha),
-      this.time.now,
+      realDt,
+      worldDt,
+      time / UNITS.msPerSecond,
     );
+    this.updateCrowd(realDt);
+    this.updateCountdown();
     this.hud.update(this.sim.match, this.sim.players);
 
     const match = this.sim.match;
@@ -223,7 +302,14 @@ export class MatchScene extends Phaser.Scene {
     }
     this.debug.update(
       this.sim,
-      { fps: this.game.loop.actualFps, stepMs: this.avgStepMs, stepsThisFrame: steps },
+      {
+        fps: this.game.loop.actualFps,
+        stepMs: this.avgStepMs,
+        stepsThisFrame: steps,
+        frameMs: this.avgFrameMs,
+        quality: this.governor.level,
+        particles: this.view.liveParticles,
+      },
       this.debug.isVisible ? this.ais.map((ai) => ai.debugInfo()) : [],
     );
   }
@@ -231,15 +317,20 @@ export class MatchScene extends Phaser.Scene {
   private handleEvents(events: readonly SimEvent[]): void {
     for (const e of events) {
       switch (e.type) {
-        case 'goal': {
+        case 'goal':
           this.hud.onGoal(e.scorer);
-          const shake = HUD.goalShake;
-          this.cameras.main.shake(shake.durationMs, shake.intensity);
+          this.view.onGoal(e.scorer);
+          this.hitStop.trigger(JUICE.hitStop.goalMs);
+          crowd.cheer();
+          music.duck();
+          sfx.net(BALL.maxSpeed);
+          sfx.horn();
+          this.flash(WHITE, GOAL_FLASH);
           break;
-        }
         case 'kickoff':
           // Işınlanma: santra konumlarına enterpolasyonla "kayma" olmasın; kısa kararma gizler.
           this.prevFrame.copyFromFrame(this.currFrame);
+          this.view.onKickoff();
           this.cameras.main.fadeIn(HUD.kickoffFadeMs);
           break;
         case 'playStart':
@@ -252,91 +343,177 @@ export class MatchScene extends Phaser.Scene {
         case 'matchEnd':
           sfx.whistle('fullTime');
           if (e.reason === 'time') this.hud.onFullTime();
+          this.view.onMatchEnd(e.winner);
+          if (e.winner !== null) crowd.cheer();
           break;
-        case 'kick':
-          if (!e.super) sfx.kick();
+        case 'kick': {
+          const power = Math.min(1, e.speed / BALL.maxSpeed);
+          sfx.kick(power);
+          this.view.onKick(e.player, e.speed, e.super);
+          const stop = hitStopForSpeed(e.speed, BALL.maxSpeed);
+          if (stop > 0) {
+            this.hitStop.trigger(stop);
+            this.flash(WHITE, HARD_FLASH * power);
+          }
+          break;
+        }
+        case 'header': {
+          sfx.header(Math.min(1, e.speed / BALL.maxSpeed));
+          this.view.onHeader(e.player, e.speed, this.time.now / UNITS.msPerSecond);
+          const stop = hitStopForSpeed(e.speed, BALL.maxSpeed);
+          if (stop > 0) this.hitStop.trigger(stop);
+          break;
+        }
+        case 'ballTouch':
+          sfx.touch(e.speed);
+          this.view.onTouch(e.player, e.speed);
+          break;
+        case 'ballImpact':
+          this.onImpact(e.surface, e.speed, e.x, e.y);
+          break;
+        case 'jump':
+          sfx.jump(e.air);
+          this.view.onJump(e.player, e.air);
+          break;
+        case 'land':
+          sfx.land(e.speed);
+          this.view.onLand(e.player, e.speed);
+          break;
+        case 'superArmed':
+          sfx.superArmed();
           break;
         case 'superLaunch': {
-          sfx.superShot();
-          const [r, g, b] = FX.superFlashRgb;
-          this.cameras.main.flash(FX.superFlashMs, r, g, b);
+          sfx.superShot(e.superType);
+          this.view.onSuperLaunch(e.player, e.superType);
+          this.hitStop.trigger(JUICE.hitStop.superMs);
+          const color = FX.superColors[e.superType];
+          this.flash(color, SUPER_FLASH);
           const p = this.sim.players[e.player];
-          this.floatText(
+          this.view.floatText(
             p.x,
             p.y - p.headRadius,
             upper(t(`super.${e.superType}`)),
-            cssColor(superColor(e.superType)),
+            color,
             HUD.superText,
           );
           break;
         }
         case 'superHit':
-          if (e.superType === 'ice') sfx.freeze();
-          if (e.superType === 'quake') {
-            this.cameras.main.shake(FX.quakeShake.durationMs, FX.quakeShake.intensity);
-          }
+          sfx.superHit(e.superType);
+          this.view.onSuperHit(e.player, e.superType);
           break;
         case 'teleportExit':
-          this.view.burst(e.x, e.y, superColor('teleport'));
+          this.view.onTeleportExit(e.x, e.y);
+          sfx.jump(true);
           break;
         case 'balloonPop': {
           sfx.pop();
-          if (e.powerUp === 'freezeOpponent') sfx.freeze();
+          sfx.powerUp(e.powerUp);
+          this.view.onBalloonPop(e.player, e.powerUp);
           const p = this.sim.players[e.player];
-          this.floatText(
+          this.view.floatText(
             p.x,
             p.y - p.headRadius - HUD.popText.offsetY,
             t(`powerUp.${e.powerUp}`),
-            cssColor(FX.powerUpColors[e.powerUp]),
+            FX.powerUpColors[e.powerUp],
             HUD.popText,
           );
           break;
         }
-        case 'header':
-        case 'superArmed':
+        case 'balloonExpire':
+          this.view.onBalloonExpire();
+          break;
         case 'crossbarPush':
         case 'balloonSpawn':
-        case 'balloonExpire':
           break;
       }
     }
   }
 
-  /** Oyuncunun üstünde yükselip kaybolan kısa yazı (süper adı, kazanılan güçlendirici). */
-  private floatText(
-    x: number,
-    y: number,
-    text: string,
-    color: string,
-    style: { fontSizePx: number; strokePx: number; risePx: number; durationMs: number },
-  ): void {
-    const label = this.add
-      .text(x, y, text, {
-        fontFamily: HUD.fontFamily,
-        fontSize: `${style.fontSizePx}px`,
-        color,
-        stroke: COLORS.textStroke,
-        strokeThickness: style.strokePx,
-      })
-      .setOrigin(0.5, 1)
-      .setDepth(HUD.depth);
+  /** Topun saha çarpması: zemin "küt", duvar "tak", ağ "fışş", direk "dang" + kalabalık "ooo". */
+  private onImpact(surface: string, speed: number, x: number, y: number): void {
+    this.view.onImpact(surface, speed, x, y);
+    if (surface === 'ground') {
+      sfx.bounce(speed);
+    } else if (surface === 'crossbar') {
+      sfx.post(speed);
+      if (speed > OOH_SPEED) crowd.ooh();
+    } else {
+      const inNet = x < this.sim.pitch.goals[0].lineX || x > this.sim.pitch.goals[1].lineX;
+      if (surface === 'wall' && inNet && y > this.sim.pitch.goals[0].net.minY) sfx.net(speed);
+      else sfx.wall(speed);
+    }
+  }
+
+  /** Serap yanılsamaları sönünce pembe duman (yanılsama sayısı azaldıysa). */
+  private trackDecoys(): void {
+    const now = this.sim.decoys;
+    if (now.length < this.decoyTrack.length) {
+      for (const old of this.decoyTrack) {
+        const alive = now.some(
+          (d) => Math.hypot(d.ball.x - old.x, d.ball.y - old.y) < DECOY_MATCH_PX,
+        );
+        if (!alive) this.view.onDecoyVanish(old.x, old.y);
+      }
+    }
+    this.decoyTrack.length = 0;
+    for (const d of now) this.decoyTrack.push({ x: d.ball.x, y: d.ball.y });
+  }
+
+  /** Kalabalık: atak tehlikesine göre uğultu ve kıpırtı. */
+  private updateCrowd(dt: number): void {
+    const b = this.sim.ball;
+    const [left, right] = this.sim.pitch.goals;
+    const target = this.sim.match.goalsAllowed
+      ? attackDanger({
+          ballX: b.x,
+          ballY: b.y,
+          ballVx: b.vx,
+          groundY: this.sim.pitch.groundY,
+          leftLineX: left.lineX,
+          rightLineX: right.lineX,
+        })
+      : 0;
+    this.danger = approach(this.danger, target, CROWD.danger.rate, dt);
+    crowd.setIntensity(this.danger);
+    this.view.setExcitement(this.danger);
+  }
+
+  /** Son saniyeler: her saniye tık (son 3 sn daha tiz). */
+  private updateCountdown(): void {
+    const match = this.sim.match;
+    if (match.overtime || match.phase !== 'playing') return;
+    const second = displayedSecond(match.timeLeft);
+    if (second === this.lastCountdown) return;
+    this.lastCountdown = second;
+    if (second > 0 && second <= MATCH.finalCountdownSeconds) sfx.countdown(second <= FINAL_TICKS);
+  }
+
+  /** Tüm ekranda kısa renkli parlama (HUD'un altında). */
+  private flash(color: number, alpha: number): void {
+    this.tweens.killTweensOf(this.screenFlash);
+    this.screenFlash.setFillStyle(color, alpha);
     this.tweens.add({
-      targets: label,
-      y: y - style.risePx,
-      alpha: 0,
-      duration: style.durationMs,
+      targets: this.screenFlash,
+      fillAlpha: 0,
+      duration: SUPER_FX.launchFlashMs,
       ease: 'Quad.easeOut',
-      onComplete: () => {
-        label.destroy();
-      },
     });
   }
+
+  private inSettings = false;
 
   private pause(): void {
     this.paused = true;
     // Menü tuşları (Enter, ↑) oyuncu girdisine sarkmasın; basılı tuşlar yeniden basılmalı.
     this.tracker.releaseAll();
     this.tweens.pauseAll();
+    this.showPauseMenu();
+  }
+
+  private showPauseMenu(): void {
+    this.overlay?.destroy();
+    this.inSettings = false;
     this.overlay = new MenuOverlay(this, {
       title: t('pause.title'),
       items: [
@@ -344,6 +521,12 @@ export class MatchScene extends Phaser.Scene {
           label: t('pause.resume'),
           onSelect: () => {
             this.resume();
+          },
+        },
+        {
+          label: t('pause.settings'),
+          onSelect: () => {
+            this.showSettings();
           },
         },
         {
@@ -362,10 +545,28 @@ export class MatchScene extends Phaser.Scene {
     });
   }
 
+  private showSettings(): void {
+    // Menü öğesinin işleyicisi içinden çağrılır: kaplamayı bir sonraki karede değiştir.
+    this.time.delayedCall(0, () => {
+      this.overlay?.destroy();
+      this.inSettings = true;
+      this.overlay = new MenuOverlay(this, {
+        title: t('settings.title'),
+        lines: [t('settings.hint')],
+        items: volumeMenuItems(() => {
+          this.time.delayedCall(0, () => {
+            this.showPauseMenu();
+          });
+        }),
+      });
+    });
+  }
+
   private resume(): void {
     this.overlay?.destroy();
     this.overlay = null;
     this.paused = false;
+    this.inSettings = false;
     this.tracker.releaseAll();
     this.tweens.resumeAll();
   }
@@ -381,7 +582,7 @@ export class MatchScene extends Phaser.Scene {
     this.overlay = new MenuOverlay(this, {
       title:
         winner === null ? t('end.draw') : upper(format('end.winner', { name: this.names[winner] })),
-      titleColor: winner === null ? COLORS.textAccent : HUD.playerColors[winner],
+      ...(winner === null ? {} : { titleColor: HUD.playerColors[winner] }),
       lines,
       items: [
         {
@@ -417,3 +618,12 @@ export class MatchScene extends Phaser.Scene {
     });
   }
 }
+
+/** Sekme dönüşü gibi uzun karelerde görsel adım sınırı (ms). */
+const MAX_FRAME_MS = 100;
+const GOAL_FLASH = 0.35;
+const HARD_FLASH = 0.16;
+const SUPER_FLASH = 0.3;
+const OOH_SPEED = 600;
+const FINAL_TICKS = 3;
+const DECOY_MATCH_PX = 40;

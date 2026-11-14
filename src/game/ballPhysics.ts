@@ -40,7 +40,22 @@ export function collideBallWithPitch(ball: Ball, pitch: Pitch, h: number): boole
     const contact = collideStatic(ball, collider);
     if (!contact) continue;
     const material = collider.kind === 'ground' && superGround ? superGround : collider.material;
-    resolveContact(ball, ball.radius, null, 0, contact, material, PHYSICS);
+    const { approachSpeed } = resolveContact(
+      ball,
+      ball.radius,
+      null,
+      0,
+      contact,
+      material,
+      PHYSICS,
+    );
+    if (approachSpeed > ball.impactSpeed) {
+      // Ses/efekt için en sert çarpmayı kaydet (normal yüzeyden topa bakar).
+      ball.impactSpeed = approachSpeed;
+      ball.impactKind = collider.kind;
+      ball.impactX = ball.x - contact.nx * ball.radius;
+      ball.impactY = ball.y - contact.ny * ball.radius;
+    }
     touched = true;
     if (contact.ny <= -GROUND_MIN) onGround = true;
   }

@@ -1,4 +1,8 @@
 import Phaser from 'phaser';
+import { engine } from './audio/AudioEngine';
+import { isLowPowerDevice, rememberQuality } from './fx/feel';
+import { crowd } from './audio/Crowd';
+import { music } from './audio/Music';
 import { sfx } from './audio/Sfx';
 import { DEV, DISPLAY } from './config/gameConfig';
 import { t } from './i18n';
@@ -11,12 +15,19 @@ import { wantsDebugOverlay } from './scenes/devFlags';
 
 document.title = t('game.title');
 
-// Tarayıcılar sesi ilk kullanıcı etkileşimine kadar askıda tutar: ilk tuş/tıklamada aç.
+// Tarayıcıların autoplay kuralı: ses ancak kullanıcı etkileşiminden sonra başlayabilir. Her
+// tuş/tıklama/dokunuşta kilit açmayı dene; ses çalmaya başlayınca dinleyicileri kaldır.
+const UNLOCK_EVENTS = ['keydown', 'pointerdown', 'touchend'] as const;
 const unlockAudio = (): void => {
-  sfx.unlock();
+  engine.unlock();
+  if (engine.running)
+    for (const type of UNLOCK_EVENTS) window.removeEventListener(type, unlockAudio);
 };
-window.addEventListener('keydown', unlockAudio, { once: true });
-window.addEventListener('pointerdown', unlockAudio, { once: true });
+for (const type of UNLOCK_EVENTS) window.addEventListener(type, unlockAudio);
+
+// Düşük güçlü cihaz: kenar yumuşatma kapalı, görsel kalite bir kademe aşağıdan başlar.
+const lowPower = isLowPowerDevice(navigator);
+if (lowPower) rememberQuality(1);
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -32,9 +43,12 @@ const game = new Phaser.Game({
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   fps: { target: DISPLAY.targetFps },
-  render: { antialias: true, powerPreference: 'high-performance' },
+  render: { antialias: true, antialiasGL: !lowPower, powerPreference: 'high-performance' },
   scene: [BootScene, PreloadScene, MenuScene, CharacterSelectScene, MatchScene],
 });
 
-// Geliştirici kancası: tarayıcı testleri maç durumunu okuyabilsin.
-if (wantsDebugOverlay()) Reflect.set(globalThis, DEV.globalGameName, game);
+// Geliştirici kancası: tarayıcı testleri maç durumunu ve ses sistemini okuyabilsin.
+if (wantsDebugOverlay()) {
+  Reflect.set(globalThis, DEV.globalGameName, game);
+  Reflect.set(globalThis, DEV.globalAudioName, { engine, sfx, crowd, music });
+}

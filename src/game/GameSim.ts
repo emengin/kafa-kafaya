@@ -8,6 +8,7 @@ import {
   PLAYER,
   POWER,
   POWERUPS,
+  SIM_EVENTS,
   SUPER,
   SUPER_SHOTS,
   type PowerUpType,
@@ -168,6 +169,8 @@ export class GameSim {
   /** Son adımda kullanılan alt adım sayısı (debug). */
   lastSubSteps = 0;
   private readonly events: SimEvent[] = [];
+  /** Bu adımda topun oyunculara pasif temasının en yüksek hızı (`ballTouch` olayı için). */
+  private readonly touchSpeeds: [number, number] = [0, 0];
   private readonly rng: SeededRandom;
   private readonly powerUpsEnabled: boolean;
 
@@ -193,13 +196,23 @@ export class GameSim {
     const [p1, p2] = this.players;
     const active = this.match.playersActive;
     this.applyPowerUpModifiers(STEP_SECONDS);
+    const wasGrounded = [p1.grounded, p2.grounded] as const;
     for (const p of this.players) {
       const wasArmed = p.superArmed;
+      const wasJumping = p.jumping;
+      const airJumpBefore = p.airJumpUsed;
       p.applyInput(active ? inputs[p.index] : EMPTY_INPUT, STEP_SECONDS);
       if (p.superArmed && !wasArmed) this.events.push({ type: 'superArmed', player: p.index });
+      if (p.jumping && !wasJumping) {
+        this.events.push({ type: 'jump', player: p.index, air: p.airJumpUsed && !airJumpBefore });
+      }
     }
     this.applyTornado(STEP_SECONDS);
     this.ball.clampSpeed();
+    const fallSpeeds = [p1.vy, p2.vy] as const;
+    this.touchSpeeds[0] = 0;
+    this.touchSpeeds[1] = 0;
+    this.ball.impactSpeed = 0;
 
     const wasPhased = this.ball.phased;
     const n = computeSubSteps(this.maxPointSpeed(), STEP_SECONDS, PHYSICS);
@@ -215,11 +228,42 @@ export class GameSim {
     if (wasPhased && !this.ball.phased) {
       this.events.push({ type: 'teleportExit', x: this.ball.x, y: this.ball.y });
     }
+    this.pushFeelEvents(wasGrounded, fallSpeeds);
 
     this.stepDecoys(STEP_SECONDS);
     this.applyRules(STEP_SECONDS);
     this.tick++;
     return this.events.slice();
+  }
+
+  /**
+   * Ses ve efekt için "his" olayları (oyun durumunu değiştirmez): iniş, topun saha çarpması ve
+   * oyunculara pasif teması. Alt adımlar boyunca toplanan en sert değerlerden adım başına bir kez.
+   */
+  private pushFeelEvents(
+    wasGrounded: readonly [boolean, boolean],
+    fallSpeeds: readonly [number, number],
+  ): void {
+    const e = SIM_EVENTS;
+    for (const p of this.players) {
+      const fall = fallSpeeds[p.index];
+      if (p.grounded && !wasGrounded[p.index] && fall >= e.landMinSpeed) {
+        this.events.push({ type: 'land', player: p.index, speed: fall });
+      }
+      const touch = this.touchSpeeds[p.index];
+      if (touch >= e.touchMinSpeed)
+        this.events.push({ type: 'ballTouch', player: p.index, speed: touch });
+    }
+    const ball = this.ball;
+    if (ball.impactSpeed >= e.ballImpactMinSpeed) {
+      this.events.push({
+        type: 'ballImpact',
+        surface: ball.impactKind,
+        speed: ball.impactSpeed,
+        x: ball.impactX,
+        y: ball.impactY,
+      });
+    }
   }
 
   /**
@@ -348,6 +392,9 @@ export class GameSim {
         ball.touches++;
         p.chargeTouch();
         this.onSuperContact(p, header);
+        if (!header && result.approachSpeed > this.touchSpeeds[p.index]) {
+          this.touchSpeeds[p.index] = result.approachSpeed;
+        }
       }
       if (header) {
         ball.vx += p.vx * HEADER.velocityBonus;

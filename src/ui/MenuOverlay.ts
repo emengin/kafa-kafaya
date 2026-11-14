@@ -1,11 +1,13 @@
-import Phaser from 'phaser';
-import { COLORS, DISPLAY, HUD, OVERLAY } from '../config/gameConfig';
+import type Phaser from 'phaser';
+import { addPanel, goldFill, textStyle } from '../art/uiArt';
+import { DISPLAY, HUD, OVERLAY } from '../config/gameConfig';
 import { t } from '../i18n';
 import type { KeyTracker } from '../input/KeyboardInput';
 import { TextMenu, type TextMenuItem } from './TextMenu';
 
 export interface MenuOverlayOptions {
   readonly title: string;
+  /** Verilirse başlık bu renkte (yoksa altın gradyan). */
   readonly titleColor?: string;
   /** Başlığın altındaki bilgi satırları (skor, "Altın golle" …). */
   readonly lines?: readonly string[];
@@ -13,8 +15,9 @@ export interface MenuOverlayOptions {
 }
 
 /**
- * Ekranı karartan perde + ortada panel: başlık, bilgi satırları, dikey menü, tuş ipucu.
- * Duraklatma menüsü ve maç sonu ekranı bunu kullanır. Panel yüksekliği içeriğe göre hesaplanır.
+ * Ekranı karartan perde + ortada gölgeli, altın kenarlı panel: başlık (altın gradyan), bilgi
+ * satırları, buton menüsü, tuş ipucu. Duraklatma menüsü, ses ayarları ve maç sonu ekranı bunu
+ * kullanır. Panel içeriğe göre boyutlanır ve kısa bir "pop" ile açılır.
  */
 export class MenuOverlay {
   private readonly objects: Phaser.GameObjects.GameObject[] = [];
@@ -45,24 +48,28 @@ export class MenuOverlay {
     const panelHeight = contentHeight + panel.paddingPx * 2;
     const top = (height - panelHeight) / 2;
 
-    const g = scene.add.graphics().setDepth(depth);
-    g.fillStyle(panel.color, panel.alpha);
-    g.fillRoundedRect(cx - panel.width / 2, top, panel.width, panelHeight, panel.radius);
-    g.lineStyle(panel.strokePx, panel.strokeColor, 1);
-    g.strokeRoundedRect(cx - panel.width / 2, top, panel.width, panelHeight, panel.radius);
-    this.objects.push(g);
+    const bg = addPanel(
+      scene,
+      cx,
+      top + panelHeight / 2,
+      panel.width,
+      panelHeight,
+      'overlay',
+      panel.radius,
+    ).setDepth(depth);
+    this.objects.push(bg);
 
     let y = top + panel.paddingPx + title.lineHeightPx / 2;
     const titleText = scene.add
-      .text(cx, y, options.title, {
-        fontFamily: HUD.fontFamily,
-        fontSize: `${title.fontSizePx}px`,
-        color: options.titleColor ?? COLORS.textAccent,
-        stroke: COLORS.textStroke,
-        strokeThickness: title.strokePx,
-      })
+      .text(
+        cx,
+        y,
+        options.title,
+        textStyle(title.fontSizePx, options.titleColor ?? '#ffffff', title.strokePx),
+      )
       .setOrigin(0.5)
       .setDepth(depth);
+    if (!options.titleColor) goldFill(titleText);
     // Uzun başlıklar (ör. İngilizce/uzun oyuncu adı) panele sığacak kadar küçültülür.
     const maxTitleWidth = panel.width - panel.paddingPx * 2;
     if (titleText.width > maxTitleWidth) titleText.setScale(maxTitleWidth / titleText.width);
@@ -73,11 +80,7 @@ export class MenuOverlay {
       y += line.lineHeightPx / 2;
       this.objects.push(
         scene.add
-          .text(cx, y, text, {
-            fontFamily: HUD.fontFamily,
-            fontSize: `${line.fontSizePx}px`,
-            color: line.color,
-          })
+          .text(cx, y, text, textStyle(line.fontSizePx, line.color))
           .setOrigin(0.5)
           .setDepth(depth),
       );
@@ -94,20 +97,21 @@ export class MenuOverlay {
       selectedColor: items.selectedColor,
       selectedScale: items.selectedScale,
       depth,
+      buttonWidth: panel.width - panel.paddingPx * 2,
     });
     y += this.menu.span + items.spacingPx / 2 + hint.lineHeightPx / 2;
 
     this.objects.push(
       scene.add
-        .text(cx, y, t('overlay.navHint'), {
-          fontFamily: HUD.fontFamily,
-          fontSize: `${hint.fontSizePx}px`,
-          color: COLORS.textPrimary,
-        })
+        .text(cx, y, t('overlay.navHint'), textStyle(hint.fontSizePx, '#ffffff', 2))
         .setOrigin(0.5)
         .setAlpha(hint.alpha)
         .setDepth(depth),
     );
+
+    // Açılış: panel hafifçe büyüyerek gelir.
+    bg.setScale(OPEN_SCALE);
+    scene.tweens.add({ targets: bg, scale: 1, duration: OPEN_MS, ease: 'Back.easeOut' });
   }
 
   update(tracker: KeyTracker): void {
@@ -120,3 +124,6 @@ export class MenuOverlay {
     this.objects.length = 0;
   }
 }
+
+const OPEN_SCALE = 0.92;
+const OPEN_MS = 180;

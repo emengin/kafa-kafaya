@@ -1,5 +1,10 @@
 import type Phaser from 'phaser';
 import { FX, type PowerUpType } from '../config/gameConfig';
+import { POWER_UP_TYPES } from '../game/entities/Player';
+import { strokeArc } from './shapes';
+
+/** Sık kullanılan renk. */
+const WHITE = 0xffffff;
 
 type Graphics = Phaser.GameObjects.Graphics;
 
@@ -42,8 +47,9 @@ export function drawPowerUpIcon(
   r: number,
   color: number,
   alpha = 1,
+  lineWidth: number = FX.iconLineWidthPx,
 ): void {
-  g.lineStyle(FX.iconLineWidthPx, color, alpha);
+  g.lineStyle(lineWidth, color, alpha);
   g.fillStyle(color, alpha);
   switch (type) {
     case 'bigHead': {
@@ -126,7 +132,31 @@ export function strokeRing(
   if (fraction <= 0) return;
   const start = -Math.PI / 2;
   g.lineStyle(width, color, alpha);
-  g.beginPath();
-  g.arc(x, y, r, start, start + Math.PI * 2 * Math.min(1, fraction), false);
-  g.strokePath();
+  strokeArc(g, x, y, r, start, start + Math.PI * 2 * Math.min(1, fraction));
 }
+
+/** İkon dokusunun anahtarı (beyaz çizilir; renk tint ile verilir). */
+export function iconKey(type: PowerUpType): string {
+  return `icon-${type}`;
+}
+
+/** İkon dokusunun yarıçapı (px): kullanırken `r / ICON_RADIUS` ile ölçeklenir. */
+export const ICON_RADIUS = 32;
+const ICON_PAD = 6;
+
+/**
+ * Güçlendirici ikonlarını bir kez dokuya çizer (Canvas üzerinden): oyun sırasında her karede
+ * vektör çizim yapılmaz, ikonlar sprite olarak kullanılır.
+ */
+export function generateIconTextures(scene: Phaser.Scene): void {
+  const size = (ICON_RADIUS + ICON_PAD) * 2;
+  for (const type of POWER_UP_TYPES) {
+    const key = iconKey(type);
+    if (scene.textures.exists(key)) continue;
+    const g = scene.make.graphics({ x: 0, y: 0 }, false);
+    drawPowerUpIcon(g, type, size / 2, size / 2, ICON_RADIUS, WHITE, 1, ICON_LINE);
+    g.generateTexture(key, size, size);
+    g.destroy();
+  }
+}
+const ICON_LINE = 5;

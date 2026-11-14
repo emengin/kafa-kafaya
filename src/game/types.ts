@@ -1,4 +1,5 @@
 import type { PowerUpType, SuperType } from '../config/gameConfig';
+import type { StaticKind } from './pitch';
 
 /** 0 = P1 (sol, sağa bakar), 1 = P2 (sağ, sola bakar). */
 export type PlayerIndex = 0 | 1;
@@ -41,6 +42,23 @@ export type SimEvent =
   | { readonly type: 'balloonPop'; readonly player: PlayerIndex; readonly powerUp: PowerUpType }
   /** Balon kimse vurmadan söndü. */
   | { readonly type: 'balloonExpire' }
+  /** Oyuncu zıpladı (`air`: çift zıplama). */
+  | { readonly type: 'jump'; readonly player: PlayerIndex; readonly air: boolean }
+  /** Oyuncu yere (ya da rakibin kafasına) indi; `speed` düşüş hızı (px/sn). */
+  | { readonly type: 'land'; readonly player: PlayerIndex; readonly speed: number }
+  /**
+   * Top bir saha yüzeyine çarptı (adım başına en sert çarpma): `speed` yaklaşma hızı, (`x`, `y`)
+   * temas noktası. Kale ağının arkası `wall` olarak gelir.
+   */
+  | {
+      readonly type: 'ballImpact';
+      readonly surface: StaticKind;
+      readonly speed: number;
+      readonly x: number;
+      readonly y: number;
+    }
+  /** Top oyuncunun gövdesine/kafasına/ayağına (şut ve aktif kafa dışında) değdi. */
+  | { readonly type: 'ballTouch'; readonly player: PlayerIndex; readonly speed: number }
   | { readonly type: 'goal'; readonly scorer: PlayerIndex }
   | { readonly type: 'crossbarPush' }
   /** Oyuncular ve top başlangıç konumuna alındı (santra bekleyişi başladı). */

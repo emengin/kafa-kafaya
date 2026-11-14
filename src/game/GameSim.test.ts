@@ -755,3 +755,76 @@ describe('GameSim — top davranışı', () => {
     expect(airTime(-BALL.maxSpin)).toBeGreaterThan(airTime(0));
   });
 });
+
+describe('GameSim — his olayları (ses/efekt)', () => {
+  const ofType = <T extends SimEvent['type']>(events: readonly SimEvent[], type: T) =>
+    events.filter((e): e is Extract<SimEvent, { type: T }> => e.type === type);
+
+  it('zıplama ve iniş olayları (iniş hızıyla)', () => {
+    const sim = new GameSim({ ...IN_PLAY, powerUps: false });
+    isolate(sim);
+    const jumpEvents = sim.step([input({ jump: true }), EMPTY_INPUT]);
+    expect(ofType(jumpEvents, 'jump')).toEqual([{ type: 'jump', player: 0, air: false }]);
+    const rest = stepN(sim, secondsToSteps(1.2), [input({ jump: true }), EMPTY_INPUT]);
+    const lands = ofType(rest, 'land');
+    expect(lands).toHaveLength(1);
+    expect(lands[0]?.player).toBe(0);
+    expect(lands[0]?.speed).toBeGreaterThan(PLAYER.jump.speed * 0.8);
+    // Yerde dururken yeni iniş olayı yok.
+    expect(ofType(stepN(sim, 30), 'land')).toHaveLength(0);
+  });
+
+  it('çift zıplama `air: true` olarak gelir', () => {
+    const sim = new GameSim({ ...IN_PLAY, powerUps: false });
+    isolate(sim);
+    sim.players[0].powerUps.doubleJump = 5;
+    sim.step([input({ jump: true }), EMPTY_INPUT]);
+    stepN(sim, 12);
+    const second = sim.step([input({ jump: true }), EMPTY_INPUT]);
+    expect(ofType(second, 'jump')).toEqual([{ type: 'jump', player: 0, air: true }]);
+  });
+
+  it('top üst direğe çarpınca `crossbar`, zemine düşünce `ground` çarpması', () => {
+    const sim = new GameSim({ ...IN_PLAY, powerUps: false });
+    isolate(sim);
+    const bar = sim.pitch.goals[0].crossbar;
+    sim.ball.resetTo(152, (bar.minY + bar.maxY) / 2);
+    sim.ball.vx = -1500;
+    const hits = ofType(stepN(sim, 20), 'ballImpact');
+    const crossbar = hits.find((e) => e.surface === 'crossbar');
+    expect(crossbar).toBeDefined();
+    expect(crossbar?.speed).toBeGreaterThan(1000);
+    expect(crossbar?.x).toBeCloseTo(bar.maxX, 0);
+
+    const drop = new GameSim({ ...IN_PLAY, powerUps: false });
+    isolate(drop);
+    drop.ball.resetTo(640, 300);
+    const ground = ofType(stepN(drop, 60), 'ballImpact').filter((e) => e.surface === 'ground');
+    expect(ground.length).toBeGreaterThan(0);
+    expect(ground[0]?.y).toBeCloseTo(drop.pitch.groundY, 0);
+  });
+
+  it('kafaya düşen top `ballTouch` üretir; yerde duran top olay üretmez', () => {
+    const sim = new GameSim({ ...IN_PLAY, powerUps: false });
+    isolate(sim);
+    const p = sim.players[0];
+    sim.ball.resetTo(p.x, p.y - 200);
+    const touches = ofType(stepN(sim, 40), 'ballTouch');
+    expect(touches.length).toBeGreaterThan(0);
+    expect(touches[0]?.player).toBe(0);
+
+    const still = new GameSim({ ...IN_PLAY, powerUps: false });
+    isolate(still);
+    still.ball.resetTo(640, still.pitch.groundY - BALL.radius);
+    const quiet = stepN(still, 60);
+    expect(quiet.filter((e) => e.type === 'ballImpact' || e.type === 'ballTouch')).toHaveLength(0);
+  });
+
+  it('his olayları determinizmi bozmaz (snapshot aynı)', () => {
+    const script = randomScript(7, 600);
+    const a = new GameSim(IN_PLAY);
+    const b = new GameSim(IN_PLAY);
+    expect(runScript(a, script)).toEqual(runScript(b, script));
+    expect(a.snapshot()).toEqual(b.snapshot());
+  });
+});
