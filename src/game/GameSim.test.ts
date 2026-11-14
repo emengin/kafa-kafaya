@@ -385,7 +385,8 @@ describe('GameSim — maç akışı (baştan sona)', () => {
     all.push(...stepUntil(sim, 'playing'));
     all.push(...stepUntil(sim, 'matchEnd'));
 
-    expect(all.filter((e) => e.type !== 'header' && e.type !== 'kick')).toEqual([
+    const flow = new Set(['goal', 'kickoff', 'playStart', 'goldenGoal', 'matchEnd']);
+    expect(all.filter((e) => flow.has(e.type))).toEqual([
       { type: 'playStart', overtime: false },
       { type: 'goal', scorer: 0 },
       { type: 'kickoff' },

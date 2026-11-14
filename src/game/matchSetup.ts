@@ -1,4 +1,5 @@
 import { AI_DIFFICULTIES, type AiDifficulty } from '../config/gameConfig';
+import { isCharacterId, type CharacterId } from './characters';
 
 /** Maç modu: insan vs CPU ya da aynı klavyede iki kişi. */
 export type MatchMode = 'cpu' | 'versus';
@@ -12,6 +13,8 @@ export interface MatchSetup {
   readonly p1Ai: AiDifficulty | null;
   /** Yapay zekâ rastgelelik tohumu; null = her maçta rastgele. */
   readonly seed: number | null;
+  /** [P1, P2] karakterleri. */
+  readonly characters: readonly [CharacterId, CharacterId];
 }
 
 export const DEFAULT_MATCH_SETUP: MatchSetup = {
@@ -19,7 +22,14 @@ export const DEFAULT_MATCH_SETUP: MatchSetup = {
   difficulty: 'medium',
   p1Ai: null,
   seed: null,
+  characters: ['kor', 'ayaz'],
 };
+
+function parseCharacters(value: unknown): readonly [CharacterId, CharacterId] | null {
+  if (!Array.isArray(value) || value.length !== 2) return null;
+  const [a, b] = value as unknown[];
+  return isCharacterId(a) && isCharacterId(b) ? [a, b] : null;
+}
 
 export function isDifficulty(value: unknown): value is AiDifficulty {
   return typeof value === 'string' && (AI_DIFFICULTIES as readonly string[]).includes(value);
@@ -35,6 +45,8 @@ export function resolveMatchSetup(
     readonly cpu: AiDifficulty | null;
     readonly cpu1: AiDifficulty | null;
     readonly seed: number | null;
+    readonly c1?: CharacterId | null;
+    readonly c2?: CharacterId | null;
   },
 ): MatchSetup {
   const input = (typeof data === 'object' && data !== null ? data : {}) as Partial<
@@ -45,9 +57,14 @@ export function resolveMatchSetup(
     difficulty: isDifficulty(input.difficulty) ? input.difficulty : DEFAULT_MATCH_SETUP.difficulty,
     p1Ai: isDifficulty(input.p1Ai) ? input.p1Ai : null,
     seed: typeof input.seed === 'number' && Number.isFinite(input.seed) ? input.seed : null,
+    characters: parseCharacters(input.characters) ?? DEFAULT_MATCH_SETUP.characters,
   };
   if (dev.cpu) setup = { ...setup, mode: 'cpu', difficulty: dev.cpu };
   if (dev.cpu1) setup = { ...setup, mode: 'cpu', p1Ai: dev.cpu1 };
   if (dev.seed !== null) setup = { ...setup, seed: dev.seed };
+  if (dev.c1 || dev.c2) {
+    const [a, b] = setup.characters;
+    setup = { ...setup, characters: [dev.c1 ?? a, dev.c2 ?? b] };
+  }
   return setup;
 }

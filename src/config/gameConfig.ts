@@ -242,14 +242,236 @@ export const POWER = {
 } as const;
 
 /**
- * Genel süper vuruş (karaktere özgü süperler sonraki fazlarda). Süper şut daha hızlı ve daha
- * düz gider; süper kafa topu en az `headerMinSpeed` hızla gönderir.
+ * Tüm süper vuruşlar için ortak değerler. Süper kafa topu en az `headerMinSpeed` hızla gönderir;
+ * ardından karakterin süper tipi uygulanır (bkz. SUPER_SHOTS).
  */
 export const SUPER = {
-  kickSpeedMultiplier: 1.5,
-  /** Şutun yükselme açısı bu katsayıyla çarpılır (düz, "füze" gibi şut). */
-  elevationScale: 0.5,
   headerMinSpeed: 1500,
+  /**
+   * Atıştan sonraki bu süre (sn) içinde saha teması süperi bitirmez: yerdeki topa vurulan
+   * şutun ilk alt adımlarında top hâlâ zemine değiyor olabilir.
+   */
+  bounceGraceSeconds: 0.1,
+} as const;
+
+/** Karakterlere özgü süper şut tipleri. */
+export type SuperType =
+  | 'fire'
+  | 'ice'
+  | 'zigzag'
+  | 'teleport'
+  | 'giant'
+  | 'tornado'
+  | 'rainbow'
+  | 'magnet'
+  | 'mirage'
+  | 'quake';
+
+/**
+ * Süper şut tipleri. Her tipin ortak alanları:
+ * - `speedMultiplier` / `elevationScale`: süper şutta hedef hız ve yükselme açısı çarpanı.
+ * - `duration`: etkinin en uzun süresi (sn); sonra top normal topa döner.
+ * - `endsOnBounce`: top sahaya (zemin, duvar, tavan, direk) değince etki biter mi.
+ * Rakibe ya da sahibine değen top etkisini kaybeder (Dev Top hariç). Rakip topa **aktif**
+ * vurursa (savrulan ayakla şut ya da kafa) hiçbir olumsuz etki almaz; Buz ve Ateş yalnızca
+ * pasif karşılamayı (gövde, duran kafa) cezalandırır. Her süperin temel karşı oyunu budur.
+ */
+export const SUPER_SHOTS = {
+  /** Ateş Topu: yerçekimsiz, dümdüz ve çok hızlı; engelleyen rakibi geri savurur. */
+  fire: {
+    speedMultiplier: 1.5,
+    elevationScale: 0.2,
+    duration: 0.8,
+    endsOnBounce: true,
+    gravityScale: 0,
+    knockbackSpeed: 480,
+    knockbackLift: 380,
+  },
+  /**
+   * Buz: rakibin kafasına/gövdesine **havadan doğrudan** değerse onu 1,5 sn dondurur; ilk sekmede
+   * söner (karşı oyun: üstünden zıpla, şutla vur ya da sekmesini bekle).
+   */
+  ice: {
+    speedMultiplier: 0.9,
+    elevationScale: 0.75,
+    duration: 1,
+    endsOnBounce: true,
+    freezeSeconds: 1.5,
+  },
+  /** Zikzak: yerçekimsiz, dikeyde dalgalanarak ilerler (y = −A·(1 − cos ωt)). */
+  zigzag: {
+    speedMultiplier: 1.15,
+    elevationScale: 0.15,
+    duration: 1.4,
+    endsOnBounce: true,
+    gravityScale: 0,
+    amplitudePx: 55,
+    frequencyHz: 2.4,
+  },
+  /**
+   * Işınlanma: kısa bir uçuştan sonra görünmez olur (oyuncuların içinden geçer), rakip kalenin
+   * önünde (çizgiden `exitBeforeGoalPx` uzakta) yavaşlayarak yeniden belirir. Kalecinin
+   * karşı oyunu: kale çizgisine yakın durmak.
+   */
+  teleport: {
+    speedMultiplier: 1.25,
+    elevationScale: 0.4,
+    duration: 1.2,
+    endsOnBounce: false,
+    phaseStartSeconds: 0.12,
+    phaseMaxSeconds: 0.35,
+    exitBeforeGoalPx: 250,
+    /** Işınlanma için topun kaleye en az bu kadar daha yol alması gerekir (px). */
+    minPhaseTravelPx: 120,
+    exitSpeedScale: 0.65,
+  },
+  /** Dev Top: top büyür ve ağırlaşır (kaleciyi iter); süre sonunda küçülür. */
+  giant: {
+    speedMultiplier: 1.05,
+    elevationScale: 0.7,
+    duration: 2.4,
+    endsOnBounce: false,
+    radiusScale: 1.8,
+    massScale: 3,
+    /** Büyüme/küçülme süresi (sn). */
+    growSeconds: 0.18,
+  },
+  /** Kasırga: yakınındaki rakibi topun gidiş yönünde geri iter (havadaysa daha az). */
+  tornado: {
+    speedMultiplier: 1.2,
+    elevationScale: 0.45,
+    duration: 1.3,
+    endsOnBounce: false,
+    radiusPx: 150,
+    /** Rakibin topun gidiş yönündeki hızı bu ivmeyle `maxPushSpeed × yakınlık`a çıkarılır. */
+    pushAccel: 12000,
+    maxPushSpeed: 520,
+    airborneFactor: 0.4,
+  },
+  /**
+   * Gökkuşağı: tavana yakın yüksek bir yayla rakip kalenin ağzına dik iner (hava direnci ve
+   * falso kapalı). Yavaş ve uzun: kalecinin geri dönüp kafayla karşılamasına zaman kalır.
+   */
+  rainbow: {
+    speedMultiplier: 1,
+    elevationScale: 1,
+    duration: 2.6,
+    endsOnBounce: true,
+    apexY: 70,
+    /**
+     * Hedef: rakip kale çizgisinin `targetInsetPx` önünde, zeminden `targetHeightPx` yukarısı.
+     * Top kale ağzının önüne dik iner ve sekerek girmeye çalışır (kaleciye karşılama şansı).
+     */
+    targetHeightPx: 120,
+    targetInsetPx: 180,
+    /** Yatay hızın üst sınırı (px/sn); uzaktan tam ulaşamayabilir. */
+    maxHorizontalSpeed: 600,
+  },
+  /** Mıknatıs: uçuş boyunca rakip kalenin ortasına doğru hafifçe çekilir. */
+  magnet: {
+    speedMultiplier: 1.12,
+    elevationScale: 0.6,
+    duration: 1.4,
+    endsOnBounce: true,
+    steerAccel: 1300,
+  },
+  /** Serap: top üçe bölünür; ikisi yanılsamadır, oyunculara değince ya da süre dolunca söner. */
+  mirage: {
+    speedMultiplier: 1.15,
+    elevationScale: 0.7,
+    duration: 0.75,
+    endsOnBounce: false,
+    spreadRad: 0.26,
+    /** Yanılsama bu kadar kale çizgisine yaklaşınca söner (gol görüntüsü vermesin), px. */
+    decoyGoalMarginPx: 120,
+  },
+  /** Sarsıntı: yer sarsılır, rakip 1 sn zıplayamaz; top alçak ve sekerek ilerler. */
+  quake: {
+    speedMultiplier: 1.15,
+    elevationScale: 1,
+    duration: 1.6,
+    endsOnBounce: false,
+    /** Sabit yükselme açısı (rad, negatif = yere doğru). */
+    elevation: -0.2,
+    jumpLockSeconds: 1,
+    groundRestitution: 0.85,
+    groundFriction: 0.05,
+  },
+} as const;
+
+/**
+ * Karakter istatistikleri (1–5) → fizik değerleri. Dizinin i. elemanı (i + 1) puanın değeridir;
+ * 3 puan Faz 1–3'teki değerlerle aynıdır. Toplam puan her karakterde `statTotal`.
+ */
+export const CHARACTER_STATS = {
+  statTotal: 14,
+  statMin: 1,
+  statMax: 5,
+  /** Hız: en yüksek yatay hız (px/sn). İvmeler aynı oranda ölçeklenir. */
+  maxSpeed: [408, 419, 430, 441, 452],
+  /** Zıplama: kalkış hızı (px/sn). */
+  jumpSpeed: [940, 970, 1000, 1030, 1060],
+  /**
+   * Şut gücü: şut hızının çarpanı. Güçlü şut aynı zamanda daha düzdür (yükselme açısı güce
+   * bölünür): aksi hâlde hızlanan top aynı açıyla kalenin üstünden gider.
+   */
+  kickPower: [0.86, 0.93, 1, 1.08, 1.16],
+  /** Kafa boyutu: kafa yarıçapı (px) ve kütle (büyük kafa = geniş savunma ama daha ağır). */
+  headRadius: [31.5, 33.75, 36, 38.25, 40.5],
+  mass: [9, 9.5, 10, 10.5, 11],
+  /** Büyük kafa daha ağırdır: zıplama hızı bu oranla (kafa puanı 3'ten her puan farkı için) düşer. */
+  headJumpPenaltyPerPoint: 0.008,
+} as const;
+
+/** Güçlendirici tipleri (süzülen balonlar). */
+export type PowerUpType =
+  'bigHead' | 'shrinkOpponent' | 'speed' | 'growGoal' | 'freezeOpponent' | 'doubleJump';
+
+/**
+ * Güçlendiriciler: sahanın üst yarısında süzülen balonlar. Top balona değince balon patlar ve
+ * topa son dokunan oyuncu güçlendiriciyi kazanır (henüz kimse dokunmadıysa top içinden geçer).
+ */
+export const POWERUPS = {
+  /** İki balon arasındaki süre (sn, oyun akarken): [min, max) aralığında rastgele. */
+  spawnIntervalMin: 12,
+  spawnIntervalMax: 18,
+  balloon: {
+    radius: 26,
+    /** Merkez konumu bu aralıkta seçilir; balon çevresinde yavaşça salınır. */
+    minX: 470,
+    maxX: 810,
+    minY: 150,
+    maxY: 270,
+    swayXPx: 150,
+    swayYPx: 22,
+    swayXHz: 0.11,
+    swayYHz: 0.45,
+    /** Patlamazsa bu süre sonra söner (sn). */
+    lifetimeSeconds: 10,
+  },
+  /** Süreler (sn). */
+  durations: {
+    bigHead: 8,
+    shrinkOpponent: 8,
+    speed: 8,
+    growGoal: 8,
+    freezeOpponent: 1.8,
+    doubleJump: 10,
+  },
+  bigHeadScale: 1.4,
+  shrinkScale: 0.65,
+  /** Kafa boyutu çarpanının değişim hızı (1/sn): kafa birden değil, kısa sürede büyür/küçülür. */
+  headScaleRate: 2.5,
+  speedScale: 1.28,
+  /** Rakip kalesi bu kadar yükselir (px) ve bu hızla büyür/küçülür (px/sn). */
+  goalGrowPx: 70,
+  goalGrowSpeed: 220,
+  /** Çift zıplamanın kalkış hızı (normal zıplamaya oran). */
+  doubleJumpSpeedScale: 0.9,
+  /** Bir donmanın ardından buz süperine karşı bağışıklık süresi (sn): art arda donma kilidi olmasın. */
+  freezeImmunitySeconds: 1,
+  /** Donmuş oyuncunun yatay hızı bu ivmeyle sıfırlanır (px/sn²). */
+  frozenDecel: 9000,
 } as const;
 
 /** Maç kuralları (GAME_DESIGN.md ile uyumlu). Süreler saniye. */
@@ -309,6 +531,12 @@ export interface AiProfile {
   readonly distraction: number;
   /** Şut zamanlaması hatasının std'si (adım): erken basış zayıf şut/ıska, geç basış gecikme. */
   readonly kickTimingError: number;
+  /** Serap'ta gerçek topu doğru seçme olasılığı (yanılsamalar sönene kadar). */
+  readonly mirageReadChance: number;
+  /** Tehlikeli bir süper topa (Buz, Ateş, Kasırga) gereksiz yere değmekten kaçınma olasılığı. */
+  readonly superDodge: number;
+  /** Balon farkındalığı 0–1: şut değerlendirmesinde balonu vurma bonusunun oranı. */
+  readonly powerUpAwareness: number;
 }
 
 export const AI_PROFILES: Readonly<Record<AiDifficulty, AiProfile>> = {
@@ -325,6 +553,9 @@ export const AI_PROFILES: Readonly<Record<AiDifficulty, AiProfile>> = {
     shotSelectivity: 0,
     distraction: 0.15,
     kickTimingError: 2,
+    mirageReadChance: 0.34,
+    superDodge: 0.25,
+    powerUpAwareness: 0,
   },
   medium: {
     reactionMs: 220,
@@ -339,6 +570,9 @@ export const AI_PROFILES: Readonly<Record<AiDifficulty, AiProfile>> = {
     shotSelectivity: 0.35,
     distraction: 0.05,
     kickTimingError: 1,
+    mirageReadChance: 0.45,
+    superDodge: 0.6,
+    powerUpAwareness: 0.6,
   },
   hard: {
     reactionMs: 150,
@@ -353,6 +587,9 @@ export const AI_PROFILES: Readonly<Record<AiDifficulty, AiProfile>> = {
     shotSelectivity: 0.7,
     distraction: 0,
     kickTimingError: 0.3,
+    mirageReadChance: 0.6,
+    superDodge: 0.9,
+    powerUpAwareness: 1,
   },
 };
 
@@ -528,11 +765,54 @@ export const AI = {
     advantageFullSeconds: 0.5,
   },
   super: {
-    /** Süper şut için topun rakip kale çizgisine uzaklık aralığı (px). */
-    minDistancePx: 180,
-    maxDistancePx: 820,
     /** Süper, vuruşa en çok bu kadar kala hazırlanır (sn). */
     maxLeadSeconds: 0.6,
+    /**
+     * Süper tipine göre kullanım koşulları: topun rakip kale çizgisine uzaklığı [min, max] (px)
+     * ve isteğe bağlı rakip koşulları:
+     * - `opponentAhead`: rakip topla kale arasında (Buz, Işınlanma, Kasırga, Dev Top bunu sever).
+     * - `opponentOffLinePx`: rakip kendi kale çizgisinden en az bu kadar uzakta (Gökkuşağı).
+     * - `opponentNearPx`: rakip topa en çok bu kadar yakın (Sarsıntı).
+     */
+    byType: {
+      fire: { minDistancePx: 200, maxDistancePx: 900 },
+      ice: { minDistancePx: 150, maxDistancePx: 820, opponentAhead: true },
+      zigzag: { minDistancePx: 220, maxDistancePx: 880 },
+      teleport: { minDistancePx: 480, maxDistancePx: 1050, opponentAhead: true },
+      giant: { minDistancePx: 120, maxDistancePx: 620, opponentAhead: true },
+      tornado: { minDistancePx: 150, maxDistancePx: 800, opponentAhead: true },
+      rainbow: { minDistancePx: 420, maxDistancePx: 1150, opponentOffLinePx: 230 },
+      magnet: { minDistancePx: 200, maxDistancePx: 920 },
+      mirage: { minDistancePx: 300, maxDistancePx: 950 },
+      quake: { minDistancePx: 150, maxDistancePx: 780, opponentNearPx: 520 },
+    },
+    /** Şu an vuracaksa: süperli şutun puanı normal şutunkinden en az bu kadar düşükse kullanma. */
+    worseThanNormalMargin: 0.15,
+    /**
+     * Rakibin topa çarpınca etkisi olan süperi (rakibe çarpacak) şut değerlendirmesinde "bloke"
+     * sayılmaz, bu puanı alır: Buz dondurur, Ateş savurur, Kasırga iter.
+     */
+    hitOpponentScore: { ice: 0.55, fire: 0.35, tornado: 0.3 },
+  },
+  /** Rakibin süperine karşı savunma. */
+  superDefense: {
+    /** Rakip süper hazırken bekleme konumunun kaleye uzaklığı bu oranla kısalır (daha derin). */
+    deeperFactor: 0.55,
+    /** Tehlikeli süper topun bana değip değmeyeceğine bu kadar adım ileri bakılır. */
+    dodgeLookTicks: 20,
+    /** Temas mesafesine eklenen pay (px). */
+    dodgeMarginPx: 8,
+    /** Kaçarken zıplama tuşunun basılı tutulduğu süre (sn). */
+    dodgeJumpSeconds: 0.25,
+  },
+  /** Güçlendiriciler. */
+  powerUp: {
+    /** Şut balonu patlatacaksa (gol değilse) puana eklenen en büyük bonus. */
+    balloonShotBonus: 0.35,
+    /** Çift zıplama: havada, tepeye yakınken (dikey hız bundan büyükse) ve top başın üstündeyse. */
+    doubleJumpMinVy: -150,
+    doubleJumpLookTicks: 12,
+    doubleJumpReachPx: 70,
   },
   /** Kendi kalesine gol önleme refleksi: kale tarafındaki topa önden çarpmamak için fren. */
   safety: {
@@ -644,6 +924,9 @@ export const DEV = {
   cpu1Param: 'cpu1',
   /** `?seed=N` → yapay zekânın rastgelelik tohumu (aynı tohum + aynı girdiler → aynı maç). */
   seedParam: 'seed',
+  /** `?c1=kor&c2=kaya` → karakterler (seçim ekranını atlar). */
+  char1Param: 'c1',
+  char2Param: 'c2',
 } as const;
 
 /** Kalıcı kayıt (localStorage) anahtarları. */
@@ -652,6 +935,9 @@ export const STORAGE = {
   keys: {
     language: 'language',
     aiDifficulty: 'aiDifficulty',
+    /** Tercih edilen karakterler (P1, 2 oyunculu modda P2). */
+    character1: 'character1',
+    character2: 'character2',
   },
 } as const;
 
@@ -845,12 +1131,138 @@ export const HUD = {
     labelFontSizePx: 14,
     labelStrokePx: 3,
   },
+  /**
+   * Etkin güçlendiriciler: skor çubuğunun altında, oyuncunun tarafında (kazanan oyuncu) ikon +
+   * geri sayım halkası. İkonlar ortadan dışa doğru dizilir.
+   */
+  powerUps: {
+    y: 108,
+    firstOffsetX: 120,
+    spacingPx: 46,
+    radius: 18,
+    backColor: 0x000000,
+    backAlpha: 0.55,
+    ringWidthPx: 4,
+    ringBackColor: 0xffffff,
+    ringBackAlpha: 0.2,
+    /** Son saniyelerde ikon yanıp söner. */
+    warnSeconds: 2,
+    blinkHz: 5,
+  },
+  /** Güçlendirici kazanılınca oyuncunun üstünde yükselen yazı. */
+  popText: { fontSizePx: 22, strokePx: 4, risePx: 60, durationMs: 1100, offsetY: 30 },
+  /** Süper atılınca kısa yazı (tip adı). */
+  superText: { fontSizePx: 30, strokePx: 5, risePx: 40, durationMs: 900 },
   /** Santra dizilişinde ışınlanmayı gizleyen kısa kararıp açılma (ms). */
   kickoffFadeMs: 220,
   /** Maç bittikten sonra sonuç ekranı açılana kadar geçen süre (sn, simülasyon). */
   endScreenDelaySeconds: 1.4,
   /** Ana menüye dönüşte kararma (ms). */
   exitFadeMs: 200,
+} as const;
+
+/**
+ * Süper şut ve güçlendirici görselleri (basit vektör çizimler). Renkler Phaser sayısal biçimi.
+ */
+export const FX = {
+  /** Topun son konumları (iz) için tutulan kare sayısı. */
+  trailLength: 10,
+  trailAlpha: 0.45,
+  superColors: {
+    fire: 0xff6a00,
+    ice: 0x9be8ff,
+    zigzag: 0xfff04a,
+    teleport: 0xb07cff,
+    giant: 0xb5a58c,
+    tornado: 0xc8ffe4,
+    rainbow: 0xff5fa8,
+    magnet: 0xff3b4a,
+    mirage: 0xffc2e0,
+    quake: 0xc98a45,
+  },
+  /** Gökkuşağı izi renkleri (sırayla). */
+  rainbowColors: [0xff4b4b, 0xffa53b, 0xfff04a, 0x5be37a, 0x4bb8ff, 0xa875ff],
+  /** Süper topun çevresindeki parlama halkası. */
+  glowExtraPx: 6,
+  glowWidthPx: 4,
+  /** Kasırga: topun çevresinde dönen yaylar. */
+  tornadoArcs: 3,
+  tornadoSpinHz: 3,
+  /** Işınlanma: görünmez topun yerinde silik pırıltı. */
+  teleportShimmerAlpha: 0.18,
+  teleportBurstMs: 260,
+  teleportBurstRadius: 46,
+  /** Serap yanılsamaları gerçek topla aynı görünür (ayırt edilemez). */
+  /** Donmuş oyuncu üstüne buz örtüsü. */
+  frozenColor: 0xbff4ff,
+  frozenAlpha: 0.55,
+  /** Zıplama kilidi (Sarsıntı): ayak altında toz çizgisi. */
+  jumpLockColor: 0xc98a45,
+  /** Sarsıntı ekran sarsıntısı. */
+  quakeShake: { durationMs: 320, intensity: 0.009 },
+  /** Süper atılınca kısa kamera parlaması (ms). */
+  superFlashMs: 90,
+  /** Parlama rengi (0–255). */
+  superFlashRgb: [255, 255, 255],
+  balloon: {
+    stringPx: 34,
+    stringColor: 0xffffff,
+    fill: 0xffffff,
+    fillAlpha: 0.92,
+    outline: 0x1a1a1a,
+    /** Söneceğine yakın yanıp söner (sn). */
+    warnSeconds: 2,
+    blinkHz: 6,
+    iconScale: 0.62,
+  },
+  /** Güçlendirici ikon renkleri. */
+  powerUpColors: {
+    bigHead: 0xffb347,
+    shrinkOpponent: 0xff5fa8,
+    speed: 0x5be37a,
+    growGoal: 0x4bb8ff,
+    freezeOpponent: 0x9be8ff,
+    doubleJump: 0xffd23f,
+  },
+  iconLineWidthPx: 3,
+} as const;
+
+/** Karakter seçim ekranı. */
+export const SELECT = {
+  titleY: 54,
+  titleFontSizePx: 44,
+  grid: { columns: 5, cellW: 150, cellH: 128, gapPx: 16, top: 104 },
+  /** Kartın içindeki kafa çizimi (yarıçap kafa puanıyla büyür). */
+  headY: 50,
+  headScale: 0.95,
+  nameY: 106,
+  nameFontSizePx: 20,
+  cardColor: 0x0b1340,
+  cardAlpha: 0.75,
+  cardRadius: 14,
+  cursorWidthPx: 5,
+  /** İki imleç aynı karttaysa P2 çerçevesi bu kadar içeride. */
+  cursorInsetPx: 7,
+  panel: { y: 386, width: 560, height: 284, marginX: 50, radius: 18, alpha: 0.82 },
+  statBar: { width: 200, height: 12, gapY: 26, labelWidth: 110, segments: 5 },
+  fontSizePx: 20,
+  descFontSizePx: 17,
+  hintY: 690,
+  hintFontSizePx: 17,
+  /** İki taraf hazır olunca maça geçmeden önceki bekleme (ms). */
+  startDelayMs: 450,
+  /** Paneldeki karakter adının başlık boyutuna oranı. */
+  panelNameScale: 0.7,
+  /** İstatistiklerin panel üstünden uzaklığı (yazı satırı cinsinden). */
+  statTopLines: 3,
+  /** Süper açıklamasının süper adından uzaklığı (yazı satırı cinsinden). */
+  descGapLines: 1.4,
+  /** Hazır olmayan imlecin saydamlığı; boş istatistik bölmesinin saydamlığı. */
+  cursorIdleAlpha: 0.85,
+  emptyStatAlpha: 0.6,
+  /** Kart çizimi: gövdenin kafaya göre konumu ve boyutu (kafa yarıçapına oran). */
+  iconBodyOffset: 1.25,
+  iconBodyScale: 0.6,
 } as const;
 
 /** Duraklatma ve maç sonu kaplamaları (yarı saydam perde + panel + dikey menü). */
@@ -902,6 +1314,14 @@ export const AUDIO = {
       fullTime: [0.3, 0.14, 0.3, 0.14, 0.85],
     },
   },
+  /** Vuruş: kısa, alçak "tok" (frekansı düşen sinüs). */
+  kick: { startHz: 180, endHz: 60, duration: 0.09, volume: 0.35 },
+  /** Süper: yükselen testere dişi "vuuş". */
+  super: { startHz: 220, endHz: 880, duration: 0.28, volume: 0.16 },
+  /** Balon patlaması: kısa gürültü patlaması. */
+  pop: { duration: 0.07, volume: 0.3, filterHz: 1800 },
+  /** Donma: iki yüksek ton (çınlama). */
+  freeze: { tones: [1320, 1760], toneDuration: 0.09, volume: 0.12 },
 } as const;
 
 /** F1 debug katmanı. */

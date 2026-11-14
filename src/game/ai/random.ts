@@ -14,16 +14,21 @@ const BOX_MULLER_K = -2;
  * oynatılabilir kalır. `Math.random` kullanılmaz.
  */
 export class SeededRandom {
-  private state: number;
+  private current: number;
 
   constructor(seed: number) {
-    this.state = seed >>> 0;
+    this.current = seed >>> 0;
+  }
+
+  /** İç durum (snapshot ve determinizm testleri için). */
+  get state(): number {
+    return this.current;
   }
 
   /** [0, 1) aralığında sayı. */
   next(): number {
-    this.state = (this.state + INCREMENT) >>> 0;
-    let t = this.state;
+    this.current = (this.current + INCREMENT) >>> 0;
+    let t = this.current;
     t = Math.imul(t ^ (t >>> SHIFT_A), t | 1);
     t ^= t + Math.imul(t ^ (t >>> SHIFT_B), t | MIX_OR);
     return ((t ^ (t >>> SHIFT_C)) >>> 0) / UINT32_RANGE;

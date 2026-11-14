@@ -3,6 +3,7 @@ import { sfx } from './audio/Sfx';
 import { DEV, DISPLAY } from './config/gameConfig';
 import { t } from './i18n';
 import { BootScene } from './scenes/BootScene';
+import { CharacterSelectScene } from './scenes/CharacterSelectScene';
 import { MatchScene } from './scenes/MatchScene';
 import { MenuScene } from './scenes/MenuScene';
 import { PreloadScene } from './scenes/PreloadScene';
@@ -32,7 +33,7 @@ const game = new Phaser.Game({
   },
   fps: { target: DISPLAY.targetFps },
   render: { antialias: true, powerPreference: 'high-performance' },
-  scene: [BootScene, PreloadScene, MenuScene, MatchScene],
+  scene: [BootScene, PreloadScene, MenuScene, CharacterSelectScene, MatchScene],
 });
 
 // Geliştirici kancası: tarayıcı testleri maç durumunu okuyabilsin.

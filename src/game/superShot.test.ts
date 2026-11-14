@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { KICK, LOOP, MATCH, PLAYER, POWER, SUPER } from '../config/gameConfig';
+import { KICK, LOOP, MATCH, PLAYER, POWER, SUPER, SUPER_SHOTS } from '../config/gameConfig';
 import { EMPTY_INPUT, type InputState } from '../input/InputState';
 import { footOffset, PLAYER_STAND_OFFSET } from './entities/Player';
 import { GameSim } from './GameSim';
@@ -113,11 +113,12 @@ describe('Süper vuruş', () => {
     return { vx: sim.ball.vx, vy: sim.ball.vy, events };
   };
 
-  it('süper şut normal şuttan çok daha hızlı ve daha düzdür; tek kullanımlıktır', () => {
+  it('süper şut (nötr oyuncu: Ateş Topu) normal şuttan çok daha hızlı ve daha düzdür', () => {
     const normal = kickWith(false);
     const sup = kickWith(true);
     const speed = (v: { vx: number; vy: number }): number => Math.hypot(v.vx, v.vy);
-    expect(speed(sup)).toBeGreaterThan(speed(normal) * (1 + (SUPER.kickSpeedMultiplier - 1) * 0.8));
+    const k = SUPER_SHOTS.fire.speedMultiplier;
+    expect(speed(sup)).toBeGreaterThan(speed(normal) * (1 + (k - 1) * 0.8));
     expect(Math.abs(sup.vy / sup.vx)).toBeLessThan(Math.abs(normal.vy / normal.vx));
     expect(sup.events).toContainEqual(expect.objectContaining({ type: 'kick', super: true }));
     expect(normal.events).toContainEqual(expect.objectContaining({ type: 'kick', super: false }));

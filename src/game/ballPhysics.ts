@@ -11,6 +11,7 @@ import {
 import type { Ball } from './entities/Ball';
 import type { GoalDef, Pitch, StaticCollider } from './pitch';
 import { isBallOnCrossbar } from './rules/ballRules';
+import { onSuperBallHitPitch, superGroundMaterial } from './superEffects';
 
 /**
  * Topun saha ile etkileşimi. GameSim ve yapay zekânın yörünge tahmincisi (BallPredictor)
@@ -34,13 +35,16 @@ export function collideStatic(circle: Circle, collider: StaticCollider): Contact
 export function collideBallWithPitch(ball: Ball, pitch: Pitch, h: number): boolean {
   let touched = false;
   let onGround = false;
+  const superGround = superGroundMaterial(ball);
   for (const collider of pitch.colliders) {
     const contact = collideStatic(ball, collider);
     if (!contact) continue;
-    resolveContact(ball, ball.radius, null, 0, contact, collider.material, PHYSICS);
+    const material = collider.kind === 'ground' && superGround ? superGround : collider.material;
+    resolveContact(ball, ball.radius, null, 0, contact, material, PHYSICS);
     touched = true;
     if (contact.ny <= -GROUND_MIN) onGround = true;
   }
+  if (touched) onSuperBallHitPitch(ball);
   if (onGround) {
     ball.grounded = true;
     // Yuvarlanma direnci: top yüzeyde sonsuza dek yuvarlanmasın.

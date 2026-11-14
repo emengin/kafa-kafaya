@@ -2,14 +2,15 @@
 
 ## Faz durumu
 
-| Faz | Başlık                                  | Durum         |
-| --- | --------------------------------------- | ------------- |
-| 0   | Kurulum ve yayın hattı                  | ✅ Tamamlandı |
-| 1   | Çekirdek fizik ve kontroller (gri kutu) | ✅ Tamamlandı |
-| 2   | Maç kuralları ve oyun döngüsü           | ✅ Tamamlandı |
-| 3   | Yapay zekâ rakip                        | ✅ Tamamlandı |
-| 4   | —                                       | ⏭️ Sıradaki   |
-| 5–7 | —                                       | Bekliyor      |
+| Faz | Başlık                                     | Durum         |
+| --- | ------------------------------------------ | ------------- |
+| 0   | Kurulum ve yayın hattı                     | ✅ Tamamlandı |
+| 1   | Çekirdek fizik ve kontroller (gri kutu)    | ✅ Tamamlandı |
+| 2   | Maç kuralları ve oyun döngüsü              | ✅ Tamamlandı |
+| 3   | Yapay zekâ rakip                           | ✅ Tamamlandı |
+| 4   | Karakterler, süper şutlar, güçlendiriciler | ✅ Tamamlandı |
+| 5   | —                                          | ⏭️ Sıradaki   |
+| 6–7 | —                                          | Bekliyor      |
 
 **Canlı sürüm:** https://emengin.github.io/kafa-kafaya/
 
@@ -594,4 +595,253 @@ Fizik değerleri değişirse zorluklar yeniden ölçülmeli: `npm run simulate -
 
 ### Sıradaki faz
 
-**Faz 4** — talimat bekleniyor.
+**Faz 4** — tamamlandı (aşağıda).
+
+> Faz 3 notları (Faz 4'te çözüldü): AI çift zıplamayı ve güçlendiricileri biliyor; süper kararı
+> karakterin süper tipine göre.
+
+---
+
+## Faz 4 — Karakterler, süper şutlar ve güçlendiriciler (2026-11-14)
+
+**Bitti kriteri:**
+
+- **Her karakter farklı hissettiriyor** ✅ — 10 karakterin istatistikleri fiziksel olarak ayrışıyor
+  (hız 408–452 px/sn, zıplama tepe yüksekliği ~140–180 px, şut gücü ×0,86–1,16 ve daha düz
+  vuruş, kafa yarıçapı 31,5–40,5 px), her birinin kendine ait bir süper şutu ve renk paleti var.
+  Testle: hızlı karakter daha hızlı koşar, büyük kafalı karakterin çarpışma dairesi büyük.
+- **Süper şutlar heyecanlı ama haksız değil** ✅ — AI vs AI vekil ölçümüyle: 10 tipin her birinde
+  süper atışların golle bitme oranı **%6,6–10,1** (ilk taramada Gökkuşağı %32'ydi), tüm
+  gollerin %6,9'u süperle. Her süperin karşı oyunu var ve testlerle doğrulandı (aktif vuruş
+  temiz karşılıktır; aşağıdaki tablo). Gerçek oyuncu testi yapılmadı.
+- **Hiçbir karakter %60'tan fazla kazanmıyor** ✅ — 45 eşleşme × 80 maç (iki tarafta 40'ar) =
+  **3600 maçta genel kazanma %47–58**. Eşleşme bazında bazı belirgin karşı karakter ilişkileri
+  kaldı (en yüksek Toprak–Şimşek %80; bkz. bilinen sorunlar).
+
+### Tamamlananlar
+
+- **10 özgün karakter (`src/game/characters.ts`):** isim, palet (kafa/gövde/ayak/vurgu),
+  istatistikler (hız, zıplama, şut gücü, kafa boyutu; 1–5, her karakterde toplam **14**) ve
+  kendine ait süper tipi. İstatistik → fizik değeri `CHARACTER_STATS`'ta; 3 puan Faz 1–3
+  değerleriyle aynı (`NEUTRAL_LOADOUT`: karakter verilmeyen simülasyonlar ve eski testler).
+  `Player` artık bir donanım (`Loadout`) taşır: en yüksek hız + ivme ölçeği, zıplama hızı (büyük
+  kafa biraz daha alçak zıplar), şut gücü, kafa yarıçapı, kütle.
+- **Güç barı:** dokunuş ve zamanla dolar (`POWER`, Faz 3 değerleri korundu); doluyken Süper bir
+  sonraki şutu/kafayı karakterin süperi yapar. HUD'da süper hazırken barın ucunda tipin adı
+  ("ATEŞ TOPU!") yanıp söner; oyuncu karakterin vurgu renginde parlar.
+- **10 süper şut tipi (`src/game/superEffects.ts`, değerler `SUPER_SHOTS`):** Ateş Topu, Buz,
+  Zikzak, Işınlanma, Dev Top, Kasırga (istenen 6) + Gökkuşağı, Mıknatıs, Serap, Sarsıntı (tasarım
+  belgesindeki diğer 4 karakter için). Etki durumu topun kendisinde (`superType`, sahip, süre,
+  yön, ışınlanma evresi, yarıçap çarpanı); top–saha fiziği gibi **GameSim ve AI tahmincisi aynı
+  kodu** kullanır — süper top, oyunculara değmediği sürece tahminde de gerçekte de bit bit aynı
+  yolu izler (7 yörünge tipi için testle). Oyuncuya değince oluşan etkiler (donma, savrulma, itme,
+  zıplama kilidi, yanılsamalar) yalnızca GameSim'de. Etki süre dolunca, sahaya değince (tipine
+  göre) ya da bir oyuncuya değince biter; santra temizler.
+- **Ortak karşı oyun:** süper topa **aktif vurmak** (savrulan ayakla şut ya da topa doğru hareket
+  ederken kafa) her zaman temizdir. Buz ve Ateş yalnızca pasif karşılamayı cezalandırır. Donmadan
+  sonra 1 sn bağışıklık (art arda donma kilidi yok).
+
+  | Süper     | Atış | Gol | Golle biten % | Rakibe etki       | Karşı oyun                                      |
+  | --------- | ---- | --- | ------------- | ----------------- | ----------------------------------------------- |
+  | Ateş Topu | 4446 | 300 | 6,7           | geri savrulma     | önüne geç, şut/kafa                             |
+  | Buz       | 4521 | 299 | 6,6           | 1,5 sn donma      | şut/kafa, üstünden atla, sekmesini bekle        |
+  | Zikzak    | 4464 | 299 | 6,7           | —                 | yavaş; dalganın dibinde karşıla                 |
+  | Işınlanma | 4183 | 422 | 10,1          | içinden geçer     | kale çizgisine yakın dur (önünde yavaş belirir) |
+  | Dev Top   | 4062 | 299 | 7,4           | kaleciyi iter     | tam girmesi zor; erken kes                      |
+  | Kasırga   | 4483 | 297 | 6,6           | geri itme         | zıpla (havada %40), aktif vur                   |
+  | Gökkuşağı | 4250 | 361 | 8,5           | —                 | yavaş ve uzun; düştüğü yerde karşıla            |
+  | Mıknatıs  | 4511 | 319 | 7,1           | —                 | çekim zayıf; kalenin önünde dur                 |
+  | Serap     | 4529 | 348 | 7,7           | AI'ı yanıltabilir | sahteler değince/kaleye yaklaşınca söner        |
+  | Sarsıntı  | 4435 | 324 | 7,3           | 1 sn zıplayamama  | alçak top: gövdeyle kes                         |
+
+  (Son denge taraması, 3600 maç. "Gol": süperle atılan son vuruştan gelen gol.)
+
+- **Güçlendiriciler (`src/game/powerups.ts`, değerler `POWERUPS`):** oyun akarken 12–18 sn'de bir
+  (tohumlu) sahanın üst yarısında süzülen balon; kapalı biçimli salınım (AI da aynı fonksiyonla
+  kestirir), 10 sn sonra söner. Top çarpınca son dokunan kazanır (henüz kimse dokunmadıysa top
+  içinden geçer). Büyük Kafa ×1,4, Rakibi Küçült ×0,65, Hız ×1,28, Rakip Kalesini Büyüt +70 px
+  (kale ağzı dikdörtgenleri yerinde güncellenir, gol kuralı yeni yüksekliği kullanır), Rakibi
+  Dondur 1,8 sn, Çift Zıplama (havada bir ek zıplama). Süreler 8 sn (Dondur 1,8, Çift Zıplama 10).
+  HUD: kazanan oyuncunun tarafında skor çubuğunun altında vektör ikon + geri sayım halkası; son
+  2 sn yanıp söner. Kazanılınca oyuncunun üstünde adı yükselir. AI vs AI maçta ~1,5 güçlendirici.
+- **Yapay zekâ (AiController):**
+  - Beden her adım görünümden: kendi/rakip kafa boyutu ve hızı (karakter × güçlendiriciler),
+    karaktere özgü zıplama profili (gerçek `Player` koduyla ölçülür, hıza göre önbellekli), şut
+    gücü (hayalet ayak ve şut değerlendirmesi), büyüyen kaleler (tahmin sahası güncellenir).
+  - Süper kullanımı tipe göre (`AI.super.byType`) ve seçici AI süperli şutu normal şutla
+    karşılaştırır; rakibe çarpacak Buz/Ateş/Kasırga şutu "bloke" değil orta puan alır.
+  - Kaçınma: kalesine gitmeyen tehlikeli süper topa şutla karşılayamıyorsa değmez (zıplar ya da
+    çekilir; `superDodge` Kolay 0,25 · Orta 0,6 · Zor 0,9). Rakip süper hazırken daha derinde
+    bekler. Işınlanan topa plan yapmaz; zıplama kilidinde kafa/sıçrayış planlamaz; donmuş rakibe
+    karşı hücuma geçer.
+  - Serap: üç toptan birini izler, gerçeği `mirageReadChance` olasılıkla seçer; yanılsamalar
+    sönünce gerçek topa döner (test).
+  - Güçlendiriciler: balonu patlatacak şuta bonus (`powerUpAwareness` Kolay 0 · Orta 0,6 · Zor 1);
+    çift zıplamayı kafa planında kullanır.
+- **Karakter seçim ekranı (`CharacterSelectScene`):** 5×2 kart (karakter çizimi kafa puanıyla
+  büyür), iki panel (isim, 5 bölmeli istatistik çubukları, süper adı + etkisi + karşı oyunu). 2
+  oyuncuda iki imleç aynı anda (P1 A/D/W/S + Space, P2 oklar + Enter); CPU'ya karşı insan iki tuş
+  takımıyla da seçer, CPU kalan karakterlerden rastgele birini alır; fare; Esc hazırı geri alır
+  ya da ana menüye döner. Son seçimler kaydedilir. Akış: Menü → (Zorluk) → Seçim → Maç;
+  "Yeniden Başlat" kurulumu (karakterler dahil) korur.
+- **Görseller (hâlâ basit vektör):** oyuncular karakter paletiyle ve o anki kafa boyutuyla; süper
+  topta tip rengi halka + iz (Gökkuşağı renkli iz, Kasırga dönen yaylar, Buz/Ateş renk örtüsü),
+  ışınlanan top görünmez (yerinde silik pırıltı, belirince halka patlaması), Serap yanılsamaları
+  gerçek topla aynı görünür, donmuş oyuncuda buz örtüsü, zıplama kilidinde toz çizgisi, balon
+  (ikonlu, sönmeden önce yanıp söner), büyüyen kale yeniden çizilir. Süper atılınca kısa parlama
+  ve tipin adı, Sarsıntıda ekran sarsıntısı. Sesler (Web Audio): vuruş, süper, balon patlaması,
+  donma.
+- **Geliştirici:** `?c1=…&c2=…` karakterler; `?seed=N` artık güçlendiricileri ve Serap'ı da
+  sabitler. `GameSim({ loadouts, seed, powerUps })`.
+- **`scripts/simulate.ts`:** `--c1/--c2` karakterler; `--characters` 45 eşleşmenin iki tarafta da
+  oynandığı denge taraması (karakter tablosu, eşleşme matrisi, süper tipi istatistikleri);
+  `--jobs N` alt süreçlerle paralel (aynı tohum → aynı sonuç), `--difficulty`. Tüm modlarda süper
+  tipine göre atış/gol, rakibe etki ve güçlendirici sayıları.
+- **Sıkışma gözlemcisi** karakter ve donma farkında (kafa yarıçapı oyuncudan; donmuş oyuncunun
+  tuşları yok sayılır).
+- **Testler: 171 → 221.** Yeni: karakter tanımları ve istatistik dengesi, istatistiklerin
+  simülasyondaki etkisi; 10 süper tipinin davranışı ve karşı oyunları (Ateş savrulması ve şutla
+  temiz karşılık, Buz donması/tuşların yok sayılması/bağışıklık, Zikzak dalgası, Işınlanmanın
+  oyuncunun içinden geçip kalenin önünde yavaşlaması ve kaleye yakınken ışınlanmaması, Dev Top
+  büyümesi, Kasırga itmesi (havada az), Gökkuşağı yayı, Mıknatıs çekimi, Serap yanılsamaları ve
+  determinizmi, Sarsıntı); süper top tahmini = GameSim (7 tip, bit bit); balon zamanlaması, konum
+  sınırları, patlama kuralı, determinizm, 6 güçlendirici etkisi ve süreleri; AI'ın tipe uygun
+  süper kullanımı ve koşul yokken harcamaması, Buz'dan kaçınma, Serap yanılgısı ve geri dönüş,
+  uç karakter eşleşmelerinde 0 sıkışma; kurulumda karakterler.
+- **Tarayıcıda uçtan uca doğrulama** (üretim derlemesi, headless Chrome + DevTools protokolü;
+  betik depoda değil): **18/18 denetim**, konsolda hata yok. Menü → CPU'ya Karşı → Zor → seçim
+  ekranında D, D, S ile imleç → Space → maç (seçilen karakter + CPU'nun farklı seçimi kurulumda);
+  insan hareket edip şut çekiyor; dolu barla Sol Shift süperi hazırlıyor; 5 AI vs AI maçında 8
+  süper tipi ekranda yakalandı (Zikzak ve Kasırga yalnızca örnekleme anlarına denk gelmedi),
+  balon belirdi; güçlendirici etkileri (büyük kafa × küçült, büyüyen kale, donma) ve HUD ikonları
+  ekran görüntüsünde; 2 oyuncu seçiminde iki imleç, Esc ile hazırı geri alma, iki tarafın seçimi
+  maça geçiyor. Fizik + AI adımı tarayıcıda ~0,06–0,2 ms.
+
+### Denge tablosu
+
+Komut: `npm run simulate -- --characters --matches 40 --jobs 11` (Orta vs Orta; her eşleşme iki
+tarafta 40'ar = 80 maç; toplam **3600 maç**, tohum 1; gerçek kurallar + güçlendiriciler).
+Beraberlik yok; P1 tarafı %49,9 (taraf eğilimi yok); maç başı 13,2 gol; sıkışma olayı 3/3600.
+
+| Karakter | Süper     | Hız/Zıp/Şut/Kafa | Kazanma | Gol (at–ye) / maç | Süperle gol % | Güçlendirici / maç |
+| -------- | --------- | ---------------- | ------- | ----------------- | ------------- | ------------------ |
+| Ayaz     | Buz       | 3/4/3/4          | **58%** | 7,00–6,38         | 6%            | 0,67               |
+| Şimşek   | Zikzak    | 5/3/4/2          | 52%     | 6,80–6,81         | 6%            | 0,81               |
+| Pamuk    | Serap     | 4/4/2/4          | 51%     | 6,44–6,38         | 8%            | 0,75               |
+| Bora     | Kasırga   | 4/4/3/3          | 50%     | 6,63–6,65         | 6%            | 0,71               |
+| Kor      | Ateş Topu | 3/3/5/3          | 49%     | 6,58–6,63         | 6%            | 0,77               |
+| Toprak   | Sarsıntı  | 2/4/5/3          | 49%     | 7,09–7,17         | 6%            | 0,62               |
+| Kaya     | Dev Top   | 2/3/4/5          | 49%     | 6,74–6,77         | 6%            | 0,74               |
+| Yay      | Gökkuşağı | 3/5/3/3          | 48%     | 6,05–6,16         | 8%            | 0,79               |
+| Sis      | Işınlanma | 4/5/2/3          | 47%     | 6,34–6,50         | 9%            | 0,78               |
+| Demir    | Mıknatıs  | 3/3/4/4          | **47%** | 6,46–6,69         | 7%            | 0,68               |
+
+**Eşleşme matrisi** (satırdaki karakterin kazanma %, iki taraf birlikte, 80 maç; ±~5,6 puan
+standart hata):
+
+|            | Kor | Ayaz | Şimşek | Sis | Kaya | Bora | Yay | Demir | Pamuk | Toprak |
+| ---------- | --- | ---- | ------ | --- | ---- | ---- | --- | ----- | ----- | ------ |
+| **Kor**    | —   | 45   | 34     | 50  | 50   | 59   | 59  | 49    | 38    | 63     |
+| **Ayaz**   | 55  | —    | 51     | 50  | 63   | 55   | 63  | 59    | 64    | 65     |
+| **Şimşek** | 66  | 49   | —      | 54  | 50   | 61   | 57  | 49    | 60    | 20     |
+| **Sis**    | 50  | 50   | 46     | —   | 26   | 50   | 53  | 55    | 53    | 44     |
+| **Kaya**   | 50  | 38   | 50     | 74  | —    | 57   | 46  | 50    | 38    | 35     |
+| **Bora**   | 41  | 45   | 39     | 50  | 43   | —    | 49  | 63    | 48    | 75     |
+| **Yay**    | 41  | 38   | 43     | 48  | 54   | 51   | —   | 54    | 55    | 48     |
+| **Demir**  | 51  | 41   | 51     | 45  | 50   | 38   | 46  | —     | 43    | 56     |
+| **Pamuk**  | 63  | 36   | 40     | 48  | 63   | 53   | 45  | 57    | —     | 51     |
+| **Toprak** | 38  | 35   | 80     | 56  | 65   | 25   | 53  | 44    | 49    | —      |
+
+**Denge süreci** (her tur 1350 maç, eşleşme başına 30; son tur 3600):
+
+| Tur   | Değişiklik                                                                                       | Aralık     | Bulgu                                                                                |
+| ----- | ------------------------------------------------------------------------------------------------ | ---------- | ------------------------------------------------------------------------------------ |
+| v0    | İlk değerler                                                                                     | %38–62     | Gökkuşağı atışlarının %32'si gol; zıplama puanı baskın, şut gücü değersiz            |
+| v1    | Gökkuşağı hedefi/hızı; zıplama yelpazesi dar, şut yelpazesi geniş                                | %39–63     | Regresyon: hız +7,5, kafa +4,7, zıplama +1,7 puan/şut puanı                          |
+| v2    | **Güçlü şut daha düz** (açı / güç); hız ve kafa yelpazesi dar                                    | %28–61     | Şut gücü değer kazandı; Ayaz üç turdur +12 artık                                     |
+| v3    | Kafa yelpazesi geniş, zıplama cezası yarım; Buz hızı ve süresi                                   | %41–65     | Kafa boyutu çok hassas (Kaya %28 → %56)                                              |
+| deney | Ayaz ↔ Demir süper takası                                                                        | —          | **Güç Buz'da:** Buz'u alan Demir %47 → %63; 30 maçta 191 Buz atışının 96'sı dondurdu |
+| v4    | Buz yalnızca havadan doğrudan çarpınca dondurur; Gökkuşağı direk köşesine çarpıyordu (test)      | %40–63     | Ayaz hâlâ %63: AI kalecisi topu gövdesiyle karşılayıp donuyor                        |
+| v5    | **Aktif kafa da temiz karşılık**; Buz ×0,9; Gökkuşağı kalenin önüne; Sis 4/5/2/3                 | %43–59     | Ayaz düzeldi; Gökkuşağı hâlâ %22                                                     |
+| v6–7  | Gökkuşağı kalenin 180 px önüne iner (sekince söner); Serap süresi; sıkışma gözlemcisi düzeltmesi | %44–60     | Tüm süperler %6–10 bandında; sıkışma 0                                               |
+| son   | Buz etki süresi 1,0 sn; Serap yayılımı 0,26 rad                                                  | **%47–58** | 3600 maç                                                                             |
+
+**Zorluk matrisi** (nötr oyuncular, güçlendiricilerle; her hücre 50 maç; Faz 3'te 100 maçtı):
+
+| P1 \ P2   | Kolay            | Orta             | Zor              |
+| --------- | ---------------- | ---------------- | ---------------- |
+| **Kolay** | 60% / 40% · 9,5  | 20% / 80% · 13,8 | 10% / 90% · 13,7 |
+| **Orta**  | 86% / 14% · 13,1 | 46% / 54% · 13,3 | 28% / 72% · 10,8 |
+| **Zor**   | 94% / 6% · 13,5  | 76% / 24% · 11,1 | 46% / 54% · 6,5  |
+
+450 maçta 0 sıkışma. Zorluk sıralaması korunuyor.
+
+### Tasarım kararları
+
+1. **10 süper tipi, her karaktere kendi süperi:** istenen 6 tip + tasarım belgesindeki 4 karakterin
+   süperleri (Gökkuşağı, Mıknatıs, Serap, Sarsıntı). Bora'nın "Hortum"u istenen ada uyularak
+   **Kasırga** oldu.
+2. **Etki topun durumunda, kod ortak:** süper etkiler `Ball` alanları + `superEffects.ts`
+   fonksiyonları (`integrate` içinde ivmeler/süre, saha temasında bitiş). Tahminci aynı kodu
+   koştuğu için AI süper topları da "okuyabiliyor"; ayrı bir yaklaşık model yok.
+3. **Aktif vuruş = temiz karşılık:** önce yalnızca şut temizdi; simülasyon AI kalecisinin Buz'u
+   kafa/gövdeyle karşılayıp donduğunu ve takip golü yediğini gösterdi (Buz'lu karakter hangisiyse
+   +16 puan). Topa doğru hareket ederken kafa vurmak da artık temiz; ceza pasif karşılamaya.
+   İnsan için de sezgisel: "topa sen vur".
+4. **Buz donma süresi 1,5 sn sabit (istenen); denge diğer parametrelerle:** yalnızca havadan
+   doğrudan çarpma, ilk sekmede sönme, ×0,9 hız, 1,0 sn etki süresi, 1 sn bağışıklık.
+5. **Güçlü şut daha düz:** şut gücü yükselme açısını böler. Yalnız hız çarpanıyla şut gücü 5 olan
+   karakterler hep alt sıradaydı (top kalenin üstünden gidiyordu).
+6. **Gökkuşağı kalenin önüne iner:** doğrudan kale ağzını hedefleyen dik yay hem çok etkiliydi
+   (%22–32) hem de hedef yükseltilince direğin ön köşesine çarpıyordu (test yakaladı). Şimdi kalenin
+   180 px önüne iner, sekince normal top olur: kaleciye gerçek bir karşılama şansı.
+7. **Serap yanılsamaları gerçek topla birebir aynı görünür;** AI da yanılabilir (adil): ekranda
+   ayırt edilemeyen bilgiyi AI'a vermek hile olurdu.
+8. **Işınlanma kaleye çok yakından atılırsa ışınlanmaz** ve top kale çizgisinden en az 250 px önde
+   belirir: kale çizgisinde duran kaleci her zaman bir şans bulur.
+9. **Güçlendirici HUD'u kazanan oyuncunun tarafında:** "Rakibi Küçült" ikonu da onu kazananın
+   altında; etkilenen oyuncunun görünüşü (küçük kafa, buz örtüsü) ise sahada belli.
+10. **Simülasyon tohumu ayrı:** GameSim artık tohumlu (balonlar, Serap). Sahnede maç başında bir
+    kez seçilir; AI tohumlarından türetilir, `?seed=` hepsini sabitler. Paralel simülasyon görev
+    sırasından bağımsız tohum kullanır (aynı komut → aynı sonuç).
+11. **Kafa merkezi yüksekliği sabit:** kafa boyutu değişince ayakta duruş yüksekliği değişmez
+    (yalnızca kafa dairesi büyür/küçülür); AI ve gözlemcinin duruş varsayımları bozulmaz.
+12. **Performans:** `Ball.radius` sık okunduğu için alan (ölçek değişince güncellenir); AI adımı
+    Faz 3'e göre ~%10 daha pahalı (karakter, süper ve balon farkındalığı).
+
+### Ayarlanması gerektiğini düşündüğüm değerler
+
+Denge yalnızca AI vs AI ile ölçüldü; **gerçek oyuncularla deneme şart**. Önce bunlara bakılmalı:
+
+| Değer                                         | Şu an         | Neden                                                                                     | Öneri                    |
+| --------------------------------------------- | ------------- | ----------------------------------------------------------------------------------------- | ------------------------ |
+| `SUPER_SHOTS.ice` (etki süresi, hız)          | 1,0 sn / ×0,9 | Ayaz hâlâ en üstte (%58). İnsan Buz'a karşı daha iyi tepki verebilir ya da daha kötü.     | oyun testine göre 0,8 sn |
+| `SUPER_SHOTS.teleport.exitBeforeGoalPx`       | 250           | En yüksek dönüşüm (%10). İnsan kaleci için belirme anı sürpriz olabilir.                  | 280–300                  |
+| `SUPER_SHOTS.rainbow.targetInsetPx`           | 180           | AI için dengeli; insanlar yüksek topu daha iyi okursa Gökkuşağı zayıf kalabilir.          | 120–180                  |
+| `CHARACTER_STATS.headRadius`                  | 31,5–40,5     | Denge en çok kafa boyutuna duyarlı (Kaya %28 ↔ %56 tek turda).                            | dikkatli, ±0,5 px adım   |
+| `POWERUPS.spawnIntervalMin/Max` / ömür        | 12–18 / 10 sn | Maç başına ~5–6 balon, ~1,5'i patlıyor; insanlar balonu daha çok hedeflerse etkisi artar. | oyun testine göre        |
+| `POWERUPS.durations.freezeOpponent`           | 1,8 sn        | Buz (1,5 sn) ile birleşince uzun gelebilir.                                               | 1,5                      |
+| `AI_PROFILES.*.superDodge / mirageReadChance` | tabloda       | Zor AI'ın Buz'dan kaçınması (%90) insan gözünde "fazla bilgili" görünebilir.              | 0,75–0,9                 |
+
+Denge değerleri değişirse yeniden ölç: `npm run simulate -- --characters --matches 40 --jobs 10`.
+
+### Bilinen sorunlar / sınırlamalar
+
+- **Denge ve "farklı hissettirme" gerçek oyuncuyla ölçülmedi;** sonuçlar AI vs AI vekil ölçümüne
+  dayanıyor. AI karakterlerin güçlü yanlarını bir insan kadar iyi kullanmayabilir.
+- **Eşleşme bazında karşı karakterler:** genel kazanma %47–58 ama bazı eşleşmeler 80 maçta
+  belirgin: Toprak–Şimşek %80, Bora–Toprak %75, Kaya–Sis %74, Kor–Şimşek %34. (İstatistik hatası
+  ~±5,6 puan; bunlar gürültü değil.) Taş-kâğıt-makas etkisi bir ölçüde istenir ama %75+ fazla;
+  bir sonraki ayar turunda bu üç eşleşmenin nedeni incelenmeli (ör. Sarsıntının zıplama kilidi
+  küçük kafalı, kafaya dayalı Şimşek'e karşı çok etkili olabilir).
+- Ayaz (Buz) altı turdur en üstte; şu an %58 (sınırın altında ama en yakın).
+- Karakter tarama simülasyonunda 3600 maçta 3 sıkışma olayı (tür ayrıntısı karakter modunda
+  basılmıyor); zorluk matrisinde ve testlerdeki uç eşleşmelerde 0.
+- CPU'nun karakter seçimi rastgele (`Math.random`, yalnızca arayüz); maç determinizmini etkilemez.
+- Karakter seçim ekranı küçük ekran/dokunmatik için düzenlenmedi (Faz 6+ mobil).
+- Faz 3'ten süren: tarayıcılar arası determinizm, `npm audit` uyarısı, kaleye park etme, debug
+  metin kutusunun HUD'a binmesi.
+
+### Sıradaki faz
+
+**Faz 5** — talimat bekleniyor.

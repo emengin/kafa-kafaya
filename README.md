@@ -5,10 +5,11 @@ karakterler, süper şutlar, güçlendiriciler ve gol tekrarı.
 
 **Canlı sürüm:** https://emengin.github.io/kafa-kafaya/
 
-> Durum: **Faz 3 — Yapay zekâ rakip.** Menüden **CPU'ya Karşı** (Kolay / Orta / Zor) ya da
-> **2 Oyuncu** maçı baştan sona oynanabiliyor: 90 sn geri sayım, gol + ağır çekim, santra,
-> altın gol, duraklatma, maç sonu, güç barı ve süper vuruş. Görseller henüz basit gri şekiller.
-> Ayrıntılar ve AI simülasyon sonuçları için [docs/PROGRESS.md](docs/PROGRESS.md).
+> Durum: **Faz 4 — Karakterler, süper şutlar ve güçlendiriciler.** Menüden **CPU'ya Karşı**
+> (Kolay / Orta / Zor) ya da **2 Oyuncu** → **karakter seçimi** (10 özgün karakter, her birinin
+> kendi süper şutu) → maç: 90 sn, gol + ağır çekim, santra, altın gol, duraklatma, maç sonu,
+> güç barı, 10 süper şut tipi ve süzülen güçlendirici balonları. Görseller hâlâ basit vektör
+> şekiller. Ayrıntılar, denge tablosu ve simülasyon sonuçları için [docs/PROGRESS.md](docs/PROGRESS.md).
 
 ## Teknoloji
 
@@ -29,18 +30,23 @@ npm run preview   # derlenmiş sürümü yerelde sun
 npm run lint      # ESLint + Prettier denetimi
 npm run format    # Prettier ile biçimlendir
 npm test          # Vitest birim testleri
-npm run simulate  # AI vs AI headless 100 maç: skor dağılımı ve sıkışma raporu
+npm run simulate  # AI vs AI headless 100 maç: skor dağılımı, süperler, sıkışma raporu
 ```
 
-`npm run simulate -- --p1 hard --p2 easy` farklı zorlukları, `--matrix` tüm eşleşmeleri,
-`--seed N` tohumu, `--matches N` maç sayısını, `--json dosya.json` JSON çıktısını seçer.
+`npm run simulate -- --p1 hard --p2 easy` farklı zorlukları, `--matrix` tüm zorluk eşleşmelerini,
+`--c1 kor --c2 kaya` karakterleri, `--characters` 45 karakter eşleşmesinin iki tarafta da
+oynandığı denge taramasını (`--jobs N` ile paralel, `--difficulty` ile seviye), `--seed N`
+tohumu, `--matches N` maç sayısını, `--json dosya.json` JSON çıktısını seçer. Örnek:
+`npm run simulate -- --characters --matches 40 --jobs 10`.
 
 Geliştirme kısayolları (URL parametreleri):
 
 - `?scene=match&debug=1&duration=10` — menüyü atlayıp doğrudan 10 sn'lik 2 oyunculu maça girer
   ve debug katmanını açık başlatır.
 - `?cpu=easy|medium|hard` — doğrudan CPU'ya karşı maç; `?cpu1=…` ile P1 de yapay zekâ olur
-  (AI vs AI izleme); `?seed=N` yapay zekânın rastgelelik tohumunu sabitler.
+  (AI vs AI izleme); `?seed=N` yapay zekânın ve güçlendiricilerin tohumunu sabitler.
+- `?c1=kor&c2=kaya` — karakterler (seçim ekranını atlayan kısayollarla birlikte).
+  Karakter kimlikleri: `kor ayaz simsek sis kaya bora yay demir pamuk toprak`.
 
 ## Kontroller
 
@@ -52,8 +58,16 @@ Geliştirme kısayolları (URL parametreleri):
 | Süper   | Sol Shift | Sağ Shift |
 
 CPU'ya karşı modda tek oyuncu iki tuş takımından birini (ya da ikisini) kullanabilir.
-**Süper:** güç barı (isimlerin altında) dolunca Shift'e bas — bir sonraki şut ya da kafa süper
-olur.
+**Süper:** güç barı (isimlerin altında) dolunca Shift'e bas — bir sonraki şut ya da kafa
+karakterin süper şutu olur (Ateş Topu, Buz, Zikzak, Işınlanma, Dev Top, Kasırga, Gökkuşağı,
+Mıknatıs, Serap, Sarsıntı). Süper topa **şut ya da kafayla aktif vurmak** her zaman temiz bir
+karşılıktır. **Güçlendiriciler:** 12–18 sn'de bir sahanın üst yarısında balon belirir; topla
+patlatınca topa son dokunan kazanır (Büyük Kafa, Rakibi Küçült, Hız, Rakip Kalesini Büyüt,
+Rakibi Dondur, Çift Zıplama). Etkin olanlar skor çubuğunun altında ikon + geri sayım halkasıyla
+görünür.
+
+**Karakter seçimi:** P1 A/D/W/S + Space, P2 oklar + Enter (aynı anda); CPU'ya karşı ok
+tuşları ya da A/D/W/S + Enter/Space; fare de çalışır; Esc hazırı geri alır / ana menüye döner.
 
 **Esc / P:** duraklat (Devam · Yeniden Başlat · Ana Menü) · **F1:** debug katmanı
 (collider'lar, hız vektörleri, FPS, fizik adım süresi, maç durumu, AI'ın tahmin ettiği
@@ -65,9 +79,9 @@ yörünge). Menülerde ↑/↓ + Enter ya da fare; alt menüden Esc ile geri.
 src/
   config/     gameConfig.ts — tüm denge/ayar değerleri (kodda sihirli sayı yok)
   physics/    Phaser'dan bağımsız deterministik fizik ve sabit adımlı döngü
-  game/       entities, rules, ai (yapay zekâ rakip) — oyun mantığı
+  game/       entities, rules, ai, characters, superEffects, powerups — oyun mantığı
   input/      InputState soyutlaması (klavye, dokunmatik, gamepad, AI)
-  scenes/     Phaser sahneleri (Boot → Preload → Menu → …)
+  scenes/     Phaser sahneleri (Boot → Preload → Menu → Select → Match)
   ui/         HUD, menüler, kodla üretilen dokular
   audio/      Web Audio sentezleyici
   i18n/       TR/EN metinler

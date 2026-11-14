@@ -16,6 +16,33 @@ export interface GoalDef {
   readonly net: Rect;
   /** Üst direğin üstündeki bekleme bölgesi (top merkezi burada kalırsa itilir). */
   readonly restZone: Rect;
+  /**
+   * Zeminden üst direğin alt yüzüne yükseklik (px). "Rakip Kalesini Büyüt" güçlendiricisiyle
+   * değişir; değiştirmek için `setGoalMouthHeight` (dikdörtgenler yerinde güncellenir).
+   */
+  readonly mouthHeight: number;
+}
+
+type Mutable<T> = { -readonly [K in keyof T]: T[K] };
+
+/**
+ * Kale ağzının yüksekliğini değiştirir: üst direk, ağ ve bekleme bölgesi yerinde güncellenir
+ * (saha çarpışma listesi aynı dikdörtgen nesnesini kullandığı için ayrıca güncelleme gerekmez).
+ */
+export function setGoalMouthHeight(goal: GoalDef, mouthHeight: number): void {
+  if (goal.mouthHeight === mouthHeight) return;
+  const { groundY, goal: cfg } = PITCH;
+  const crossbarBottom = groundY - mouthHeight;
+  const crossbarTop = crossbarBottom - cfg.crossbarThickness;
+  const bar = goal.crossbar as Mutable<Rect>;
+  bar.minY = crossbarTop;
+  bar.maxY = crossbarBottom;
+  const net = goal.net as Mutable<Rect>;
+  net.minY = crossbarBottom;
+  const zone = goal.restZone as Mutable<Rect>;
+  zone.minY = crossbarTop - cfg.restZoneHeight;
+  zone.maxY = crossbarTop;
+  (goal as Mutable<GoalDef>).mouthHeight = mouthHeight;
 }
 
 export type StaticKind = 'ground' | 'wall' | 'ceiling' | 'crossbar';
@@ -64,6 +91,7 @@ function makeGoal(defender: PlayerIndex, width: number): GoalDef {
     crossbar: makeRect(backX, crossbarTop, goal.depth, goal.crossbarThickness),
     net: makeRect(backX, crossbarBottom, goal.depth, goal.mouthHeight),
     restZone: makeRect(zoneX, crossbarTop - goal.restZoneHeight, zoneWidth, goal.restZoneHeight),
+    mouthHeight: goal.mouthHeight,
   };
 }
 

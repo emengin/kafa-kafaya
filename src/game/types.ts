@@ -1,3 +1,5 @@
+import type { PowerUpType, SuperType } from '../config/gameConfig';
+
 /** 0 = P1 (sol, sağa bakar), 1 = P2 (sağ, sola bakar). */
 export type PlayerIndex = 0 | 1;
 
@@ -24,6 +26,21 @@ export type SimEvent =
     }
   /** Oyuncu dolu barla Süper'e bastı: bir sonraki vuruşu süper olacak. */
   | { readonly type: 'superArmed'; readonly player: PlayerIndex }
+  /** Süper şut atıldı (şut ya da kafa). */
+  | { readonly type: 'superLaunch'; readonly player: PlayerIndex; readonly superType: SuperType }
+  /**
+   * Süper şut rakibe etki etti: `player` etkilenen oyuncu (Buz → dondu, Ateş → savruldu,
+   * Sarsıntı → zıplayamıyor).
+   */
+  | { readonly type: 'superHit'; readonly player: PlayerIndex; readonly superType: SuperType }
+  /** Işınlanan top yeniden belirdi. */
+  | { readonly type: 'teleportExit'; readonly x: number; readonly y: number }
+  /** Güçlendirici balonu belirdi. */
+  | { readonly type: 'balloonSpawn'; readonly powerUp: PowerUpType }
+  /** Balon patladı; `player` güçlendiriciyi kazandı. */
+  | { readonly type: 'balloonPop'; readonly player: PlayerIndex; readonly powerUp: PowerUpType }
+  /** Balon kimse vurmadan söndü. */
+  | { readonly type: 'balloonExpire' }
   | { readonly type: 'goal'; readonly scorer: PlayerIndex }
   | { readonly type: 'crossbarPush' }
   /** Oyuncular ve top başlangıç konumuna alındı (santra bekleyişi başladı). */

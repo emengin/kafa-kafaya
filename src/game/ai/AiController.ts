@@ -10,25 +10,31 @@ import {
   UNITS,
   type AiDifficulty,
   type AiProfile,
+  type SuperType,
 } from '../../config/gameConfig';
 import { EMPTY_INPUT, type InputSource, type InputState } from '../../input/InputState';
 import { clamp, lerp } from '../../physics';
+import type { PlayerParams } from '../characters';
+import { Ball, type BallSuperState } from '../entities/Ball';
 import { PLAYER_STAND_OFFSET } from '../entities/Player';
 import { computeKick } from '../kick';
-import { createPitch, type GoalDef } from '../pitch';
-import type { PlayerIndex } from '../types';
+import { createPitch, setGoalMouthHeight, type GoalDef } from '../pitch';
+import { ballHitsBalloon, type Balloon } from '../powerups';
+import { launchSuper } from '../superEffects';
+import type { Facing, PlayerIndex } from '../types';
 import { BallPredictor } from './BallPredictor';
 import {
   hopHoldTicks,
-  JUMP_APEX_RISE,
   jumpLead,
+  jumpProfile,
   KickSimulator,
+  type JumpProfile,
   type KickProbe,
   type SelfState,
   type Trajectory,
 } from './motion';
 import { SeededRandom } from './random';
-import type { BallView, PlayerView, WorldView } from './worldView';
+import type { PlayerView, WorldView } from './worldView';
 
 /**
  * AI modları (debug ve istatistik için de kullanılır):
@@ -118,7 +124,7 @@ interface Analysis {
   readonly oppTime: number;
 }
 
-/** Algılanan dünya (kanonik çerçevede): top + rakip. */
+/** Algılanan dünya (kanonik çerçevede): top (süper etkisiyle) + rakip. */
 interface Percept {
   bx: number;
   by: number;
@@ -126,30 +132,51 @@ interface Percept {
   bvy: number;
   spin: number;
   cross: number;
+  /** Süper etki; sahip kanonik: 0 = ben, 1 = rakip. Yön kanonik. */
+  sType: SuperType | null;
+  sOwner: PlayerIndex | -1;
+  sTime: number;
+  sDir: Facing;
+  phased: boolean;
+  phaseDone: boolean;
+  rScale: number;
   ox: number;
   oy: number;
   ovx: number;
 }
 
+/** Tahminciye verilen başlangıç durumu (kanonik). */
+interface StartState {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  angVel: number;
+  crossbarTimer: number;
+  super: BallSuperState;
+}
+
+/** Süper tipi kullanım koşulları (`AI.super.byType`). */
+interface SuperUseRule {
+  readonly minDistancePx: number;
+  readonly maxDistancePx: number;
+  readonly opponentAhead?: boolean;
+  readonly opponentOffLinePx?: number;
+  readonly opponentNearPx?: number;
+}
+
 const W = DISPLAY.width;
 const STEP = 1 / LOOP.stepHz;
 const STAND_Y = PITCH.groundY - PLAYER_STAND_OFFSET;
-const HEAD_R = PLAYER.head.radius;
-const HEAD_BALL = PLAYER.head.radius + BALL.radius;
-const BODY_BALL = PLAYER.body.radius + BALL.radius;
-const MAX_SPEED = PLAYER.move.maxSpeed;
+const BODY_R = PLAYER.body.radius;
 /** Kanonik çerçevede kendi kale çizgim (solda) ve rakip kale çizgisi (sağda). */
 const OWN_LINE = PITCH.goal.depth;
 const OPP_LINE = W - PITCH.goal.depth;
-/** Üst direğin alt yüzü (y). */
-const CROSSBAR_BOTTOM = PITCH.groundY - PITCH.goal.mouthHeight;
-/** Kale ağzında kafanın üst direğe çarpmadan yükselebileceği en çok yükseklik (px). */
-const BAR_MAX_RISE = STAND_Y - (CROSSBAR_BOTTOM + HEAD_R) - AI.header.crossbarClearancePx;
 /** `hopHold` dönüşü: top aşılamayacak kadar yüksek, beklenmeli. */
 const HOP_WAIT = -1;
-const MIN_X = HEAD_R;
-const MAX_X = W - HEAD_R;
 const SPAWN_X = W * PLAYER.spawnXRatio;
+/** Rakibe çarpınca etkisi olan süperler (kaçınılır; şut değerlendirmesinde ayrı puanlanır). */
+const HIT_SUPERS: readonly SuperType[] = ['ice', 'fire', 'tornado'];
 const KICK_PROBE_TICKS = Math.ceil(KICK.swingSeconds * LOOP.stepHz) + 1;
 
 const secToSteps = (s: number): number => Math.round(s * LOOP.stepHz);
@@ -228,6 +255,30 @@ export class AiController {
   private readonly shotPredictor: BallPredictor;
   private readonly traj: TrajectoryView;
   private readonly kickSim = new KickSimulator();
+  /** Süperli şut denemesi için karalama topu (etki durumunu kurmak için). */
+  private readonly scratch = new Ball();
+
+  // Beden (karakter + güçlendiriciler; her adım görünümden güncellenir)
+  private headR: number = PLAYER.head.radius;
+  private oppHeadR: number = PLAYER.head.radius;
+  private ballR: number = BALL.radius;
+  private maxSpeed: number = PLAYER.move.maxSpeed;
+  private oppMaxSpeed: number = PLAYER.move.maxSpeed;
+  private jump: JumpProfile = jumpProfile(PLAYER.jump.speed);
+  private myParams: PlayerParams | null = null;
+  private mySuper: SuperType = 'fire';
+  private jumpLockSteps = 0;
+  private oppFrozenSteps = 0;
+  private oppArmed = false;
+  private canDoubleJump = false;
+  private crossbarBottomOwn = PITCH.groundY - PITCH.goal.mouthHeight;
+  private balloon: Balloon | null = null;
+  /** Serap: izlenen yanılsama (−1 = gerçek top) ve görülen yanılsama sayısı. */
+  private trackedDecoy = -1;
+  private decoyCount = 0;
+  /** Bu tehlikeli süperden kaçınılacak mı (top başına bir kez zar). */
+  private dodgeRoll: 'none' | 'yes' | 'no' = 'none';
+  private dodgeJumpUntil = -1;
 
   // Algı
   private readonly history: Percept[];
@@ -243,7 +294,7 @@ export class AiController {
   private nextPredictionTick = 0;
   private noiseX = 0;
   private noiseY = 0;
-  private readonly startState = { x: 0, y: 0, vx: 0, vy: 0, angVel: 0, crossbarTimer: 0 };
+  private readonly startState: StartState = blankStart();
 
   // Karar
   private tick = 0;
@@ -311,6 +362,7 @@ export class AiController {
   /** Bir adımlık karar: dünya görünümünden bu adımın girdisini üretir. */
   update(view: WorldView): InputState {
     this.tick = view.tick;
+    this.updateBody(view);
     const me = this.canonicalSelf(view.players[this.index]);
     this.record(view);
 
@@ -379,18 +431,113 @@ export class AiController {
     };
   }
 
-  /** O anki görünümü (kanonik) geçmiş tamponuna yazar. */
+  private get minX(): number {
+    return this.headR;
+  }
+
+  private get maxX(): number {
+    return W - this.headR;
+  }
+
+  private get headBall(): number {
+    return this.headR + this.ballR;
+  }
+
+  private get bodyBall(): number {
+    return BODY_R + this.ballR;
+  }
+
+  /** Kale ağzında kafanın üst direğe çarpmadan yükselebileceği en çok yükseklik (px). */
+  private get barMaxRise(): number {
+    return STAND_Y - (this.crossbarBottomOwn + this.headR) - AI.header.crossbarClearancePx;
+  }
+
+  /**
+   * Bedenin ve sahanın görünür durumu: kendi/rakip kafa boyutu ve hızı (karakter +
+   * güçlendiriciler), zıplama profili, donma/zıplama kilidi, kale yükseklikleri, balon.
+   */
+  private updateBody(view: WorldView): void {
+    const me: PlayerView = view.players[this.index];
+    const opp: PlayerView = view.players[this.index === 0 ? 1 : 0];
+    this.headR = me.params.headRadius * me.headScale;
+    this.oppHeadR = opp.params.headRadius * opp.headScale;
+    this.ballR = BALL.radius * view.ball.super.radiusScale;
+    this.maxSpeed = me.params.maxSpeed * me.speedScale;
+    this.oppMaxSpeed = opp.params.maxSpeed * opp.speedScale;
+    if (this.myParams !== me.params || this.mySuper !== me.superType) {
+      this.myParams = me.params;
+      this.mySuper = me.superType;
+      this.jump = jumpProfile(me.params.jumpSpeed);
+    }
+    this.kickSim.configure({ params: me.params, superType: me.superType }, me.speedScale);
+    this.jumpLockSteps = Math.ceil(me.jumpLockTimer * LOOP.stepHz);
+    this.oppFrozenSteps = Math.ceil(opp.frozenTimer * LOOP.stepHz);
+    this.oppArmed = opp.superArmed;
+    this.canDoubleJump = me.doubleJumpEnabled && !me.airJumpUsed && this.jumpLockSteps === 0;
+    const [ownGoal, oppGoal] = this.predictor.field.goals;
+    const other = this.index === 0 ? 1 : 0;
+    setGoalMouthHeight(ownGoal, view.goalMouths[this.index]);
+    setGoalMouthHeight(oppGoal, view.goalMouths[other]);
+    this.crossbarBottomOwn = PITCH.groundY - ownGoal.mouthHeight;
+    const b = view.balloon;
+    // Balon kanonik çerçevede: x aynalanır (sinüs evresi π kayar).
+    this.balloon =
+      b === null
+        ? null
+        : this.sign === 1
+          ? b
+          : { type: b.type, cx: W - b.cx, cy: b.cy, phase: b.phase + Math.PI, age: b.age };
+  }
+
+  /**
+   * O anki görünümü (kanonik) geçmiş tamponuna yazar. Serap'ta AI üç toptan birini izler
+   * (gerçeği `mirageReadChance` olasılıkla seçer); yanılsama sönünce gerçek topa geçer.
+   */
   private record(view: WorldView): void {
     this.histHead = (this.histHead + 1) % this.history.length;
     this.histCount = Math.min(this.histCount + 1, this.history.length);
     const slot = this.history[this.histHead];
     if (!slot) return;
-    const b: BallView = view.ball;
+    const b = view.ball;
+    const sup = b.super;
     const opp = view.players[this.index === 0 ? 1 : 0];
-    slot.bx = this.toRealX(b.x);
-    slot.by = b.y;
-    slot.bvx = this.sign * b.vx;
-    slot.bvy = b.vy;
+    const decoys = view.decoys;
+    if (decoys.length !== this.decoyCount) {
+      const fresh =
+        decoys.length > this.decoyCount &&
+        sup.superType === 'mirage' &&
+        sup.superOwner !== this.index;
+      this.trackedDecoy =
+        fresh && !this.rng.chance(this.profile.mirageReadChance)
+          ? Math.min(decoys.length - 1, Math.floor(this.rng.next() * decoys.length))
+          : -1;
+      this.decoyCount = decoys.length;
+    }
+    const decoy = this.trackedDecoy >= 0 ? decoys[this.trackedDecoy] : undefined;
+    if (decoy) {
+      slot.bx = this.toRealX(decoy.x);
+      slot.by = decoy.y;
+      slot.bvx = this.sign * decoy.vx;
+      slot.bvy = decoy.vy;
+      slot.sType = null;
+      slot.sOwner = -1;
+      slot.sTime = 0;
+      slot.phased = false;
+      slot.phaseDone = false;
+      slot.rScale = 1;
+    } else {
+      slot.bx = this.toRealX(b.x);
+      slot.by = b.y;
+      slot.bvx = this.sign * b.vx;
+      slot.bvy = b.vy;
+      slot.sType = sup.superType;
+      slot.sOwner = sup.superOwner === -1 ? -1 : sup.superOwner === this.index ? 0 : 1;
+      slot.sTime = sup.superTime;
+      slot.sDir = this.sign === 1 ? sup.superDir : sup.superDir === 1 ? -1 : 1;
+      slot.phased = sup.phased;
+      slot.phaseDone = sup.phaseDone;
+      slot.rScale = sup.radiusScale;
+    }
     slot.spin = this.sign * b.angVel;
     slot.cross = b.crossbarTimer;
     slot.ox = this.toRealX(opp.x);
@@ -450,6 +597,14 @@ export class AiController {
     st.vy = s.bvy + this.noiseY * speed;
     st.angVel = s.spin;
     st.crossbarTimer = s.cross;
+    const sup = st.super;
+    sup.superType = s.sType;
+    sup.superOwner = s.sOwner;
+    sup.superTime = s.sTime;
+    sup.superDir = s.sDir;
+    sup.phased = s.phased;
+    sup.phaseDone = s.phaseDone;
+    sup.radiusScale = s.rScale;
     const age = this.tick - this.seenTick;
     this.predictor.predict(st, this.horizonSteps + age + this.predictionSteps);
     this.predBaseTick = this.seenTick;
@@ -460,7 +615,7 @@ export class AiController {
   /** Rakibin şimdiki konumunun kestirimi (gecikmeli konum + hızıyla öteleme). */
   private opponentX(): number {
     const age = this.tick - this.seenTick;
-    return clamp(this.seen.ox + this.seen.ovx * age * STEP, MIN_X, MAX_X);
+    return clamp(this.seen.ox + this.seen.ovx * age * STEP, this.minX, this.maxX);
   }
 
   // ───────────────────────────── Karar ─────────────────────────────
@@ -631,11 +786,11 @@ export class AiController {
   }
 
   /** Hedefe varış süresi kestirimi (adım). */
-  private reachSteps(fromX: number, vx: number, toX: number): number {
+  private reachSteps(fromX: number, vx: number, toX: number, speed = this.maxSpeed): number {
     const dx = toX - fromX;
-    const toward = dx === 0 ? 0 : (vx * Math.sign(dx)) / MAX_SPEED;
+    const toward = dx === 0 ? 0 : (vx * Math.sign(dx)) / speed;
     const lag = AI.movement.accelLagSeconds * (1 - clamp(toward, 0, 1));
-    return (Math.abs(dx) / MAX_SPEED + lag) * LOOP.stepHz;
+    return (Math.abs(dx) / speed + lag) * LOOP.stepHz;
   }
 
   /** En erken yer vuruşu: topun alçakta olduğu ve arkasına geçebildiğim ilk an. */
@@ -646,9 +801,10 @@ export class AiController {
     const hop = secToSteps(AI.defend.hopPenaltySeconds);
     for (let k = 0; k <= n; k++) {
       const by = t.y(k);
-      if (by < AI.kick.groundBallMinY) continue;
+      // Işınlanan topa dokunulamaz.
+      if (by < AI.kick.groundBallMinY || this.predictor.phased(t.offset + k)) continue;
       const bx = t.x(k);
-      const x = clamp(bx - behind, MIN_X, MAX_X);
+      const x = clamp(bx - behind, this.minX, this.maxX);
       let need = this.reachSteps(me.x, me.vx, x);
       // Top benimle kalem arasındaysa üstünden atlamak gerekir.
       if (me.x > bx && by > AI.defend.hopBallMinY) need += hop;
@@ -657,7 +813,7 @@ export class AiController {
     // Ufkun sonunda yerde duran top ufuk ötesinde de oradadır (uzaktaki duran top yok sayılmasın).
     if (!this.restingAt(n)) return null;
     const bx = t.x(n);
-    const x = clamp(bx - behind, MIN_X, MAX_X);
+    const x = clamp(bx - behind, this.minX, this.maxX);
     let need = this.reachSteps(me.x, me.vx, x);
     if (me.x > bx) need += hop;
     return { step: Math.max(n, Math.ceil(need)), x, jumpStep: -1 };
@@ -671,20 +827,23 @@ export class AiController {
     );
   }
 
-  /** Rakibin topa (kendi vuruş tarafından) ulaşma süresi (adım). */
+  /** Rakibin topa (kendi vuruş tarafından) ulaşma süresi (adım). Donmuşsa donma süresi eklenir. */
   private opponentGroundTime(): number {
     const t = this.traj;
     const n = Math.min(this.horizonSteps, t.remaining);
     const ox = this.opponentX();
     const behind = AI.kick.behindBallPx;
+    const frozen = this.oppFrozenSteps;
+    const reach = (x: number): number =>
+      frozen + this.reachSteps(ox, frozen > 0 ? 0 : this.seen.ovx, x, this.oppMaxSpeed);
     for (let k = 0; k <= n; k++) {
       if (t.y(k) < AI.kick.groundBallMinY) continue;
-      const x = clamp(t.x(k) + behind, MIN_X, MAX_X);
-      if (this.reachSteps(ox, this.seen.ovx, x) <= k) return k;
+      const x = clamp(t.x(k) + behind, this.minX, this.maxX);
+      if (reach(x) <= k) return k;
     }
     if (!this.restingAt(n)) return Number.POSITIVE_INFINITY;
-    const x = clamp(t.x(n) + behind, MIN_X, MAX_X);
-    return Math.max(n, Math.ceil(this.reachSteps(ox, this.seen.ovx, x)));
+    const x = clamp(t.x(n) + behind, this.minX, this.maxX);
+    return Math.max(n, Math.ceil(reach(x)));
   }
 
   /**
@@ -697,19 +856,26 @@ export class AiController {
     const t = this.traj;
     const h = AI.header;
     const n = Math.min(secToSteps(h.maxLeadSeconds), t.remaining);
-    const offX = HEAD_BALL * Math.cos(angle);
-    const offY = HEAD_BALL * Math.sin(angle);
+    const headR = this.headR;
+    const offX = this.headBall * Math.cos(angle);
+    const offY = this.headBall * Math.sin(angle);
+    const maxRise = Math.min(h.maxRise, this.jump.apexRise - h.minRise);
+    const oppBarBottom = PITCH.groundY - this.predictor.field.goals[1].mouthHeight;
     for (let k = h.minLeadTicks; k <= n; k++) {
+      if (this.predictor.phased(t.offset + k)) continue;
       const headY = t.y(k) + offY;
       const rise = STAND_Y - headY;
-      if (rise < h.minRise || rise > h.maxRise) continue;
-      const lead = jumpLead(rise);
-      if (lead < 0 || lead > k) continue;
+      if (rise < h.minRise || rise > maxRise) continue;
+      const lead = jumpLead(rise, this.jump);
+      // Sarsıntı: zıplama kilidi bitmeden zıplanamaz.
+      if (lead < 0 || lead > k || k - lead < this.jumpLockSteps) continue;
       const x = t.x(k) - offX;
-      if (x < MIN_X || x > MAX_X) continue;
+      if (x < this.minX || x > this.maxX) continue;
       // Kale ağzı sütununda kafa üst direğin altına sığmalı (yoksa oyuncu direğe çarpar).
-      const underBar = x - HEAD_R < OWN_LINE || x + HEAD_R > OPP_LINE;
-      if (underBar && headY - HEAD_R < CROSSBAR_BOTTOM + h.crossbarClearancePx) continue;
+      const underOwn = x - headR < OWN_LINE;
+      const underOpp = x + headR > OPP_LINE;
+      const barBottom = underOwn ? this.crossbarBottomOwn : oppBarBottom;
+      if ((underOwn || underOpp) && headY - headR < barBottom + h.crossbarClearancePx) continue;
       if (this.reachSteps(me.x, me.vx, x) > k) continue;
       return { step: k, x, jumpStep: k - lead };
     }
@@ -763,7 +929,7 @@ export class AiController {
     if (a.ballBehind) {
       // Top kendi üst direğimin üstündeyse kalenin içine girmek anlamsız (top oradan sahaya
       // düşer ya da itilir): kale önünde bekle.
-      if (a.ballX < OWN_LINE + PITCH.goal.restZoneOverhang && a.ballY < CROSSBAR_BOTTOM) {
+      if (a.ballX < OWN_LINE + PITCH.goal.restZoneOverhang && a.ballY < this.crossbarBottomOwn) {
         p.targetX = guardX;
         return;
       }
@@ -792,8 +958,9 @@ export class AiController {
       p.targetX = guardX;
       return;
     }
-    // Rakip avantajlı: kale ile top arasında bekle.
-    const x = guardX + (a.ballX - OWN_LINE) * d.guardBallFactor + this.aimOffset;
+    // Rakip avantajlı: kale ile top arasında bekle (rakip süper hazırsa daha derinde).
+    const deeper = this.oppArmed ? AI.superDefense.deeperFactor : 1;
+    const x = guardX + (a.ballX - OWN_LINE) * d.guardBallFactor * deeper + this.aimOffset;
     p.targetX = Math.min(x, a.ballX - AI.position.minBehindBallPx);
     p.targetX = Math.max(p.targetX, guardX);
   }
@@ -805,7 +972,9 @@ export class AiController {
     p.purpose = 'attack';
     p.kickAllowed = true;
     const factor = lerp(pos.ballFactorMin, pos.ballFactorMax, this.profile.aggression);
-    let x = OWN_LINE + pos.basePx + (a.ballX - OWN_LINE) * factor + this.aimOffset;
+    // Rakip süper hazırken (Işınlanma, Gökkuşağı…) kaleye daha yakın bekle.
+    const deeper = this.oppArmed ? AI.superDefense.deeperFactor : 1;
+    let x = OWN_LINE + (pos.basePx + (a.ballX - OWN_LINE) * factor) * deeper + this.aimOffset;
     x = Math.min(x, a.ballX - pos.minBehindBallPx);
     p.targetX = Math.max(x, OWN_LINE + AI.defend.guardOffsetPx);
   }
@@ -829,7 +998,7 @@ export class AiController {
       return this.output(this.escapeDir, jump, false, false);
     }
     const p = this.plan;
-    const dx = clamp(p.targetX, MIN_X, MAX_X) - me.x;
+    const dx = clamp(p.targetX, this.minX, this.maxX) - me.x;
     const dir = Math.abs(dx) > AI.movement.deadzonePx ? Math.sign(dx) : 0;
 
     let jump = false;
@@ -857,11 +1026,77 @@ export class AiController {
     }
     if (this.tick < this.jumpHoldUntil && (jump || this.lastJump)) jump = true;
     if (!jump && me.grounded && move < 0 && this.ownGoalContactAhead(me)) move = 1;
+    if (!jump && this.wantsDoubleJump(me)) jump = true;
 
     const probe = p.kickAllowed && raw.kickPhase === 'idle' ? this.kickProbe(me, move) : null;
     const kick = probe !== null && this.shouldKick(me, probe, raw);
-    const sup = this.shouldSuper(raw, kick);
+    // Tehlikeli süper top (Buz, Ateş, Kasırga) kaleme gitmiyorsa ve şutla karşılanamıyorsa:
+    // değmemek için üstünden zıpla ya da çekil.
+    if (!kick) {
+      const dodge = this.dodgeSuper(me);
+      if (dodge) {
+        move = dodge.move;
+        if (dodge.jump) jump = true;
+      }
+    }
+    const sup = this.shouldSuper(raw, kick, probe);
     return this.output(move, jump, kick, sup);
+  }
+
+  /**
+   * Rakibin tehlikeli süper topu bana değecek mi? Değecekse ve top kaleme gitmiyorsa kaçış
+   * hareketi (alçak topun üstünden zıpla, değilse toptan uzaklaş). Top başına bir kez
+   * `superDodge` olasılığıyla karar verilir.
+   */
+  private dodgeSuper(me: SelfState): { move: number; jump: boolean } | null {
+    const s = this.seen;
+    if (s.sOwner !== 1 || s.sType === null || !HIT_SUPERS.includes(s.sType)) {
+      this.dodgeRoll = 'none';
+      return null;
+    }
+    if (this.tick < this.dodgeJumpUntil) return { move: this.lastDir, jump: this.lastJump };
+    if (this.predictor.goalEntry(this.ownGoal, this.traj.offset) >= 0) return null;
+    const sd = AI.superDefense;
+    const t = this.traj;
+    let hitK = -1;
+    for (let k = 1; k <= sd.dodgeLookTicks; k++) {
+      const bx = t.x(k);
+      const by = t.y(k);
+      const head = Math.hypot(bx - me.x, by - me.y) < this.headBall + sd.dodgeMarginPx;
+      const body =
+        Math.hypot(bx - me.x, by - (me.y + PLAYER.body.offsetY)) < this.bodyBall + sd.dodgeMarginPx;
+      if (head || body) {
+        hitK = k;
+        break;
+      }
+    }
+    if (hitK < 0) return null;
+    if (this.dodgeRoll === 'none') {
+      this.dodgeRoll = this.rng.chance(this.profile.superDodge) ? 'yes' : 'no';
+    }
+    if (this.dodgeRoll === 'no') return null;
+    const away = t.x(hitK) > me.x ? -1 : 1;
+    const low = t.y(hitK) > me.y;
+    if (low && me.grounded && this.jumpLockSteps === 0) {
+      this.dodgeJumpUntil = this.tick + secToSteps(sd.dodgeJumpSeconds);
+      return { move: away, jump: true };
+    }
+    return { move: away, jump: false };
+  }
+
+  /** Çift zıplama: kafa planında, tepeye yakınken top hâlâ başımın üstündeyse ikinci zıplama. */
+  private wantsDoubleJump(me: SelfState): boolean {
+    const pu = AI.powerUp;
+    if (!this.canDoubleJump || me.grounded || this.lastJump || me.vy < pu.doubleJumpMinVy) {
+      return false;
+    }
+    if (this.mode !== 'header' || !this.plan.jumped) return false;
+    const t = this.traj;
+    for (let k = 1; k <= pu.doubleJumpLookTicks; k++) {
+      const above = t.y(k) < me.y - this.headR;
+      if (above && Math.abs(t.x(k) - me.x) < pu.doubleJumpReachPx) return true;
+    }
+    return false;
   }
 
   /**
@@ -876,10 +1111,11 @@ export class AiController {
     if (gap <= 0 || gap > d.hopTriggerPx || t.y(0) < d.hopBallMinY) return 0;
     let minY = t.y(0);
     for (let k = 1; k <= d.hopLookTicks; k++) minY = Math.min(minY, t.y(k));
-    const need = PITCH.groundY - (minY - BALL.radius) + d.hopMarginPx;
-    const nearGoal = t.x(0) - d.hopLandingPx < OWN_LINE + HEAD_R;
-    const maxRise = nearGoal ? BAR_MAX_RISE : JUMP_APEX_RISE;
-    const hold = hopHoldTicks(need, maxRise);
+    if (this.jumpLockSteps > 0) return HOP_WAIT;
+    const need = PITCH.groundY - (minY - this.ballR) + d.hopMarginPx;
+    const nearGoal = t.x(0) - d.hopLandingPx < OWN_LINE + this.headR;
+    const maxRise = nearGoal ? this.barMaxRise : this.jump.apexRise;
+    const hold = hopHoldTicks(need, maxRise, this.jump);
     return hold > 0 ? hold : HOP_WAIT;
   }
 
@@ -896,9 +1132,9 @@ export class AiController {
       const bx = t.x(k);
       if (bx > px - s.goalSideMarginPx) continue;
       const by = t.y(k);
-      const head = Math.hypot(bx - px, by - me.y) < HEAD_BALL + s.contactMarginPx;
+      const head = Math.hypot(bx - px, by - me.y) < this.headBall + s.contactMarginPx;
       const body =
-        Math.hypot(bx - px, by - (me.y + PLAYER.body.offsetY)) < BODY_BALL + s.contactMarginPx;
+        Math.hypot(bx - px, by - (me.y + PLAYER.body.offsetY)) < this.bodyBall + s.contactMarginPx;
       if (head || body) return true;
     }
     return false;
@@ -906,7 +1142,8 @@ export class AiController {
 
   private kickProbe(me: SelfState, dir: number): KickProbe | null {
     if (this.lastKick) return null;
-    return this.kickSim.probe(me, dir, this.traj, KICK_PROBE_TICKS);
+    if (this.predictor.phased(this.traj.offset)) return null;
+    return this.kickSim.probe(me, dir, this.traj, KICK_PROBE_TICKS, this.ballR);
   }
 
   /**
@@ -939,7 +1176,7 @@ export class AiController {
     if (!urgent && probe.swingFactor < k.minSwingFactor) return false;
     if (pr.shotSelectivity <= 0) return true;
     // Seçici AI şutu her zaman (acilken bile) dener: sekip kendi kalesine dönecekse vurmaz.
-    const score = this.evaluateShot(probe, raw.superArmed);
+    const score = this.evaluateShot(probe, raw.superArmed ? this.mySuper : null);
     if (score < 0) return false;
     if (urgent || score >= pr.shotSelectivity * k.selectivityScale) return true;
     return this.tick - this.opportunityStart >= secToSteps(k.shotPatienceSeconds);
@@ -959,11 +1196,13 @@ export class AiController {
   }
 
   /**
-   * Şut değerlendirmesi: gerçek şut formülüyle (computeKick) topun yeni hızı hesaplanır ve top
-   * hayalet dünyada ileri simüle edilir. 1 = gol yolunda; duvardan sekip kendi kaleme dönecekse
-   * negatif; rakibe çarpacaksa düşük; değilse kat edilen mesafeyle orantılı.
+   * Şut değerlendirmesi: gerçek şut formülüyle (computeKick, karakterin şut gücüyle) topun yeni
+   * hızı hesaplanır; süperse etkisi yüklenir ve top hayalet dünyada (süper etkileriyle) ileri
+   * simüle edilir. 1 = gol yolunda; duvardan sekip kendi kaleme dönecekse negatif; rakibe
+   * çarpacaksa düşük (rakibe çarpınca etkisi olan süperlerde orta); değilse kat edilen mesafeyle
+   * orantılı. Balonu patlatacak şuta (farkındalığa göre) bonus.
    */
-  private evaluateShot(probe: KickProbe, superShot: boolean): number {
+  private evaluateShot(probe: KickProbe, superType: SuperType | null): number {
     const k = AI.kick;
     const kick = computeKick({
       facing: 1,
@@ -974,15 +1213,30 @@ export class AiController {
       ny: probe.ny,
       ballVx: probe.ballVx,
       ballVy: probe.ballVy,
-      superShot,
+      power: this.myParams?.kickPower ?? 1,
+      superType,
     });
+    const b = this.scratch;
+    b.resetTo(probe.ballX, probe.ballY);
+    b.vx = kick.vx;
+    b.vy = kick.vy;
+    b.angVel = this.seen.spin + kick.spin;
+    b.radiusScale = this.ballR / BALL.radius;
+    if (superType) launchSuper(b, superType, 0, 1);
     const st = this.startState;
-    st.x = probe.ballX;
-    st.y = probe.ballY;
-    st.vx = kick.vx;
-    st.vy = kick.vy;
-    st.angVel = this.seen.spin + kick.spin;
+    st.x = b.x;
+    st.y = b.y;
+    st.vx = b.vx;
+    st.vy = b.vy;
+    st.angVel = b.angVel;
     st.crossbarTimer = 0;
+    st.super.superType = b.superType;
+    st.super.superOwner = b.superOwner;
+    st.super.superTime = b.superTime;
+    st.super.superDir = b.superDir;
+    st.super.phased = b.phased;
+    st.super.phaseDone = b.phaseDone;
+    st.super.radiusScale = b.radiusScale;
     const sp = this.shotPredictor;
     sp.predict(st, this.shotSteps);
     const entry = sp.goalEntry(this.oppGoal);
@@ -992,35 +1246,72 @@ export class AiController {
     const ox = this.opponentX();
     const oy = this.seen.oy;
     const end = Math.min(entry >= 0 ? entry : sp.length - 1, secToSteps(k.blockCheckSeconds));
+    const oppHeadBall = this.oppHeadR + this.ballR;
     for (let i = 0; i <= end; i++) {
+      if (sp.phased(i)) continue;
       const bx = sp.x(i);
       const by = sp.y(i);
-      const head = Math.hypot(bx - ox, by - oy) < HEAD_BALL + k.blockMarginPx;
+      const head = Math.hypot(bx - ox, by - oy) < oppHeadBall + k.blockMarginPx;
       const body =
-        Math.hypot(bx - ox, by - (oy + PLAYER.body.offsetY)) < BODY_BALL + k.blockMarginPx;
-      if (head || body) return k.blockedScore;
+        Math.hypot(bx - ox, by - (oy + PLAYER.body.offsetY)) < this.bodyBall + k.blockMarginPx;
+      if (head || body) return this.blockedScore(superType);
     }
     if (entry >= 0) return 1;
     const progress = (sp.x(sp.length - 1) - probe.ballX) / W;
-    return k.progressBase + k.progressScale * clamp(progress, 0, 1);
+    const base = k.progressBase + k.progressScale * clamp(progress, 0, 1);
+    return base + this.balloonBonus(sp, sp.length - 1);
+  }
+
+  /** Rakibe çarpacak şutun puanı: süperin rakibe etkisi varsa (Buz, Ateş, Kasırga) daha yüksek. */
+  private blockedScore(superType: SuperType | null): number {
+    const scores: Partial<Record<SuperType, number>> = AI.super.hitOpponentScore;
+    return (superType && scores[superType]) ?? AI.kick.blockedScore;
+  }
+
+  /** Denenen şut `end` adıma kadar balonu patlatıyorsa bonus (farkındalıkla ölçekli). */
+  private balloonBonus(sp: BallPredictor, end: number): number {
+    const b = this.balloon;
+    const awareness = this.profile.powerUpAwareness;
+    if (!b || awareness <= 0) return 0;
+    for (let i = 0; i <= end; i++) {
+      if (sp.phased(i)) continue;
+      if (ballHitsBalloon(b, sp.x(i), sp.y(i), sp.radius(i), b.age + i * STEP)) {
+        return AI.powerUp.balloonShotBonus * awareness;
+      }
+    }
+    return 0;
   }
 
   /**
-   * Süper: bar doluyken, hücumda, top rakip kaleye uygun mesafedeyken ve vuruş yakınken.
-   * Her hücum fırsatında bir kez `superUseRate` olasılığıyla karar verilir.
+   * Süper: bar doluyken, hücumda, vuruş yakınken ve karakterin süper tipine uygun durumda (topun
+   * kaleye uzaklığı, rakibin konumu; bkz. `AI.super.byType`). Şimdi vuracaksa seçici AI süperli
+   * şutu normal şutla karşılaştırır. Her hücum fırsatında bir kez `superUseRate` olasılığıyla
+   * karar verilir.
    */
-  private shouldSuper(raw: PlayerView, kicking: boolean): boolean {
+  private shouldSuper(raw: PlayerView, kicking: boolean, probe: KickProbe | null): boolean {
     if (raw.power < 1 || raw.superArmed || this.lastSuper) return false;
     if (this.plan.purpose !== 'attack' || (this.mode !== 'attack' && this.mode !== 'header')) {
       return false;
     }
     const s = AI.super;
-    const dist = OPP_LINE - this.traj.x(0);
-    if (dist < s.minDistancePx || dist > s.maxDistancePx) return false;
+    const rule: SuperUseRule = s.byType[this.mySuper];
+    const bx = this.traj.x(0);
+    const dist = OPP_LINE - bx;
+    if (dist < rule.minDistancePx || dist > rule.maxDistancePx) return false;
+    const ox = this.opponentX();
+    if (rule.opponentAhead && ox < bx) return false;
+    if (rule.opponentOffLinePx !== undefined && ox > OPP_LINE - rule.opponentOffLinePx)
+      return false;
+    if (rule.opponentNearPx !== undefined && Math.abs(ox - bx) > rule.opponentNearPx) return false;
     const hitSoon =
       kicking ||
       (this.plan.hitTick >= 0 && this.plan.hitTick - this.tick <= secToSteps(s.maxLeadSeconds));
     if (!hitSoon) return false;
+    if (kicking && probe && this.profile.shotSelectivity > 0) {
+      const withSuper = this.evaluateShot(probe, this.mySuper);
+      const normal = this.evaluateShot(probe, null);
+      if (withSuper < normal - s.worseThanNormalMargin) return false;
+    }
     if (this.superRoll === 'none') {
       this.superRoll = this.rng.chance(this.profile.superUseRate) ? 'yes' : 'no';
     }
@@ -1044,7 +1335,7 @@ export class AiController {
     const onHead =
       Math.abs(bx - me.x) < st.ballOnHeadDx &&
       by < me.y &&
-      me.y - by < HEAD_BALL + st.ballOnHeadGapPx &&
+      me.y - by < this.headBall + st.ballOnHeadGapPx &&
       Math.abs(this.traj.vy(0)) < st.ballOnHeadMaxVy;
     this.headTimer = onHead ? this.headTimer + STEP : 0;
 
@@ -1075,7 +1366,7 @@ export class AiController {
         break;
       case 'push': {
         // Kaleme dönmem gerekiyorsa (savunma) rakibin üstünden atla; değilse çoğunlukla çekil.
-        const nearWall = me.x < MIN_X + st.wallMarginPx || me.x > MAX_X - st.wallMarginPx;
+        const nearWall = me.x < this.minX + st.wallMarginPx || me.x > this.maxX - st.wallMarginPx;
         const goingBack = this.lastDir < 0 && this.plan.purpose === 'defend';
         if (nearWall) dir = towardCenter;
         else if (goingBack) dir = this.lastDir;
@@ -1123,6 +1414,8 @@ export class AiController {
     this.contestSince = -1;
     this.distracted = false;
     this.looseSince = -1;
+    this.dodgeRoll = 'none';
+    this.dodgeJumpUntil = -1;
   }
 
   /** Kanonik kararları gerçek tuşlara çevirir (P2 için sol/sağ aynalanır). */
@@ -1140,8 +1433,41 @@ export class AiController {
   }
 }
 
+function blankSuper(): BallSuperState {
+  return {
+    superType: null,
+    superOwner: -1,
+    superTime: 0,
+    superDir: 1,
+    phased: false,
+    phaseDone: false,
+    radiusScale: 1,
+  };
+}
+
+function blankStart(): StartState {
+  return { x: 0, y: 0, vx: 0, vy: 0, angVel: 0, crossbarTimer: 0, super: blankSuper() };
+}
+
 function blankPercept(): Percept {
-  return { bx: 0, by: 0, bvx: 0, bvy: 0, spin: 0, cross: 0, ox: 0, oy: 0, ovx: 0 };
+  return {
+    bx: 0,
+    by: 0,
+    bvx: 0,
+    bvy: 0,
+    spin: 0,
+    cross: 0,
+    sType: null,
+    sOwner: -1,
+    sTime: 0,
+    sDir: 1,
+    phased: false,
+    phaseDone: false,
+    rScale: 1,
+    ox: 0,
+    oy: 0,
+    ovx: 0,
+  };
 }
 
 function blankPlan(): Plan {

@@ -1,5 +1,6 @@
-import { KICK, SUPER } from '../config/gameConfig';
+import { KICK, type SuperType } from '../config/gameConfig';
 import { clamp } from '../physics';
+import { superKickScales } from './superEffects';
 import type { Facing } from './types';
 
 /** Şut hesabının girdileri: temas anındaki oyuncu, ayak ve top durumu. */
@@ -14,8 +15,10 @@ export interface KickInput {
   readonly ny: number;
   readonly ballVx: number;
   readonly ballVy: number;
-  /** Süper şut mu? */
-  readonly superShot: boolean;
+  /** Karakterin şut gücü çarpanı (1 = ortalama). */
+  readonly power: number;
+  /** Süper şutsa tipi (hız ve açı çarpanları), değilse null. */
+  readonly superType: SuperType | null;
 }
 
 export interface KickResult {
@@ -32,7 +35,8 @@ export interface KickResult {
  * - Güç: savrulma fazı + oyuncunun şut yönündeki hızı.
  * - Yön: bakış yönünde; yükselme açısı temas normalinden gelir — ayak topun altına vurursa top
  *   yükselir, üstüne vurursa yere doğru gider.
- * - Süper: hedef hız `SUPER.kickSpeedMultiplier` ile çarpılır, yükselme açısı düzleşir.
+ * - Güç: karakterin şut gücü savrulmadan gelen hızı ölçekler.
+ * - Süper: hedef hız ve yükselme açısı süper tipinin çarpanlarıyla değişir (`SUPER_SHOTS`).
  */
 export function computeKick(k: KickInput): KickResult {
   // Temas normalinin yükselme açısı (yukarı pozitif) → şut açısı.
@@ -42,13 +46,17 @@ export function computeKick(k: KickInput): KickResult {
     KICK.minElevation,
     KICK.maxElevation,
   );
-  if (k.superShot) elevation *= SUPER.elevationScale;
+  // Güçlü şut daha düz gider (hızlanan top aynı açıyla kalenin üstünden gitmesin).
+  elevation /= k.power;
+  const scales = k.superType ? superKickScales(k.superType) : null;
+  if (scales) elevation *= scales.elevation;
   const dirX = k.facing * Math.cos(elevation);
   const dirY = -Math.sin(elevation);
 
   const runUp = Math.max(0, k.playerVx * dirX + k.playerVy * dirY) * KICK.playerVelocityTransfer;
-  let targetSpeed = KICK.minSpeed + (KICK.maxSpeed - KICK.minSpeed) * k.swingFactor + runUp;
-  if (k.superShot) targetSpeed *= SUPER.kickSpeedMultiplier;
+  const swing = KICK.minSpeed + (KICK.maxSpeed - KICK.minSpeed) * k.swingFactor;
+  let targetSpeed = swing * k.power + runUp;
+  if (scales) targetSpeed *= scales.speed;
   const along = k.ballVx * dirX + k.ballVy * dirY;
   const perpX = k.ballVx - along * dirX;
   const perpY = k.ballVy - along * dirY;

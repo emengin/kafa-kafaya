@@ -1,4 +1,5 @@
 import { DEV, type AiDifficulty } from '../config/gameConfig';
+import { isCharacterId, type CharacterId } from '../game/characters';
 import { isDifficulty } from '../game/matchSetup';
 
 function params(): URLSearchParams {
@@ -18,21 +19,30 @@ export function wantsDebugOverlay(): boolean {
   return params().get(DEV.debugParam) === DEV.debugOnValue;
 }
 
-/** `?cpu=…`, `?cpu1=…`, `?seed=N` → CPU maçı, AI vs AI ve AI tohumu (geçersizse yok sayılır). */
+/**
+ * `?cpu=…`, `?cpu1=…`, `?seed=N`, `?c1=…&c2=…` → CPU maçı, AI vs AI, AI tohumu ve karakterler
+ * (geçersizse yok sayılır).
+ */
 export function devAiFlags(): {
   cpu: AiDifficulty | null;
   cpu1: AiDifficulty | null;
   seed: number | null;
+  c1: CharacterId | null;
+  c2: CharacterId | null;
 } {
   const p = params();
   const cpu = p.get(DEV.cpuParam);
   const cpu1 = p.get(DEV.cpu1Param);
   const rawSeed = p.get(DEV.seedParam);
   const seed = rawSeed === null ? Number.NaN : Number(rawSeed);
+  const c1 = p.get(DEV.char1Param);
+  const c2 = p.get(DEV.char2Param);
   return {
     cpu: isDifficulty(cpu) ? cpu : null,
     cpu1: isDifficulty(cpu1) ? cpu1 : null,
     seed: Number.isInteger(seed) ? seed : null,
+    c1: isCharacterId(c1) ? c1 : null,
+    c2: isCharacterId(c2) ? c2 : null,
   };
 }
 

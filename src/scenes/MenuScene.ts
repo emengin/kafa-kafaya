@@ -256,7 +256,7 @@ export class MenuScene extends Phaser.Scene {
     }
   }
 
-  /** Maça geç: topa vur, ekranı karart ve maç sahnesini kurulumla başlat. */
+  /** Karakter seçimine geç: topa vur, ekranı karart ve seçim sahnesini kurulumla başlat. */
   private onStart(setup: MatchSetup): void {
     if (this.starting) return;
     this.starting = true;
@@ -266,7 +266,7 @@ export class MenuScene extends Phaser.Scene {
     this.ballVy = -MENU.demoBall.kickSpeed;
     this.cameras.main.fadeOut(MENU.startFadeMs);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-      this.scene.start(SceneKeys.Match, setup);
+      this.scene.start(SceneKeys.Select, setup);
     });
   }
 

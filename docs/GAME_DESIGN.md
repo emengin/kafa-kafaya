@@ -81,46 +81,83 @@ gerçek kişi, kulüp, marka veya logo kullanılmaz.
 ## 6. Güç barı ve süper şut
 
 - Her oyuncunun bir güç barı vardır. Topa dokundukça ve zamanla (yavaşça) dolar.
-- Bar doluyken **Süper** tuşu karakterin özel süper şutunu hazırlar: oyuncu parlar ve
-  **bir sonraki vuruşu** (şut veya kafa) süper olur. Bar sıfırlanır.
-- Şu anki değerler (Faz 3): pasif dolum 0,05/sn (~20 sn), dokunuş başına +0,08 (oyuncu başına
-  0,3 sn bekleme), süper hazırken bar dolmaz. Karakterler gelene kadar **genel süper**: şut ×1,5
-  hız ve yarı yükselme açısıyla düz gider; kafa topu en az 1500 px/sn ile gönderir.
+- Bar doluyken **Süper** tuşu karakterin özel süper şutunu hazırlar: oyuncu karakter renginde
+  parlar ve **bir sonraki vuruşu** (şut veya kafa) süper olur. Bar sıfırlanır.
+- Değerler (`POWER`): pasif dolum 0,05/sn (~20 sn), dokunuş başına +0,08 (oyuncu başına 0,3 sn
+  bekleme), süper hazırken bar dolmaz. Süper kafa topu en az 1500 px/sn ile gönderir, ardından
+  karakterin süper tipi uygulanır.
+- **Ortak karşı oyun:** süper topa **aktif** vurmak — savrulan ayakla şut ya da topa doğru
+  hareket ederken kafa — her zaman temizdir: etki biter, olumsuz sonuç yok. Rakibe etkisi olan
+  süperler (Buz, Ateş) yalnızca **pasif** karşılamayı (gövde, duran kafa) cezalandırır.
+- Süper tipleri ve sayısal değerleri `SUPER_SHOTS` altında; GameSim ve yapay zekânın yörünge
+  tahmincisi aynı etki kodunu (`src/game/superEffects.ts`) kullanır.
+
+| Süper         | Etki                                                                                                       | Karşı oyun                                                                    |
+| ------------- | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **Ateş Topu** | ×1,5 hız, düz açı, 0,8 sn yerçekimsiz dümdüz gider; gövdeyle karşılayanı geri savurur.                     | Yolu düz ve tahmin edilebilir: önüne geç, şut ya da kafayla vur.              |
+| **Buz**       | Havadan doğrudan değdiği rakibi **1,5 sn** dondurur; ilk sekmede söner.                                    | Şut/kafa, üstünden atla ya da sekmesini bekle. Donma sonrası 1 sn bağışıklık. |
+| **Zikzak**    | Yerçekimsiz, dikeyde dalgalanır (y = −55·(1 − cos 2π·2,4t)).                                               | Daha yavaş (×1,15); dalganın dibinde karşıla, sahaya değince söner.           |
+| **Işınlanma** | 0,12 sn sonra görünmez olur (oyuncuların içinden geçer), kale çizgisinden 250 px önde ×0,65 hızla belirir. | Kale çizgisine yakın dur: top yavaşlayarak ve önünde belirir.                 |
+| **Dev Top**   | Top 1,8 kat büyür, 3 kat ağırlaşır (kaleciyi iter); 2,4 sn.                                                | Büyük top kaleye tam girmekte zorlanır; erken kes, kafayla karşıla.           |
+| **Kasırga**   | 150 px içindeki rakibi topun gidiş yönünde iter (havadayken %40).                                          | Zıpla ya da topa aktif vur (etki biter).                                      |
+| **Gökkuşağı** | Tavana yakın (y≈70) yayla, hava direnci kapalı, rakip kalenin 180 px önüne dik iner; sekince söner.        | Yavaş ve uzun: geri dön, düştüğü yerde karşıla.                               |
+| **Mıknatıs**  | 1,4 sn boyunca rakip kalenin ortasına doğru 1300 px/sn² çekilir.                                           | Çekim zayıf; kalenin önünde dur.                                              |
+| **Serap**     | Top üç yöne bölünür (±0,26 rad); gerçek olan tohumla seçilir, ikisi 0,75 sn'de / değince söner.            | Yanılsamalar oyunculara değince ve kaleye yaklaşınca söner; gol olmazlar.     |
+| **Sarsıntı**  | Rakip 1 sn zıplayamaz; top −0,2 rad alçak açıyla gider, zeminde 0,85 sekmeyle sekerek ilerler.             | Top alçak: gövdeyle kes, şutla vur.                                           |
 
 ## 7. Karakterler (10 özgün karakter)
 
-İstatistikler 1–5 ölçeğinde: **Hız**, **Zıplama**, **Şut gücü**, **Kafa boyutu**
-(büyük kafa = geniş savunma alanı ama daha ağır). Toplamlar dengeli tutulur (≈13–14).
+İstatistikler 1–5 ölçeğinde: **Hız**, **Zıplama**, **Şut gücü**, **Kafa boyutu**. Her
+karakterin toplamı **14**. Puan → fizik değeri (`CHARACTER_STATS`; 3 puan = Faz 1–3 değerleri):
 
-| #   | Karakter   | Tema                  | Hız | Zıp. | Şut | Kafa | Süper şut                                                                             |
-| --- | ---------- | --------------------- | --- | ---- | --- | ---- | ------------------------------------------------------------------------------------- |
-| 1   | **Kor**    | Ateş, kırmızı         | 3   | 3    | 5   | 3    | **Alev Topu:** top alev alır, düz ve çok hızlı gider; çarptığı rakibi geri savurur.   |
-| 2   | **Ayaz**   | Buz, açık mavi        | 3   | 3    | 3   | 4    | **Dondurucu:** topa değen rakip 1,5 sn donar.                                         |
-| 3   | **Şimşek** | Elektrik, sarı        | 5   | 3    | 3   | 2    | **Zikzak:** top dikey eksende zikzak çizerek ilerler, tahmini zorlaşır.               |
-| 4   | **Sis**    | Gölge, mor            | 4   | 4    | 3   | 2    | **Işınlanma:** top yolun ortasında kaybolur, rakip kalenin önünde belirir.            |
-| 5   | **Kaya**   | Taş, gri              | 2   | 2    | 4   | 5    | **Dev Top:** top 2 kat büyür ve ağırlaşır; kaleciyi iterek geçer.                     |
-| 6   | **Bora**   | Rüzgâr, beyaz-yeşil   | 4   | 4    | 3   | 3    | **Hortum:** top etrafında hortum oluşur, yolundaki rakibi geri iter.                  |
-| 7   | **Yay**    | Okçu, turuncu         | 3   | 5    | 3   | 3    | **Gökkuşağı:** top yüksek bir yayla tavana yakın gider ve kaleye dik iner.            |
-| 8   | **Demir**  | Mıknatıs, kırmızı-gri | 3   | 3    | 4   | 3    | **Mıknatıs:** top uçuş boyunca rakip kaleye doğru hafifçe çekilir (güdümlü).          |
-| 9   | **Pamuk**  | Bulut, pembe          | 4   | 4    | 2   | 3    | **Serap:** top üçe bölünür; ikisi yanılsamadır ve kaleye girmeden kaybolur.           |
-| 10  | **Toprak** | Deprem, kahverengi    | 2   | 3    | 4   | 4    | **Sarsıntı:** vuruşla yer sarsılır, rakip 1 sn zıplayamaz; top yerde sekerek ilerler. |
+| Puan | Hız (px/sn) | Zıplama (px/sn) | Şut gücü | Kafa yarıçapı (px) / kütle |
+| ---- | ----------- | --------------- | -------- | -------------------------- |
+| 1    | 408         | 940             | ×0,86    | 31,5 / 9                   |
+| 2    | 419         | 970             | ×0,93    | 33,75 / 9,5                |
+| 3    | 430         | 1000            | ×1,00    | 36 / 10                    |
+| 4    | 441         | 1030            | ×1,08    | 38,25 / 10,5               |
+| 5    | 452         | 1060            | ×1,16    | 40,5 / 11                  |
 
-> Sayısal değerler `gameConfig.ts` içinde tutulacak ve oyun testleriyle ayarlanacaktır.
+- İvmeler hızla aynı oranda ölçeklenir. Büyük kafa daha ağırdır: kafa puanı 3'ün üstündeki her
+  puan zıplama hızını %0,8 düşürür (altındaki her puan artırır).
+- Güçlü şut daha **düz** gider (yükselme açısı şut gücüne bölünür): aksi hâlde hızlanan top aynı
+  açıyla kalenin üstünden gider ve şut gücü değersizleşir (denge simülasyonu bunu gösterdi).
+
+| #   | Karakter   | Tema                  | Hız | Zıp. | Şut | Kafa | Süper şut     |
+| --- | ---------- | --------------------- | --- | ---- | --- | ---- | ------------- |
+| 1   | **Kor**    | Ateş, kırmızı         | 3   | 3    | 5   | 3    | **Ateş Topu** |
+| 2   | **Ayaz**   | Buz, açık mavi        | 3   | 4    | 3   | 4    | **Buz**       |
+| 3   | **Şimşek** | Elektrik, sarı        | 5   | 3    | 4   | 2    | **Zikzak**    |
+| 4   | **Sis**    | Gölge, mor            | 4   | 5    | 2   | 3    | **Işınlanma** |
+| 5   | **Kaya**   | Taş, gri              | 2   | 3    | 4   | 5    | **Dev Top**   |
+| 6   | **Bora**   | Rüzgâr, beyaz-yeşil   | 4   | 4    | 3   | 3    | **Kasırga**   |
+| 7   | **Yay**    | Okçu, turuncu         | 3   | 5    | 3   | 3    | **Gökkuşağı** |
+| 8   | **Demir**  | Mıknatıs, kırmızı-gri | 3   | 3    | 4   | 4    | **Mıknatıs**  |
+| 9   | **Pamuk**  | Bulut, pembe          | 4   | 4    | 2   | 4    | **Serap**     |
+| 10  | **Toprak** | Deprem, kahverengi    | 2   | 4    | 5   | 3    | **Sarsıntı**  |
+
+> Denge: AI vs AI simülasyonuyla (`npm run simulate -- --characters`); güncel tablo PROGRESS.md
+> Faz 4'te.
 
 ## 8. Güçlendiriciler
 
-- Sahada rastgele aralıklarla **süzülen balonlar** belirir (yavaş sinüs hareketi).
-- Top balona çarpınca balon patlar; **topa son dokunan oyuncu** güçlendiriciyi kazanır.
-- Tüm etkiler sürelidir; HUD'da oyuncunun tarafında **ikon + geri sayım** gösterilir.
+- Oyun akarken **12–18 sn**'de bir (tohumlu rastgele) sahanın üst yarısında **süzülen balon**
+  belirir (kapalı biçimli yavaş salınım; 10 sn sonra söner, son 2 sn yanıp söner). Balonun
+  üzerinde kazandıracağı güçlendiricinin ikonu görünür.
+- Top balona çarpınca balon patlar; **topa son dokunan oyuncu** güçlendiriciyi kazanır. Santradan
+  sonra henüz kimse dokunmadıysa top içinden geçer. Işınlanan top balonu patlatmaz.
+- Tüm etkiler sürelidir; HUD'da kazanan oyuncunun tarafında, skor çubuğunun altında **ikon + geri
+  sayım halkası** (son 2 sn yanıp söner). Aynı tip yeniden alınırsa süre tazelenir. Santra
+  balonu kaldırır, etkiler sürer. Değerler `POWERUPS` altında.
 
-| Güçlendirici         | Etki                                     |
-| -------------------- | ---------------------------------------- |
-| Büyük Kafa           | Kendi kafan büyür.                       |
-| Rakibi Küçült        | Rakibin kafası/gövdesi küçülür.          |
-| Hız                  | Hareket hızın artar.                     |
-| Rakip Kalesini Büyüt | Rakibin kalesi genişler/yükselir.        |
-| Rakibi Dondur        | Rakip kısa süre hareket edemez.          |
-| Çift Zıplama         | Havadayken bir kez daha zıplayabilirsin. |
+| Güçlendirici         | Etki                                                         | Süre   |
+| -------------------- | ------------------------------------------------------------ | ------ |
+| Büyük Kafa           | Kendi kafan ×1,4 (kademeli büyür).                           | 8 sn   |
+| Rakibi Küçült        | Rakibin kafası ×0,65.                                        | 8 sn   |
+| Hız                  | Hareket hızın ve ivmen ×1,28.                                | 8 sn   |
+| Rakip Kalesini Büyüt | Rakibin kalesi 70 px yükselir (220 px/sn ile büyür/küçülür). | 8 sn   |
+| Rakibi Dondur        | Rakip hemen donar (tuşları yok sayılır).                     | 1,8 sn |
+| Çift Zıplama         | Havadayken bir kez daha zıplayabilirsin (×0,9 kalkış hızı).  | 10 sn  |
 
 ## 9. Yapay zekâ
 
@@ -142,12 +179,27 @@ gerçek kişi, kulüp, marka veya logo kullanılmaz.
 | Orta   | 220 ms    | 0,10          | 150 ms        | 0,55       | 0,55 (bazen)    |
 | Zor    | 150 ms    | 0,04          | 80 ms         | 0,80       | 0,95 (akıllıca) |
 
-- Doğrulama: `npm run simulate` (AI vs AI headless maçlar, skor dağılımı ve sıkışma raporu).
+- **Karakter ve güçlendirici farkındalığı (Faz 4):** kendi ve rakibin kafa boyutu, hızı, zıplama
+  profili (gerçek `Player` koduyla her zıplama hızı için ölçülür), şut gücü, büyüyen kaleler ve
+  topun süper etkisi görünür bilgidir; tahminci süper topları aynı etki koduyla ileri simüle eder.
+  - **Süper kullanımı tipe göre** (`AI.super.byType`): topun kaleye uzaklığı ve rakibin konumu
+    (Buz/Işınlanma/Kasırga/Dev Top: rakip topla kale arasında; Gökkuşağı: rakip kale çizgisinden
+    uzakta; Sarsıntı: rakip yakında). Seçici AI süperli şutu normal şutla karşılaştırır.
+  - **Süperlerden kaçınma:** kalesine gitmeyen tehlikeli süper topa (Buz, Ateş, Kasırga) şutla
+    karşılayamıyorsa değmez — üstünden zıplar ya da çekilir (`superDodge`). Rakip süper hazırken
+    daha derinde bekler. Işınlanan topa (dokunulamaz) plan yapmaz; Sarsıntıda zıplama planlamaz.
+  - **Serap:** AI üç toptan birini izler, gerçeği `mirageReadChance` olasılıkla seçer (Kolay
+    0,34 · Orta 0,45 · Zor 0,6); yanılsamalar sönünce gerçek topa döner.
+  - **Güçlendiriciler:** balonu patlatacak şuta değerlendirmede bonus (`powerUpAwareness`); çift
+    zıplamayı kafa planında, tepeye yakınken top hâlâ başının üstündeyse kullanır; donmuş rakibe
+    karşı rakibin topa ulaşma süresine donma süresini ekler (hücuma geçer).
+- Doğrulama: `npm run simulate` (AI vs AI headless maçlar, skor dağılımı ve sıkışma raporu),
+  `--characters` (karakter denge taraması).
 
 ## 10. Oyun modları
 
-- **Hızlı Maç:** oyuncu vs CPU, karakter ve zorluk seçimi. (Faz 3: menüde "CPU'ya Karşı" +
-  zorluk seçimi var; karakter seçimi sonraki fazlarda.)
+- **Hızlı Maç:** oyuncu vs CPU, karakter ve zorluk seçimi. (Faz 4: "CPU'ya Karşı" → zorluk →
+  karakter seçimi; CPU kalan karakterlerden rastgele birini alır. 2 Oyuncu → iki imleçli seçim.)
 - **2 Oyuncu:** aynı klavyede iki kişi.
 - **Turnuva:** 8 kişilik eleme (çeyrek final → yarı final → final), rakipler giderek zorlaşır.
 - **Antrenman:** süresiz, rakipsiz veya pasif rakipli; topu sıfırlama ve süper barını

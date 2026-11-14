@@ -1,4 +1,4 @@
-import { AI, BALL, LOOP, PITCH, PLAYER } from '../../config/gameConfig';
+import { AI, LOOP, PITCH } from '../../config/gameConfig';
 import type { InputState } from '../../input/InputState';
 import { PLAYER_STAND_OFFSET, type Player } from '../entities/Player';
 import type { GameSim } from '../GameSim';
@@ -41,7 +41,6 @@ export interface StuckEvent {
 
 const STEP = 1 / LOOP.stepHz;
 const STAND_Y = PITCH.groundY - PLAYER_STAND_OFFSET;
-const HEAD_R = PLAYER.head.radius;
 const TOUCH_SLACK = 1;
 
 /** Eşiği aşınca bir kez olay üreten süre sayacı (koşul kalkınca yeniden kurulur). */
@@ -103,9 +102,10 @@ export class StuckMonitor {
     if (this.frozen.update(!moved, m.ballFrozenSeconds)) this.add('ballFrozen', sim, null);
 
     const sideBySide =
-      Math.abs(a.x - b.x) < HEAD_R * 2 + m.lockedGapPx && Math.abs(a.y - b.y) < HEAD_R;
+      Math.abs(a.x - b.x) < a.headRadius + b.headRadius + m.lockedGapPx &&
+      Math.abs(a.y - b.y) < Math.max(a.headRadius, b.headRadius);
     const bothSlow = Math.abs(a.vx) < m.lockedSpeed && Math.abs(b.vx) < m.lockedSpeed;
-    const pushing = isPressing(inputs[0]) || isPressing(inputs[1]);
+    const pushing = (isPressing(inputs[0]) && !a.frozen) || (isPressing(inputs[1]) && !b.frozen);
     if (this.locked.update(sideBySide && bothSlow && pushing, m.lockedSeconds)) {
       this.add('playersLocked', sim, null);
     }
@@ -117,7 +117,8 @@ export class StuckMonitor {
 
     for (const p of sim.players) {
       const i = p.index;
-      const pressing = isPressing(inputs[i]);
+      // Donmuş oyuncunun tuşları yok sayılır: bastığı hâlde ilerleyememesi sıkışma değildir.
+      const pressing = isPressing(inputs[i]) && !p.frozen;
       const anchor = this.pinAnchor[i] ?? p.x;
       const free = !pressing || Math.abs(p.x - anchor) > m.pinnedTravelPx;
       if (free) this.pinAnchor[i] = p.x;
@@ -179,15 +180,14 @@ function touchesBall(p: Player, sim: GameSim): boolean {
 
 /** Oyuncu bir kalenin üst direğinin üstünde mi duruyor? */
 function onCrossbar(p: Player, sim: GameSim): boolean {
-  if (!p.grounded || p.y >= STAND_Y - HEAD_R) return false;
-  return sim.pitch.goals.some(
-    (g) => p.x + HEAD_R > g.crossbar.minX && p.x - HEAD_R < g.crossbar.maxX,
-  );
+  const r = p.headRadius;
+  if (!p.grounded || p.y >= STAND_Y - r) return false;
+  return sim.pitch.goals.some((g) => p.x + r > g.crossbar.minX && p.x - r < g.crossbar.maxX);
 }
 
 /** Top oyuncunun kafasının üstünde, ona dayalı mı? */
 function ballOnHead(p: Player, sim: GameSim): boolean {
   const ball = sim.ball;
   if (ball.y >= p.y) return false;
-  return Math.hypot(ball.x - p.x, ball.y - p.y) <= HEAD_R + BALL.radius + TOUCH_SLACK;
+  return Math.hypot(ball.x - p.x, ball.y - p.y) <= p.headRadius + ball.radius + TOUCH_SLACK;
 }

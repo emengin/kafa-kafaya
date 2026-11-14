@@ -1,10 +1,21 @@
 import Phaser from 'phaser';
-import { COLORS, DISPLAY, HUD, MATCH, UNITS } from '../config/gameConfig';
-import type { Player } from '../game/entities/Player';
+import {
+  COLORS,
+  DISPLAY,
+  FX,
+  HUD,
+  MATCH,
+  POWERUPS,
+  UNITS,
+  type PowerUpType,
+  type SuperType,
+} from '../config/gameConfig';
+import { POWER_UP_TYPES, type Player } from '../game/entities/Player';
 import type { MatchFlow } from '../game/rules/MatchFlow';
 import type { PlayerIndex } from '../game/types';
 import { format, t, upper } from '../i18n';
 import { displayedSecond, formatClock } from './format';
+import { drawPowerUpIcon, strokeRing } from './icons';
 
 type Text = Phaser.GameObjects.Text;
 
@@ -23,11 +34,16 @@ export class MatchHud {
   private shownGolden = false;
   private readonly power: Phaser.GameObjects.Graphics;
   private readonly superLabels: [Text, Text];
+  private readonly powerUpIcons: Phaser.GameObjects.Graphics;
 
+  /**
+   * @param superTypes Oyuncuların süper tipleri: süper hazırken barın ucunda tipin adı yazar.
+   */
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly names: readonly [string, string],
     hint: string,
+    superTypes: readonly [SuperType, SuperType],
   ) {
     const { width, height } = DISPLAY;
     const cx = width / 2;
@@ -77,7 +93,7 @@ export class MatchHud {
     const superLabel = (i: PlayerIndex): Text => {
       const outer = cx + (i === 0 ? -1 : 1) * (pw.offsetX + pw.width + pw.labelGapPx);
       return scene.add
-        .text(outer, pw.y + pw.height / 2, t('hud.super'), {
+        .text(outer, pw.y + pw.height / 2, `${upper(t(`super.${superTypes[i]}`))}!`, {
           fontFamily: HUD.fontFamily,
           fontSize: `${pw.labelFontSizePx}px`,
           color: COLORS.textAccent,
@@ -89,6 +105,7 @@ export class MatchHud {
         .setVisible(false);
     };
     this.superLabels = [superLabel(0), superLabel(1)];
+    this.powerUpIcons = scene.add.graphics().setDepth(HUD.depth);
 
     this.clock = scene.add
       .text(cx, bar.y, '', {
@@ -139,6 +156,7 @@ export class MatchHud {
   /** Her karede: skorlar, saat (yalnızca değiştiğinde yeniden yazılır) ve güç barları. */
   update(match: MatchFlow, players: readonly Player[]): void {
     this.drawPower(players);
+    this.drawPowerUps(players);
     for (const i of [0, 1] as const) {
       if (this.shownScore[i] === match.score[i]) continue;
       const first = this.shownScore[i] < 0;
@@ -200,6 +218,48 @@ export class MatchHud {
       }
       this.superLabels[p.index].setVisible(p.superArmed && blinkOn);
     }
+  }
+
+  /**
+   * Etkin güçlendiriciler: kazanan oyuncunun tarafında, ortadan dışa doğru; her biri ikon +
+   * kalan süreyi gösteren geri sayım halkası. Son saniyelerde yanıp söner.
+   */
+  private drawPowerUps(players: readonly Player[]): void {
+    const c = HUD.powerUps;
+    const g = this.powerUpIcons;
+    g.clear();
+    const cx = DISPLAY.width / 2;
+    const blinkOff =
+      Math.floor((this.scene.time.now / UNITS.msPerSecond) * c.blinkHz * 2) % 2 === 1;
+    for (const p of players) {
+      const side = p.index === 0 ? -1 : 1;
+      let slot = 0;
+      for (const type of POWER_UP_TYPES) {
+        const left = p.powerUps[type];
+        if (left <= 0) continue;
+        const x = cx + side * (c.firstOffsetX + slot * c.spacingPx);
+        slot++;
+        if (left < c.warnSeconds && blinkOff) continue;
+        this.drawPowerUpSlot(g, type, x, c.y, left / POWERUPS.durations[type]);
+      }
+    }
+  }
+
+  private drawPowerUpSlot(
+    g: Phaser.GameObjects.Graphics,
+    type: PowerUpType,
+    x: number,
+    y: number,
+    fraction: number,
+  ): void {
+    const c = HUD.powerUps;
+    const color = FX.powerUpColors[type];
+    g.fillStyle(c.backColor, c.backAlpha);
+    g.fillCircle(x, y, c.radius);
+    g.lineStyle(c.ringWidthPx, c.ringBackColor, c.ringBackAlpha);
+    g.strokeCircle(x, y, c.radius);
+    strokeRing(g, x, y, c.radius, fraction, c.ringWidthPx, color);
+    drawPowerUpIcon(g, type, x, y, c.radius * FX.balloon.iconScale, color);
   }
 
   onGoal(scorer: PlayerIndex): void {

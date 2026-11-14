@@ -1,9 +1,10 @@
 import Phaser from 'phaser';
 import { sfx } from '../audio/Sfx';
-import { CONTROLS, COLORS, DEBUG, HUD, UNITS, type AiDifficulty } from '../config/gameConfig';
+import { CONTROLS, COLORS, DEBUG, FX, HUD, UNITS, type AiDifficulty } from '../config/gameConfig';
 import { AiController, AiInputSource } from '../game/ai/AiController';
 import { mixSeed } from '../game/ai/random';
 import { observe } from '../game/ai/worldView';
+import { getCharacter, loadoutFor, type CharacterDef } from '../game/characters';
 import { GameSim } from '../game/GameSim';
 import { resolveMatchSetup, type MatchSetup } from '../game/matchSetup';
 import type { PlayerIndex, SimEvent } from '../game/types';
@@ -13,12 +14,19 @@ import { KeyboardInputSource, KeyTracker } from '../input/KeyboardInput';
 import { MergedInputSource } from '../input/MergedInput';
 import { createGameLoop, lerp } from '../physics';
 import { DebugOverlay } from '../ui/DebugOverlay';
-import { GrayboxRenderer } from '../ui/GrayboxRenderer';
+import { GrayboxRenderer, superColor } from '../ui/GrayboxRenderer';
 import { MatchHud } from '../ui/MatchHud';
 import { MenuOverlay } from '../ui/MenuOverlay';
 import { RenderFrame } from '../ui/renderFrame';
 import { devAiFlags, devMatchDuration, wantsDebugOverlay } from './devFlags';
 import { SceneKeys } from './sceneKeys';
+
+/** Kayan yazıların rengi için sayısal rengi CSS'e çevirir. */
+function cssColor(color: number): string {
+  return `#${color.toString(HEX).padStart(HEX_DIGITS, '0')}`;
+}
+const HEX = 16;
+const HEX_DIGITS = 6;
 
 /** Her maç için yeni bir yapay zekâ tohumu (`?seed=N` verilmemişse). */
 function randomSeed(): number {
@@ -51,6 +59,7 @@ export class MatchScene extends Phaser.Scene {
   private debug!: DebugOverlay;
   private names!: readonly [string, string];
   private setup!: MatchSetup;
+  private characters!: readonly [CharacterDef, CharacterDef];
   /** Yapay zekâ oyuncuları (debug katmanı için). */
   private ais: AiController[] = [];
 
@@ -83,15 +92,21 @@ export class MatchScene extends Phaser.Scene {
     this.leaving = false;
     this.avgStepMs = 0;
 
+    const fromMenu = typeof data === 'object' && data !== null && 'mode' in data;
+    const dev = devAiFlags();
+    this.setup = resolveMatchSetup(data, fromMenu ? { cpu: null, cpu1: null, seed: null } : dev);
+    // Tohum maç başında bir kez seçilir: Yeniden Başlat aynı kurulumu korur, maç yine farklıdır.
+    const seed = this.setup.seed ?? randomSeed();
+    const [c1, c2] = this.setup.characters;
+    this.characters = [getCharacter(c1), getCharacter(c2)];
     const durationSeconds = devMatchDuration();
-    this.sim = new GameSim(durationSeconds ? { rules: { durationSeconds } } : {});
+    this.sim = new GameSim({
+      ...(durationSeconds ? { rules: { durationSeconds } } : {}),
+      loadouts: [loadoutFor(c1), loadoutFor(c2)],
+      seed: mixSeed(seed, 2),
+    });
     this.prevFrame.copyFrom(this.sim);
     this.currFrame.copyFrom(this.sim);
-    const fromMenu = typeof data === 'object' && data !== null && 'mode' in data;
-    this.setup = resolveMatchSetup(
-      data,
-      fromMenu ? { cpu: null, cpu1: null, seed: null } : devAiFlags(),
-    );
     const { mode, difficulty, p1Ai } = this.setup;
     this.names =
       mode === 'cpu'
@@ -111,6 +126,7 @@ export class MatchScene extends Phaser.Scene {
     this.inputs = this.createInputs(
       new KeyboardInputSource(this.tracker, p1),
       new KeyboardInputSource(this.tracker, p2),
+      seed,
     );
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.tracker.detach();
@@ -118,8 +134,11 @@ export class MatchScene extends Phaser.Scene {
       this.overlay = null;
     });
 
-    this.view = new GrayboxRenderer(this, this.sim);
-    this.hud = new MatchHud(this, this.names, t(mode === 'cpu' ? 'match.hintCpu' : 'match.hint'));
+    this.view = new GrayboxRenderer(this, this.sim, this.characters);
+    this.hud = new MatchHud(this, this.names, t(mode === 'cpu' ? 'match.hintCpu' : 'match.hint'), [
+      this.characters[0].superType,
+      this.characters[1].superType,
+    ]);
     this.hud.update(this.sim.match, this.sim.players);
     this.debug = new DebugOverlay(this);
     this.debug.setVisible(wantsDebugOverlay());
@@ -133,11 +152,11 @@ export class MatchScene extends Phaser.Scene {
   private createInputs(
     kb1: KeyboardInputSource,
     kb2: KeyboardInputSource,
+    seed: number,
   ): readonly [InputSource, InputSource] {
     this.ais = [];
     const { mode, difficulty, p1Ai } = this.setup;
     if (mode === 'versus') return [kb1, kb2];
-    const seed = this.setup.seed ?? randomSeed();
     const view = (): ReturnType<typeof observe> => observe(this.sim);
     const ai2 = new AiController({ index: 1, difficulty, seed: mixSeed(seed, 1) });
     this.ais.push(ai2);
@@ -235,13 +254,82 @@ export class MatchScene extends Phaser.Scene {
           if (e.reason === 'time') this.hud.onFullTime();
           break;
         case 'kick':
+          if (!e.super) sfx.kick();
+          break;
+        case 'superLaunch': {
+          sfx.superShot();
+          const [r, g, b] = FX.superFlashRgb;
+          this.cameras.main.flash(FX.superFlashMs, r, g, b);
+          const p = this.sim.players[e.player];
+          this.floatText(
+            p.x,
+            p.y - p.headRadius,
+            upper(t(`super.${e.superType}`)),
+            cssColor(superColor(e.superType)),
+            HUD.superText,
+          );
+          break;
+        }
+        case 'superHit':
+          if (e.superType === 'ice') sfx.freeze();
+          if (e.superType === 'quake') {
+            this.cameras.main.shake(FX.quakeShake.durationMs, FX.quakeShake.intensity);
+          }
+          break;
+        case 'teleportExit':
+          this.view.burst(e.x, e.y, superColor('teleport'));
+          break;
+        case 'balloonPop': {
+          sfx.pop();
+          if (e.powerUp === 'freezeOpponent') sfx.freeze();
+          const p = this.sim.players[e.player];
+          this.floatText(
+            p.x,
+            p.y - p.headRadius - HUD.popText.offsetY,
+            t(`powerUp.${e.powerUp}`),
+            cssColor(FX.powerUpColors[e.powerUp]),
+            HUD.popText,
+          );
+          break;
+        }
         case 'header':
         case 'superArmed':
         case 'crossbarPush':
-          // Ses/efekt sonraki fazlarda.
+        case 'balloonSpawn':
+        case 'balloonExpire':
           break;
       }
     }
+  }
+
+  /** Oyuncunun üstünde yükselip kaybolan kısa yazı (süper adı, kazanılan güçlendirici). */
+  private floatText(
+    x: number,
+    y: number,
+    text: string,
+    color: string,
+    style: { fontSizePx: number; strokePx: number; risePx: number; durationMs: number },
+  ): void {
+    const label = this.add
+      .text(x, y, text, {
+        fontFamily: HUD.fontFamily,
+        fontSize: `${style.fontSizePx}px`,
+        color,
+        stroke: COLORS.textStroke,
+        strokeThickness: style.strokePx,
+      })
+      .setOrigin(0.5, 1)
+      .setDepth(HUD.depth);
+    this.tweens.add({
+      targets: label,
+      y: y - style.risePx,
+      alpha: 0,
+      duration: style.durationMs,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        label.destroy();
+      },
+    });
   }
 
   private pause(): void {

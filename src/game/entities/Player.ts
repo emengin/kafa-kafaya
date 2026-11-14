@@ -1,7 +1,30 @@
-import { KICK, PLAYER, POWER } from '../../config/gameConfig';
-import type { InputState } from '../../input/InputState';
+import { KICK, PLAYER, POWER, POWERUPS, type PowerUpType } from '../../config/gameConfig';
+import { EMPTY_INPUT, type InputState } from '../../input/InputState';
 import { moveToward, type Circle, type ContactBody, type Vec2 } from '../../physics';
+import { NEUTRAL_LOADOUT, type Loadout, type PlayerParams } from '../characters';
 import type { Facing, PlayerIndex } from '../types';
+
+export const POWER_UP_TYPES: readonly PowerUpType[] = [
+  'bigHead',
+  'shrinkOpponent',
+  'speed',
+  'growGoal',
+  'freezeOpponent',
+  'doubleJump',
+];
+
+export type PowerUpTimers = Record<PowerUpType, number>;
+
+export function emptyPowerUpTimers(): PowerUpTimers {
+  return {
+    bigHead: 0,
+    shrinkOpponent: 0,
+    speed: 0,
+    growGoal: 0,
+    freezeOpponent: 0,
+    doubleJump: 0,
+  };
+}
 
 export type KickPhase = 'idle' | 'swing' | 'hold' | 'return';
 export type PlayerPart = 'head' | 'body' | 'foot';
@@ -39,8 +62,29 @@ export class Player implements ContactBody {
   vy = 0;
   /** Oyuncular dönmez; `invInertia = 0` olduğu için bu değer hep 0 kalır. */
   angVel = 0;
-  readonly invMass = 1 / PLAYER.mass;
   readonly invInertia = 0;
+
+  /** Karakterin fizik değerleri ve süper tipi. */
+  loadout: Loadout;
+  /** Kafa yarıçapı çarpanı (Büyük Kafa / Rakibi Küçült güçlendiricileri). */
+  headScale = 1;
+  /** Hız ve ivme çarpanı (Hız güçlendiricisi). */
+  speedScale = 1;
+  /** Çift zıplama güçlendiricisi etkin mi. */
+  doubleJumpEnabled = false;
+  /** Bu havada kalışta çift zıplama kullanıldı mı (yere inince sıfırlanır). */
+  airJumpUsed = false;
+  /** Donmuş kalan süre (sn): girdiler yok sayılır. */
+  frozenTimer = 0;
+  /** Buz süperine karşı bağışıklık (sn). */
+  freezeImmunity = 0;
+  /** Zıplayamama süresi (sn): Sarsıntı süperi. */
+  jumpLockTimer = 0;
+  /**
+   * Bu oyuncunun **kazandığı** güçlendiricilerin kalan süreleri (sn). Etkileri (kendi kafası,
+   * rakibin kafası, rakip kalesi…) GameSim her adımda bu sayaçlardan türetir.
+   */
+  readonly powerUps: PowerUpTimers = emptyPowerUpTimers();
 
   grounded = false;
   groundedThisStep = false;
@@ -70,10 +114,62 @@ export class Player implements ContactBody {
   constructor(
     readonly index: PlayerIndex,
     readonly facing: Facing,
-  ) {}
+    loadout: Loadout = NEUTRAL_LOADOUT,
+  ) {
+    this.loadout = loadout;
+  }
+
+  get params(): PlayerParams {
+    return this.loadout.params;
+  }
+
+  get invMass(): number {
+    return 1 / this.loadout.params.mass;
+  }
+
+  /** O anki kafa yarıçapı (karakter × güçlendiriciler). */
+  get headRadius(): number {
+    return this.loadout.params.headRadius * this.headScale;
+  }
+
+  /** O anki en yüksek yatay hız (karakter × güçlendiriciler). */
+  get maxSpeed(): number {
+    return this.loadout.params.maxSpeed * this.speedScale;
+  }
+
+  get frozen(): boolean {
+    return this.frozenTimer > 0;
+  }
+
+  /**
+   * Oyuncuyu dondurur. `respectImmunity` (buz süperi) → yakın zamanda donmuşsa etkisiz.
+   * @returns Donduysa true.
+   */
+  freeze(seconds: number, respectImmunity: boolean): boolean {
+    if (respectImmunity && this.freezeImmunity > 0) return false;
+    this.frozenTimer = Math.max(this.frozenTimer, seconds);
+    this.freezeImmunity = this.frozenTimer + POWERUPS.freezeImmunitySeconds;
+    this.jumping = false;
+    return true;
+  }
+
+  /** Süreli durumların (donma, bağışıklık, zıplama kilidi) sayaçları. */
+  tickStatus(dt: number): void {
+    this.frozenTimer = Math.max(0, this.frozenTimer - dt);
+    this.freezeImmunity = Math.max(0, this.freezeImmunity - dt);
+    this.jumpLockTimer = Math.max(0, this.jumpLockTimer - dt);
+  }
+
+  /** Donma ve zıplama kilidini kaldırır (santra). Güçlendiriciler sürer. */
+  clearStatus(): void {
+    this.frozenTimer = 0;
+    this.freezeImmunity = 0;
+    this.jumpLockTimer = 0;
+  }
 
   /** Konumu ayarlar ve tüm hareket/şut durumunu sıfırlar (santra). Güç barı ve süper korunur. */
   resetTo(x: number, y: number): void {
+    this.airJumpUsed = false;
     this.prevSuper = false;
     this.touchCooldown = 0;
     this.x = x;
@@ -96,7 +192,10 @@ export class Player implements ContactBody {
   }
 
   /** Sabit adım başına bir kez: girdiyi hıza, şut ve süper durumuna çevirir. */
-  applyInput(input: InputState, dt: number): void {
+  applyInput(raw: InputState, dt: number): void {
+    // Donmuş oyuncu hiçbir tuşu kullanamaz (tuş kenarları da kaydedilmez: çözülünce basılı
+    // tutulan tuş yeniden basılmış sayılır).
+    const input = this.frozen ? EMPTY_INPUT : raw;
     this.applyMovement(input, dt);
     this.applyJump(input, dt);
     this.applySuperInput(input);
@@ -129,6 +228,10 @@ export class Player implements ContactBody {
 
   private applyMovement(input: InputState, dt: number): void {
     const m = PLAYER.move;
+    if (this.frozen) {
+      this.vx = moveToward(this.vx, 0, POWERUPS.frozenDecel * dt);
+      return;
+    }
     const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0);
     let rate: number;
     if (dir === 0) {
@@ -138,21 +241,34 @@ export class Player implements ContactBody {
     } else {
       rate = this.grounded ? m.groundAccel : m.airAccel;
     }
-    this.vx = moveToward(this.vx, dir * m.maxSpeed, rate * dt);
+    const scale = this.loadout.params.accelScale * this.speedScale;
+    this.vx = moveToward(this.vx, dir * this.maxSpeed, rate * scale * dt);
   }
 
   private applyJump(input: InputState, dt: number): void {
     const j = PLAYER.jump;
+    if (this.grounded) this.airJumpUsed = false;
     this.coyoteTimer = this.grounded ? j.coyoteTime : Math.max(0, this.coyoteTimer - dt);
     this.jumpBufferTimer = Math.max(0, this.jumpBufferTimer - dt);
-    if (input.jump && !this.prevJump) this.jumpBufferTimer = j.bufferTime;
+    const pressed = input.jump && !this.prevJump;
+    if (pressed) this.jumpBufferTimer = j.bufferTime;
+    const locked = this.jumpLockTimer > 0;
 
-    if (this.jumpBufferTimer > 0 && this.coyoteTimer > 0) {
-      this.vy = -j.speed;
-      this.jumpBufferTimer = 0;
-      this.coyoteTimer = 0;
-      this.grounded = false;
-      this.jumping = true;
+    if (!locked && this.jumpBufferTimer > 0 && this.coyoteTimer > 0) {
+      this.startJump(this.loadout.params.jumpSpeed);
+      return;
+    }
+    // Çift zıplama: havadayken (zıplama hakkı bittikten sonra) yeni bir basışla bir kez daha.
+    if (
+      !locked &&
+      pressed &&
+      this.doubleJumpEnabled &&
+      !this.grounded &&
+      this.coyoteTimer <= 0 &&
+      !this.airJumpUsed
+    ) {
+      this.airJumpUsed = true;
+      this.startJump(this.loadout.params.jumpSpeed * POWERUPS.doubleJumpSpeedScale);
       return;
     }
 
@@ -164,6 +280,14 @@ export class Player implements ContactBody {
         this.jumping = false;
       }
     }
+  }
+
+  private startJump(speed: number): void {
+    this.vy = -speed;
+    this.jumpBufferTimer = 0;
+    this.coyoteTimer = 0;
+    this.grounded = false;
+    this.jumping = true;
   }
 
   private applyKickInput(input: InputState, dt: number): void {
@@ -249,7 +373,7 @@ export class Player implements ContactBody {
   partCircle(part: PlayerPart): Circle {
     switch (part) {
       case 'head':
-        return { x: this.x, y: this.y, radius: PLAYER.head.radius };
+        return { x: this.x, y: this.y, radius: this.headRadius };
       case 'body':
         return { x: this.x, y: this.y + PLAYER.body.offsetY, radius: PLAYER.body.radius };
       case 'foot': {

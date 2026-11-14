@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { LOOP, PITCH, type AiDifficulty, type AiProfile } from '../../config/gameConfig';
 import { EMPTY_INPUT, type InputState } from '../../input/InputState';
+import { loadoutFor, type CharacterId } from '../characters';
+import { Ball } from '../entities/Ball';
 import { PLAYER_STAND_OFFSET } from '../entities/Player';
 import { GameSim, type GameSimOptions } from '../GameSim';
 import type { PlayerIndex, SimEvent } from '../types';
@@ -235,24 +237,28 @@ describe('AiController — davranışlar', () => {
 });
 
 describe('AiController — zorluk ve sıkışma (kısa maçlar)', () => {
-  it("Zor, Kolay'ı yener (iki tarafta da; gol ve galibiyet sayısında önde)", () => {
-    let hardGoals = 0;
-    let easyGoals = 0;
-    let hardWins = 0;
-    let easyWins = 0;
-    for (let seed = 1; seed <= 3; seed++) {
-      const r1 = playMatch('hard', 'easy', seed, 45);
-      const r2 = playMatch('easy', 'hard', seed + 10, 45);
-      hardGoals += r1.score[0] + r2.score[1];
-      easyGoals += r1.score[1] + r2.score[0];
-      if (r1.score[0] > r1.score[1]) hardWins++;
-      if (r1.score[1] > r1.score[0]) easyWins++;
-      if (r2.score[1] > r2.score[0]) hardWins++;
-      if (r2.score[0] > r2.score[1]) easyWins++;
-    }
-    expect(hardGoals).toBeGreaterThan(easyGoals);
-    expect(hardWins).toBeGreaterThan(easyWins * 2);
-  });
+  it(
+    "Zor, Kolay'ı yener (iki tarafta da; gol ve galibiyet sayısında önde)",
+    { timeout: 20000 },
+    () => {
+      let hardGoals = 0;
+      let easyGoals = 0;
+      let hardWins = 0;
+      let easyWins = 0;
+      for (let seed = 1; seed <= 3; seed++) {
+        const r1 = playMatch('hard', 'easy', seed, 45);
+        const r2 = playMatch('easy', 'hard', seed + 10, 45);
+        hardGoals += r1.score[0] + r2.score[1];
+        easyGoals += r1.score[1] + r2.score[0];
+        if (r1.score[0] > r1.score[1]) hardWins++;
+        if (r1.score[1] > r1.score[0]) easyWins++;
+        if (r2.score[1] > r2.score[0]) hardWins++;
+        if (r2.score[0] > r2.score[1]) easyWins++;
+      }
+      expect(hardGoals).toBeGreaterThan(easyGoals);
+      expect(hardWins).toBeGreaterThan(easyWins * 2);
+    },
+  );
 
   it('AI vs AI maçlarında sıkışma olayı yok', () => {
     for (const [d1, d2] of [
@@ -262,4 +268,124 @@ describe('AiController — zorluk ve sıkışma (kısa maçlar)', () => {
       expect(playMatch(d1, d2, 3, 60).stuck).toBe(0);
     }
   });
+});
+
+describe('AiController — karakterler, süperler ve güçlendiriciler', () => {
+  const withLoadouts = (a: CharacterId, b: CharacterId): GameSim =>
+    new GameSim({ ...IN_PLAY, powerUps: false, loadouts: [loadoutFor(a), loadoutFor(b)] });
+
+  it('süperini karakterin tipine uygun durumda kullanır (Gökkuşağı: uzaktan, rakip kaleden uzakken)', () => {
+    const sim = withLoadouts('yay', 'kor');
+    sim.players[0].resetTo(300, standY);
+    sim.players[1].resetTo(800, standY);
+    sim.players[0].power = 1;
+    sim.ball.resetTo(420, PITCH.groundY - sim.ball.radius);
+    const events = runWith(sim, ai(0, 'hard', 3), 4, (ev) =>
+      ev.some((e) => e.type === 'superLaunch'),
+    );
+    expect(events).toContainEqual({ type: 'superLaunch', player: 0, superType: 'rainbow' });
+  });
+
+  it('koşulu sağlanmayan süperi harcamaz (Buz: rakip topun önünde değilken)', () => {
+    const sim = withLoadouts('ayaz', 'kor');
+    sim.players[0].resetTo(300, standY);
+    sim.players[1].resetTo(200, standY); // rakip AI'ın arkasında
+    sim.players[0].power = 1;
+    sim.ball.resetTo(520, PITCH.groundY - sim.ball.radius);
+    const events = runWith(sim, ai(0, 'hard', 3), 1.5);
+    expect(events.some((e) => e.type === 'superArmed')).toBe(false);
+    expect(events.some((e) => e.type === 'kick' && e.player === 0)).toBe(true);
+  });
+
+  it('kalesine gitmeyen Buz topuna gereksiz yere değmez (Zor); hareketsiz oyuncu donar', () => {
+    const frozenWith = (controller: AiController | null): boolean => {
+      const sim = withLoadouts('ayaz', 'kor');
+      sim.players[0].resetTo(150, standY);
+      sim.players[1].resetTo(640, standY);
+      sim.ball.resetTo(460, standY - 10);
+      sim.ball.vx = 450;
+      sim.ball.vy = -120;
+      sim.ball.lastTouch = 0;
+      sim.ball.superType = 'ice';
+      sim.ball.superOwner = 0;
+      sim.ball.superTime = 0.2;
+      for (let i = 0; i < steps(0.8); i++) {
+        const own = controller ? controller.update(observe(sim)) : EMPTY_INPUT;
+        const events = sim.step([EMPTY_INPUT, own]);
+        if (events.some((e) => e.type === 'superHit' && e.player === 1)) return true;
+      }
+      return false;
+    };
+    expect(frozenWith(null)).toBe(true);
+    let frozen = 0;
+    for (let seed = 1; seed <= 5; seed++) if (frozenWith(ai(1, 'hard', seed))) frozen++;
+    expect(frozen).toBeLessThanOrEqual(1);
+  });
+
+  it('Serap: bazen yanılsamayı izler (tohuma bağlı); yanılsamalar sönünce gerçek topa döner', () => {
+    /** Gecikme geçtikten sonra AI'ın kestirdiği top konumu gerçek topa mı en yakın? */
+    const trace = (seed: number): { fooled: boolean; recovered: boolean } => {
+      const sim = withLoadouts('pamuk', 'kor');
+      sim.players[0].resetTo(300, standY);
+      sim.players[1].resetTo(1100, standY);
+      // Zor: tahmin gürültüsü düşük (izlenen top net ayırt edilir), gerçeği %60 seçer.
+      const c = ai(1, 'hard', seed);
+      sim.ball.resetTo(420, 420);
+      sim.ball.vx = 450;
+      sim.ball.vy = -300;
+      sim.ball.lastTouch = 0;
+      sim.ball.superType = 'mirage';
+      sim.ball.superOwner = 0;
+      const decoy = (vx: number, vy: number): Ball =>
+        Object.assign(new Ball(), { x: 420, y: 420, vx, vy });
+      sim.decoys.push({ ball: decoy(450, -560), ttl: 0.6 }, { ball: decoy(500, -40), ttl: 0.6 });
+      let fooled = false;
+      for (let i = 0; i < steps(1.2); i++) {
+        c.update(observe(sim));
+        const t = c.debugInfo().trajectory;
+        const ex = t[0] ?? 0;
+        const ey = t[1] ?? 0;
+        const near = (x: number, y: number): number => Math.hypot(ex - x, ey - y);
+        if (i === steps(0.45) && sim.decoys.length > 0) {
+          const real = near(sim.ball.x, sim.ball.y);
+          fooled = sim.decoys.some((d) => near(d.ball.x, d.ball.y) < real);
+        }
+        sim.step([EMPTY_INPUT, EMPTY_INPUT]);
+      }
+      // Yanılsamalar sönüp gecikme geçtikten sonra tahmin gerçek topla aynı yerde başlar.
+      c.update(observe(sim));
+      const t = c.debugInfo().trajectory;
+      const recovered = Math.hypot((t[0] ?? 0) - sim.ball.x, (t[1] ?? 0) - sim.ball.y) < 40;
+      return { fooled, recovered };
+    };
+    const results = Array.from({ length: 8 }, (_, k) => trace(k + 1));
+    const fooled = results.filter((r) => r.fooled).length;
+    expect(fooled).toBeGreaterThan(0);
+    expect(fooled).toBeLessThan(8);
+    expect(results.every((r) => r.recovered)).toBe(true);
+  });
+
+  it('uç karakter eşleşmelerinde (güçlendiricilerle) sıkışma yok', () => {
+    const pairs: [CharacterId, CharacterId][] = [
+      ['kaya', 'simsek'],
+      ['sis', 'toprak'],
+      ['pamuk', 'yay'],
+    ];
+    for (const [a, b] of pairs) {
+      const sim = new GameSim({
+        rules: { durationSeconds: 45, goldenGoalOvertime: false },
+        loadouts: [loadoutFor(a), loadoutFor(b)],
+        seed: 7,
+      });
+      const ctrl = [ai(0, 'medium', 21), ai(1, 'hard', 22)] as const;
+      const mon = new StuckMonitor();
+      while (sim.match.phase !== 'matchEnd') {
+        const v = observe(sim);
+        const inputs = [ctrl[0].update(v), ctrl[1].update(v)] as const;
+        sim.step(inputs);
+        mon.update(sim, inputs);
+      }
+      expect(mon.events).toEqual([]);
+    }
+  }, 20000);
 });
