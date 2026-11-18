@@ -83,8 +83,15 @@ gerçek kişi, kulüp, marka veya logo kullanılmaz.
 - **Beraberlik:** altın gol uzatması — süre biter, oyuncular ve top santraya alınır,
   "ALTIN GOL!" duyurulur; süresiz oynanır, ilk atan kazanır.
 - **Gol anı:** 1 sn ağır çekim (0,3x) + büyük "GOL!" yazısı; golden 2 sn sonra oyuncular
-  ve top başlangıç konumlarına döner (kısa kararma). Kısa tekrar sonraki fazlarda
-  (isteğe bağlı atlanır).
+  ve top başlangıç konumlarına döner (kısa kararma).
+- **Gol tekrarı (v1.0):** kutlama bitince (santra ya da maç sonu öncesi) golün son ~4 sn'si
+  deterministik olarak yeniden oynatılır: halka tamponda her 15 adımda bir tam simülasyon durumu
+  (`GameSim.saveState`) ve her adımın girdileri (oyuncu başına 1 bayt) tutulur; golden en çok 4 sn
+  önceki anahtar kare yüklenip kaydedilen girdilerle ilerlenir (santradan öncesine gidilmez, golden
+  önce 1 sn'den az görüntü varsa tekrar yok). Ağır çekim (×0,55; golün ±0,6 sn çevresinde ×0,3),
+  topu ve oyuncuları kadrajda tutan yakın plan kamera (×1,3, hafif eğik), sinema şeritleri,
+  "TEKRAR" rozeti; Enter/Space/A ya da "Atla" ile geçilir. Tekrarda skor, saat ve HUD değişmez;
+  bitince canlı durum birebir geri yüklenir. Ayarlar'dan kapatılabilir; antrenmanda yok.
 - **Santra:** oyuncular ve top başlangıç konumunda kısa süre (0,8 sn; altın golde 1,8 sn)
   bekler, girdiler yok sayılır; **düdükle** top ortadan hafifçe düşer ve oyun başlar.
 - **Durum makinesi:** `Kickoff → Playing → GoalScored → Kickoff …` → süre biterse
@@ -215,8 +222,14 @@ karakterin toplamı **14**. Puan → fizik değeri (`CHARACTER_STATS`; 3 puan = 
 - **Ana menü:** arka planda canlı AI vs AI demo maçı (gerçek simülasyon, süresiz, efekt sesi yok);
   Hızlı Maç · 2 Oyuncu · Turnuva (süren turnuva varsa "Turnuvaya Devam") · Antrenman · Ayarlar ·
   Nasıl Oynanır. Sol altta istatistikler (maç · galibiyet · gol · kupa).
-- **Ayarlar:** zorluk (Kolay/Orta/Zor), maç süresi (60/90/120 sn), Ana ses / Efektler / Müzik, ekran
-  sarsıntısı (aç/kapa; gol zoom'u kalır), dil (TR/EN), kontrol şeması.
+- **Ayarlar:** zorluk (Kolay/Orta/Zor), maç süresi (60/90/120 sn), gol tekrarı (aç/kapa), Ana ses /
+  Efektler / Müzik, ekran sarsıntısı (aç/kapa; gol zoom'u kalır), efekt yoğunluğu, renk körü modu,
+  dil (TR/EN), kontrol şeması.
+- **Erişilebilirlik (v1.0):** _renk körü modu_ — oyuncu kimlik renkleri renk körlüğünün her türünde
+  ayırt edilen Okabe–Ito çiftine (turuncu #E69F00 / mavi #56B4E9) döner, oyuncunun ayağının altında
+  kimlik renginde halka belirir, etiket ve isimlerde ▲ (P1) / ● (P2) şekilleri; renk tek ipucu
+  değildir. _Efekt yoğunluğu_ — Düşük: parçacıklar %30, tam ekran parlamaları ve vuruş flaşları
+  kapalı (ışığa duyarlılık), gol yakınlaşması yok; Orta: %65 / yarı; Yüksek: tam.
 - **Nasıl Oynanır:** 4 sayfa — maç kuralları ve modlar, güç barı ve 10 süper, güçlendiriciler,
   kontrol tablosu (klavye P1/P2, gamepad, dokunmatik).
 - **Karakter seçimi:** 5×2 kart; panelde istatistik çubukları, süper açıklaması ve **süper şut

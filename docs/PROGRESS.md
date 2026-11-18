@@ -10,8 +10,8 @@
 | 3   | Yapay zekâ rakip                           | ✅ Tamamlandı |
 | 4   | Karakterler, süper şutlar, güçlendiriciler | ✅ Tamamlandı |
 | 5   | Görsel kalite ve ses ("juice")             | ✅ Tamamlandı |
-| 6   | Playwright duman testi                     | **TAM**       | `e2e/smoke.spec.ts`: oyun açılıyor, menüden Hızlı Maç başlıyor, maç 10 sn hatasız çalışıyor; CI'da derlemeden sonra çalışır.                          |
-| 7   | README                                     | **TAM**       | Tanıtım, canlı oyna bağlantısı, Playwright ile otomatik alınan 6 ekran görüntüsü (`npm run screenshots`), kontroller, kurulum, mimari, katkı rehberi. |
+| 6   | Modlar, menüler ve platform desteği        | ✅ Tamamlandı |
+| 7   | Cila, performans, test ve v1.0.0           | ✅ Tamamlandı |
 
 **Canlı sürüm:** https://emengin.github.io/kafa-kafaya/
 
@@ -1338,7 +1338,7 @@ gerçek oyuncularla denenmeli:
 
 ### Sıradaki faz
 
-**Faz 7** — sürüyor (aşağıda).
+**Faz 7** — tamamlandı (aşağıda).
 
 ---
 
@@ -1348,19 +1348,19 @@ gerçek oyuncularla denenmeli:
 
 Faz 7 kullanım limitine takıldı; ara kayıttan sonra maddeler tek tek denetlendi:
 
-| #   | Madde                     | Durum   | Not                                                                                                                                                                      |
-| --- | ------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1   | Gol tekrarı               | **TAM** | Halka tampon (anahtar kare + girdiler), deterministik tekrar, ağır çekim, izleyen kamera, "Atla", Ayarlar'dan kapatılabilir; birim + tarayıcı testleri yeşil.            |
-| 2   | Denge turu                | **TAM** | 4 tur karakter taraması yapıldı (%47–58 → %47–57, en dengesiz eşleşme %80 → %71); zorluk matrisi yeniden ölçüldü (sıralama korunuyor, 0 sıkışma).                        |
-| 3   | Performans                | **TAM** | Profil, karede ayırma ~52 → ~16 MB/sn, GC sayısı 6× CPU'da 93 → 39, özel Phaser derlemesi + kod bölme (gzip 423 → 277 kB); ölçümler aşağıda.                             |
-| 4   | Hata avı                  | **TAM** | İki gol, kutlama/tekrar sırasında duraklatma, sekme gizlenince süre, dev kare, yeniden boyutlanma, hızlı tuş: testlerle denetlendi; menüde çift panel hatası düzeltildi. |
-| 5   | Erişilebilirlik           | **TAM** | Renk körü modu (Okabe–Ito renkleri + kimlik halkası + ▲/● şekilleri), efekt yoğunluğu (parçacık, ekran parlaması, gol yakınlaşması).                                     |
-| 6   | Playwright duman testi    | **YOK** |                                                                                                                                                                          |
-| 7   | README                    | **YOK** |                                                                                                                                                                          |
-| 8   | CHANGELOG + v1.0.0 sürümü | **YOK** |                                                                                                                                                                          |
+| #   | Madde                     | Durum   | Not                                                                                                                                                                                                           |
+| --- | ------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Gol tekrarı               | **TAM** | Halka tampon (anahtar kare + girdiler), deterministik tekrar, ağır çekim, izleyen kamera, "Atla", Ayarlar'dan kapatılabilir; birim + tarayıcı testleri yeşil.                                                 |
+| 2   | Denge turu                | **TAM** | 4 tur karakter taraması yapıldı (%47–58 → %47–57, en dengesiz eşleşme %80 → %71); zorluk matrisi yeniden ölçüldü (sıralama korunuyor, 0 sıkışma).                                                             |
+| 3   | Performans                | **TAM** | Profil, karede ayırma ~52 → ~16 MB/sn, GC sayısı 6× CPU'da 93 → 39, özel Phaser derlemesi + kod bölme (gzip 423 → 277 kB); ölçümler aşağıda.                                                                  |
+| 4   | Hata avı                  | **TAM** | İki gol, kutlama/tekrar sırasında duraklatma, sekme gizlenince süre, dev kare, yeniden boyutlanma, hızlı tuş: testlerle denetlendi; menüde çift panel hatası düzeltildi.                                      |
+| 5   | Erişilebilirlik           | **TAM** | Renk körü modu (Okabe–Ito renkleri + kimlik halkası + ▲/● şekilleri), efekt yoğunluğu (parçacık, ekran parlaması, gol yakınlaşması).                                                                          |
+| 6   | Playwright duman testi    | **TAM** | `e2e/smoke.spec.ts`: oyun açılıyor, menüden Hızlı Maç başlıyor, maç 10 sn hatasız çalışıyor; CI'da derlemeden sonra çalışır.                                                                                  |
+| 7   | README                    | **TAM** | Tanıtım, canlı oyna bağlantısı, Playwright ile otomatik alınan 6 ekran görüntüsü (`npm run screenshots`), kontroller, kurulum, mimari, katkı rehberi.                                                         |
+| 8   | CHANGELOG + v1.0.0 sürümü | **TAM** | CHANGELOG.md (0.0.1–1.0.0), package.json 1.0.0, menüde sürüm numarası, `v*` etiketinde sürüm notunu CHANGELOG'dan çıkarıp GitHub Release oluşturan iş akışı; `v1.0.0` etiketi her şey yeşilken en son atıldı. |
 
-Eksikler sırayla tamamlanıyor (her madde sonunda derleme + test + commit); v1.0.0 etiketi ve
-GitHub Release en son, her şey yeşilken.
+Eksikler sırayla tamamlandı (her madde sonunda derleme + test + commit); v1.0.0 etiketi ve GitHub
+Release en son, her şey yeşilken. Son durumda **8/8 madde TAM**.
 
 ### Denge turu (madde 2 — TAM)
 
@@ -1455,3 +1455,124 @@ Düşük güçlü cihaz benzetiminde (6×) kare işi bütçenin (16,7 ms) çok a
 | ----- | ------------------------------------ | ---------- | ---------- |
 | Faz 6 | tek parça 1500 kB                    | 1500 kB    | 423 kB     |
 | Faz 7 | oyun 323 kB + Phaser 626 kB + 0,6 kB | **950 kB** | **277 kB** |
+
+### Gol tekrarı (madde 1 — TAM)
+
+- **Durum kaydı:** `GameSim.saveState` / `loadState` simülasyonun tam durumunu (oyuncular, top,
+  yanılsamalar, balon, maç durum makinesi, büyüyen kaleler, tohumlu RNG, rakipsiz kip) kopyalar.
+  Oyuncu ve top alanları genel kopyayla taşınır: ileride eklenen bir alan unutulamaz. Test: kaydedilen
+  durumdan aynı girdilerle 1200 adım devam etmek — başka bir simülasyonda da — birebir aynı snapshot
+  ve olayları verir.
+- **Halka tampon (`src/game/replay.ts`):** son 6 sn; her 15 adımda bir anahtar kare (önceden ayrılmış
+  nesnelere kopyalanır) + her adımın iki oyuncu girdisi (5 bit). Santra sınırdır.
+- **Oynatma (`MatchScene`):** kutlama bitince (santra/maç sonu olayında) plan yapılır; canlı durum
+  saklanır, anahtar kare yüklenir, kaydedilen girdilerle ağır çekimde ilerlenir (olaylar da yeniden
+  üretilir: şut, süper, gol efektleri ve sesleri), bitince canlı durum geri yüklenir. Kamera topu ve
+  oyuncuları ortalayan yakın plan (`CameraRig.track`), sinema şeritleri, "TEKRAR" rozeti, "Atla".
+  Skor/saat/HUD tekrarda donar; duraklatma tekrar sırasında da çalışır.
+- Test: AI'lar arasında gerçek bir golün tekrarı topun yolunu adım adım birebir yeniden üretiyor, gol
+  aynı adımda oluşuyor, canlı durum birebir geri geliyor; santradan öncesine gidilmiyor.
+
+### Hata avı (madde 4 — TAM)
+
+| Kenar durumu                    | Nasıl denetlendi                                       | Sonuç                                                                      |
+| ------------------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------- |
+| Aynı anda iki gol               | 4 rastgele AI maçında her adım (birim test) + tarayıcı | Adımda en çok bir gol; kutlamada ikinci gol sayılmıyor; skor = olay sayısı |
+| Yanılsamanın gol olması         | Serap yanılsaması kalenin içine (birim test)           | Gol yok                                                                    |
+| Duraklatma sırasında gol/tekrar | Kutlamada ve tekrarda Esc (tarayıcı)                   | Simülasyon/tekrar duruyor, devamda kaldığı yerden                          |
+| Sekme değiştirme                | `visibilitychange` (tarayıcı)                          | Kendiliğinden duraklıyor, saat ilerlemiyor                                 |
+| Dev kare (takılma)              | Ana iş parçacığı 1,5 sn kilitli (tarayıcı)             | En çok ~0,13 sn simülasyon (0,25 sn sınırı), "yetişme" yok                 |
+| Pencere yeniden boyutlanması    | 5 farklı boyut (tarayıcı)                              | Tuval sığıyor, 16:9 korunuyor                                              |
+| Çok hızlı tuş basma             | Art arda Enter + 120 rastgele hızlı tuş (tarayıcı)     | **Hata bulundu:** yardım paneli iki kez açılıyordu — düzeltildi            |
+| Tekrarı Enter ile atlamak       | Tarayıcı                                               | Atlama tuşu oyuncuya şut olarak sızmıyor                                   |
+
+Ayrıca: özel Phaser derlemesinde eksik `make.graphics` (yükleme ekranında çökme) uçtan uca testle
+yakalanıp düzeltildi. Not: headless Chrome'da `Page.setWebLifecycleState` (dondur → sürdür) sonrası
+`requestAnimationFrame` hiç sürmüyor (sayfaya eklenen bağımsız bir rAF sayacı da duruyor); bu test
+ortamının yapaylığı, oyunun hatası değil — dev kare testi bu yüzden ana iş parçacığını kilitleyerek
+yapıldı.
+
+### Erişilebilirlik (madde 5 — TAM)
+
+- **Renk körü modu:** oyuncu kimlik renkleri Okabe–Ito turuncu (#E69F00) / gök mavisi (#56B4E9)
+  çiftine döner (HUD isimleri, portre halkaları, kafa üstü etiketleri, seçim imleçleri, ağaçta oyuncu
+  çerçevesi, maç sonu başlığı); oyuncunun ayağının altında kimlik renginde halka; etiket ve isimlerde
+  ▲ (P1) / ● (P2). Renk tek ipucu değil.
+- **Efekt yoğunluğu:** Düşük (parçacıklar %30, tam ekran parlamaları ve vuruş flaşları kapalı, gol
+  yakınlaşması yok — ışığa duyarlılık için), Orta (%65, yarı), Yüksek. Kalite yöneticisinden bağımsız
+  ve onunla birlikte uygulanır. Ekran sarsıntısı ayrı aç/kapa (Faz 6).
+
+### Testler ve doğrulama
+
+- **Birim testleri: 311 → 319** (Vitest). Yeni: durum kaydet/yükle determinizmi, kayıt nesnesinin
+  yeniden kullanımı, tekrarın golü birebir yeniden üretmesi, santra sınırı ve yetersiz görüntü, girdi
+  kodlaması; kenar durumları (adım başına bir gol, kutlamada ikinci gol yok, yanılsama gol olmaz);
+  yeni ayar alanlarının doğrulanması.
+- **Playwright duman testi** (CI'da): yeşil.
+- **Tarayıcıda uçtan uca** (üretim derlemesi, headless Chrome + DevTools protokolü; betikler depoda
+  değil): Faz 6 akışı **36/36**, dokunmatik + gamepad **24/24**, Faz 7 kenar durumları + tekrar +
+  erişilebilirlik **14/14**; konsolda hata yok.
+
+### Tasarım kararları
+
+1. **Tekrar = anahtar kare + girdiler**, kare kaydı değil: determinizm sayesinde bellek küçük (6 sn ≈
+   24 durum + 720 bayt girdi), olaylar (sesler, süper efektleri) bedavaya yeniden üretilir.
+2. **Tekrar canlı simülasyonun kendisinde oynatılır:** durum saklanıp geri yüklenir; çizici ve efektler
+   tek bir simülasyonu izlemeye devam eder (ikinci çizici gerekmez).
+3. **Plan santra olayında, yeni bölüm işaretlenmeden önce** yapılır; tekrar santra ışınlamasını asla
+   göstermez.
+4. **Denge değişiklikleri süper parametrelerinde:** istatistik değişikliği (v3) Ayaz'ın üstünlüğünü
+   gidermedi; sorun donma süresiydi. Karakter kimlikleri (istatistik tablosu) korundu.
+5. **`LiteGraphics` + kendi köşe tamponu çizici:** Phaser Graphics'in yol tabanlı çizimini korumak yerine
+   üçgenlere çevirmek, hem üçgenleme maliyetini hem çöpü kaldırdı. Beklenen iç alanlar yoksa
+   Phaser'ın çizicisine geri düşer (Phaser sürümü değişirse görüntü bozulmaz).
+6. **Özel Phaser derlemesi yalnızca üretimde:** geliştirme sunucusu tam paketi kullanır; üretim
+   derlemesi uçtan uca testlerle doğrulanır.
+7. **Renk körü modunda renk + şekil + konum ipucu** birlikte: yalnızca palet değiştirmek yetmez.
+8. **Sürüm notu tek kaynaktan:** GitHub Release metni CHANGELOG.md'den iş akışıyla çıkarılır.
+
+### Bilinen sorunlar / sınırlamalar
+
+- Gerçek düşük güçlü cihazda, gerçek telefonda ve gerçek gamepad'le ölçülmedi (benzetim ve sahte
+  Gamepad API ile doğrulandı).
+- Denge AI vs AI vekil ölçümüne dayanıyor; Ayaz hâlâ en üstte (%57), Bora–Toprak %71.
+- Tekrar, golden önceki 4 sn ile sınırlı; santradan hemen sonra (1 sn içinde) atılan gollerin tekrarı
+  yok.
+- Kalan ayırma (~16 MB/sn örnekleme) Phaser'ın sprite toplu çiziminde; GC tamamen sıfır değil.
+- Faz 6'dan süren: iOS Safari'de tam ekran yok, yalnızca gamepad ile ses başlamıyor, telefonda küçük
+  yazılar, tek telefonda dokunmatikle 2 oyuncu yok, turnuva maçından çıkıp yeniden oynama.
+
+## Son durum (v1.0.0)
+
+Kafa Kafaya, yedi fazda planlanan kapsamı tamamladı ve **v1.0.0** olarak yayında:
+https://emengin.github.io/kafa-kafaya/
+
+- **Oynanış:** deterministik fizik, 10 karakter, 10 süper şut, 6 güçlendirici, altın gol, gol tekrarı.
+- **Modlar:** Hızlı Maç, 2 Oyuncu, Turnuva (kilit açma), Antrenman.
+- **Yapay zekâ:** 3 zorluk, gerçek fizikle tahmin, hile yok; binlerce AI vs AI maçıyla dengelendi.
+- **Platform:** masaüstü, mobil (dokunmatik, yatay ekran, tam ekran), 2 gamepad, PWA (çevrimdışı),
+  TR/EN, erişilebilirlik ayarları, kalıcı kayıt.
+- **Kalite:** 319 birim testi, Playwright duman testi (CI), tip denetimli lint ve sihirli sayı yasağı;
+  her push'ta otomatik yayın; sürümler CHANGELOG ve GitHub Release ile.
+- **Performans:** düşük güçlü cihaz benzetiminde (6× CPU) kare işi ort. 3,7 ms / p99 7,2 ms; paket
+  gzip 277 kB.
+
+## Gelecek fikirleri
+
+- **Çevrimiçi çok oyunculu:** simülasyon zaten deterministik ve yalnızca girdiyle ilerliyor — _rollback
+  netcode_ (GGPO tarzı: girdi tahmini + geri sarıp yeniden oynatma) için ideal; tekrar sistemindeki
+  `saveState`/`loadState` ve halka tampon doğrudan kullanılabilir. WebRTC veri kanalı (eşler arası) +
+  küçük bir eşleştirme sunucusu. Önkoşul: tarayıcılar arası kayan nokta determinizmi
+  (`Math.sin/cos/exp` farkları) — sabit noktalı matematik ya da kendi trigonometri tabloları.
+- **Tekrar paylaşımı:** gol tekrarını (başlangıç durumu + girdiler, birkaç kB) bağlantı olarak
+  paylaşmak; tam maç kaydı ve "en iyi goller" galerisi.
+- **Yeni içerik:** yeni karakterler ve süperler, farklı stadyumlar/hava durumu (rüzgâr, yağmur → top
+  fiziği), yeni güçlendiriciler, sezon/lig modu, günlük görevler.
+- **Yapay zekâ:** insan oyun verisiyle zorluk kalibrasyonu, çalım/aldatma, kişilikler (agresif,
+  savunmacı); dinamik zorluk.
+- **Mobil:** küçük ekran için ayrı yazı ölçeği, buton düzeni özelleştirme, titreşim (Vibration API), tek
+  telefonda iki kişilik bölünmüş dokunmatik kontrol.
+- **Erişilebilirlik:** tuş yeniden atama, tek düğmeyle oynanış seçeneği, ekran okuyucu için menü
+  duyuruları, yüksek karşıtlık teması.
+- **Teknik:** kalan sprite toplu çizim ayırmalarını kaldırmak, gerçek cihaz performans ölçüm panosu,
+  görsel regresyon testleri (Playwright ekran görüntüsü karşılaştırması).
