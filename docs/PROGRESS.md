@@ -1348,16 +1348,16 @@ gerçek oyuncularla denenmeli:
 
 Faz 7 kullanım limitine takıldı; ara kayıttan sonra maddeler tek tek denetlendi:
 
-| #   | Madde                     | Durum     | Not                                                                                                                                                                      |
-| --- | ------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1   | Gol tekrarı               | **TAM**   | Halka tampon (anahtar kare + girdiler), deterministik tekrar, ağır çekim, izleyen kamera, "Atla", Ayarlar'dan kapatılabilir; birim + tarayıcı testleri yeşil.            |
-| 2   | Denge turu                | **TAM**   | 4 tur karakter taraması yapıldı (%47–58 → %47–57, en dengesiz eşleşme %80 → %71); zorluk matrisi yeniden ölçüldü (sıralama korunuyor, 0 sıkışma).                        |
-| 3   | Performans                | **KISMİ** | Profil çıkarıldı, karede ayırma ~52 → ~16 MB/sn, özel Phaser derlemesi + kod bölme (gzip 423 → 277 kB); son düşük güçlü cihaz (6× CPU) ölçümü ve belgeleme eksik.        |
-| 4   | Hata avı                  | **TAM**   | İki gol, kutlama/tekrar sırasında duraklatma, sekme gizlenince süre, dev kare, yeniden boyutlanma, hızlı tuş: testlerle denetlendi; menüde çift panel hatası düzeltildi. |
-| 5   | Erişilebilirlik           | **TAM**   | Renk körü modu (Okabe–Ito renkleri + kimlik halkası + ▲/● şekilleri), efekt yoğunluğu (parçacık, ekran parlaması, gol yakınlaşması).                                     |
-| 6   | Playwright duman testi    | **YOK**   |                                                                                                                                                                          |
-| 7   | README                    | **YOK**   |                                                                                                                                                                          |
-| 8   | CHANGELOG + v1.0.0 sürümü | **YOK**   |                                                                                                                                                                          |
+| #   | Madde                     | Durum   | Not                                                                                                                                                                      |
+| --- | ------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Gol tekrarı               | **TAM** | Halka tampon (anahtar kare + girdiler), deterministik tekrar, ağır çekim, izleyen kamera, "Atla", Ayarlar'dan kapatılabilir; birim + tarayıcı testleri yeşil.            |
+| 2   | Denge turu                | **TAM** | 4 tur karakter taraması yapıldı (%47–58 → %47–57, en dengesiz eşleşme %80 → %71); zorluk matrisi yeniden ölçüldü (sıralama korunuyor, 0 sıkışma).                        |
+| 3   | Performans                | **TAM** | Profil, karede ayırma ~52 → ~16 MB/sn, GC sayısı 6× CPU'da 93 → 39, özel Phaser derlemesi + kod bölme (gzip 423 → 277 kB); ölçümler aşağıda.                             |
+| 4   | Hata avı                  | **TAM** | İki gol, kutlama/tekrar sırasında duraklatma, sekme gizlenince süre, dev kare, yeniden boyutlanma, hızlı tuş: testlerle denetlendi; menüde çift panel hatası düzeltildi. |
+| 5   | Erişilebilirlik           | **TAM** | Renk körü modu (Okabe–Ito renkleri + kimlik halkası + ▲/● şekilleri), efekt yoğunluğu (parçacık, ekran parlaması, gol yakınlaşması).                                     |
+| 6   | Playwright duman testi    | **YOK** |                                                                                                                                                                          |
+| 7   | README                    | **YOK** |                                                                                                                                                                          |
+| 8   | CHANGELOG + v1.0.0 sürümü | **YOK** |                                                                                                                                                                          |
 
 Eksikler sırayla tamamlanıyor (her madde sonunda derleme + test + commit); v1.0.0 etiketi ve
 GitHub Release en son, her şey yeşilken.
@@ -1401,3 +1401,57 @@ karşı karakterler kaldı: Bora–Toprak %71, Ayaz–Pamuk %69, Toprak–Şimş
 birebir aynı — nötr oyuncunun süperi (Ateş Topu) ve fizik değişmedi. Kolay–Orta %20/%80, Orta–Zor
 %28/%72, Kolay–Zor %10/%90; sıralama korunuyor, **0 sıkışma**. Karakter taramalarında 3600 maçta
 3–4 sıkışma olayı (Faz 4'teki gibi).
+
+### Performans (madde 3 — TAM)
+
+**Profil.** AI vs AI maçında (en yüksek kalite) DevTools bellek ayırma örneklemesi, toplanan çöp
+dahil (`includeObjectsCollectedByMinor/MajorGC`): karede ~**52 MB/sn** ayırma. Kaynakların ~%70'i
+Phaser Graphics: yol komutları (daire, elips, yay, çizgi, yuvarlak köşe) her karede `Path`/`Point`
+nesnelerine ve `earcut` üçgenlemesine çevriliyordu; ayrıca `Graphics.clear()` komut dizisini
+`length = 0` ile kısalttığı için V8 dizinin bellek alanını bırakıp her karede yeniden büyütüyordu.
+
+**Yapılanlar.**
+
+- **`LiteGraphics`** (yüzler, bacaklar, ağ, şut izi, süper efektleri, güç barları): aynı çizim
+  arayüzü, ama her şey doğrudan üçgen komutlarına (dolgular dışbükey yelpaze, çizgiler iki üçgenlik
+  dörtgen); komutlar bir imleçle yazılır, dizi hiç kısalmaz (kullanılmayan kuyruk işlemsiz değerle
+  doldurulur); yol noktaları önceden ayrılmış tamponda. Kendi WebGL çizicisi üçgen köşelerini
+  doğrudan toplu çizim hattının köşe tamponuna yazar (Phaser'ın çizicisi her üçgende çift duyarlıklı
+  bağımsız değişkenlerle çağrı yapıp ~18 MB/sn kutulanmış sayı üretiyordu); beklenen iç alanlar yoksa
+  Phaser'ın kendi çizicisine geri düşer.
+- **Simülasyon:** `partCircle` parça başına tek nesne, `step` adım başına dizi ayırmıyor (girdi
+  çifti, iniş/temas tamponları yeniden kullanılır, olay dizisi kopyalanmadan döner); ağ çizgisi
+  noktaları havuzda; tekrar anahtar kareleri önceden ayrılmış nesnelere kopyalanır.
+- **Nesne havuzları gözden geçirildi:** parçacık havuzu (sabit kapasite, Faz 5) ve sprite havuzları
+  zaten ayırmasız; yeni havuzlar yukarıda.
+- Sonuç: örneklemede ~52 → ~16 MB/sn; kalan kısım Phaser'ın sprite toplu çizimi.
+
+**Ölçüm** (Faz 6 sürümü `c882234` ile aynı senaryo: AI vs AI Zor–Zor, `?quality=high`, 10 sn,
+headless Chrome 157, DevTools izleme ile GC sayımı; "kare işi" Phaser güncelleme + çizim):
+
+| CPU yavaşlatma | Sürüm | Küçük GC | GC süresi | Kare işi ort. | p95    | p99    | En kötü | > 20 ms kare |
+| -------------- | ----- | -------- | --------- | ------------- | ------ | ------ | ------- | ------------ |
+| 1×             | Faz 6 | 118      | 33,9 ms   | 0,71 ms       | 1,0 ms | 1,2 ms | 1,9 ms  | 0 / 1898     |
+| 1×             | Faz 7 | **42**   | 13,1 ms   | 0,64 ms       | 1,0 ms | 1,1 ms | 1,8 ms  | 0 / 1886     |
+| 6×             | Faz 6 | 93       | 161,9 ms  | 4,27 ms       | 6,5 ms | 8,1 ms | 12,2 ms | 0 / 1753     |
+| 6×             | Faz 7 | **39**   | 67,3 ms   | **3,72 ms**   | 5,4 ms | 7,2 ms | 10,4 ms | 0 / 1827     |
+
+Düşük güçlü cihaz benzetiminde (6×) kare işi bütçenin (16,7 ms) çok altında, GC süresi %58 azaldı;
+20 ms'yi aşan kare yok. Gerçek düşük güçlü bir telefonda ölçülmedi.
+
+**Paket boyutu ve kod bölme.**
+
+- **Özel Phaser derlemesi** (`scripts/phaser`): `phaser-core` + yalnızca kullanılan nesneler
+  (Container, TileSprite, Zone, Rectangle, Arc, Graphics oluşturucu), `Display.Color`,
+  `Geom.Rectangle`; Matter/Arcade fiziği, tilemap, parçacıklar, ses yöneticisi, BitmapText, Mesh,
+  Video vb. pakete girmiyor. Phaser kaynağındaki derleme bayrakları (`typeof WEBGL_RENDERER` …) bir
+  Vite eklentisiyle sabitlenir. Yalnızca üretim derlemesinde (geliştirme sunucusu tam paketi
+  kullanır); eksik modül olursa uçtan uca testler çalışma zamanı hatası olarak yakalar (yakaladı da:
+  `make.graphics`).
+- **Kod bölme:** motor (Phaser) ayrı parça — oyun kodu değişince yeniden indirilmez, tarayıcı ve
+  service worker önbelleğinde kalır.
+
+| Sürüm | Parçalar                             | Toplam     | gzip       |
+| ----- | ------------------------------------ | ---------- | ---------- |
+| Faz 6 | tek parça 1500 kB                    | 1500 kB    | 423 kB     |
+| Faz 7 | oyun 323 kB + Phaser 626 kB + 0,6 kB | **950 kB** | **277 kB** |
