@@ -137,6 +137,8 @@ export interface GameSimOptions {
   readonly seed?: number;
   /** false → güçlendirici balonları çıkmaz (testler, fizik ölçümleri). Varsayılan true. */
   readonly powerUps?: boolean;
+  /** true → rakipsiz antrenman: P2 sahada yok sayılır (bkz. `GameSim.setSolo`). */
+  readonly solo?: boolean;
 }
 
 /**
@@ -173,6 +175,7 @@ export class GameSim {
   private readonly touchSpeeds: [number, number] = [0, 0];
   private readonly rng: SeededRandom;
   private readonly powerUpsEnabled: boolean;
+  private soloMode = false;
 
   constructor(options: GameSimOptions = {}) {
     const [l1, l2] = options.loadouts ?? [NEUTRAL_LOADOUT, NEUTRAL_LOADOUT];
@@ -183,6 +186,44 @@ export class GameSim {
     this.balloonTimer = this.nextBalloonDelay();
     this.resetPositions();
     if (options.skipKickoff) this.match.startInPlay();
+    if (options.solo) this.setSolo(true);
+  }
+
+  /** Rakipsiz antrenman mı? (P2 topa ve P1'e değmez, girdisi yok sayılır, çizilmez.) */
+  get solo(): boolean {
+    return this.soloMode;
+  }
+
+  /**
+   * Antrenman: rakibi sahadan kaldırır ya da pasif bir "kukla" olarak geri getirir. P2 her
+   * iki durumda da başlangıç konumuna alınır. Maç modlarında kullanılmaz (varsayılan kapalı).
+   */
+  setSolo(solo: boolean): void {
+    this.soloMode = solo;
+    const p2 = this.players[1];
+    const { width, groundY } = this.pitch;
+    p2.resetTo(width - width * PLAYER.spawnXRatio, groundY - PLAYER_STAND_OFFSET);
+    p2.clearStatus();
+  }
+
+  /**
+   * Antrenman kısayolu: top santra noktasının üstüne konur ve serbest düşer; süper etkisi ve
+   * yanılsamalar silinir. (Simülasyon dışından yapılan bir müdahaledir; tekrar sistemi
+   * yalnızca girdileri kaydettiği için antrenman tekrar edilemez — gerek de yok.)
+   */
+  resetBall(): void {
+    this.holdBallAtCenter();
+    this.decoys.length = 0;
+  }
+
+  /** Antrenman kısayolu: oyuncunun güç barını doldurur (süper hazırsa değişmez). */
+  fillPower(index: PlayerIndex): void {
+    this.players[index].addPower(1);
+  }
+
+  /** Simülasyona katılan oyuncu mu? (Rakipsiz antrenmanda P2 değildir.) */
+  private present(p: Player): boolean {
+    return !(this.soloMode && p.index === 1);
   }
 
   /** [P1, P2] skoru. */
@@ -201,7 +242,7 @@ export class GameSim {
       const wasArmed = p.superArmed;
       const wasJumping = p.jumping;
       const airJumpBefore = p.airJumpUsed;
-      p.applyInput(active ? inputs[p.index] : EMPTY_INPUT, STEP_SECONDS);
+      p.applyInput(active && this.present(p) ? inputs[p.index] : EMPTY_INPUT, STEP_SECONDS);
       if (p.superArmed && !wasArmed) this.events.push({ type: 'superArmed', player: p.index });
       if (p.jumping && !wasJumping) {
         this.events.push({ type: 'jump', player: p.index, air: p.airJumpUsed && !airJumpBefore });
@@ -297,6 +338,7 @@ export class GameSim {
     if (ball.superType !== 'tornado' || ball.superOwner < 0) return;
     const t = SUPER_SHOTS.tornado;
     const victim = this.players[ball.superOwner === 0 ? 1 : 0];
+    if (!this.present(victim)) return;
     const d = Math.hypot(victim.x - ball.x, victim.y - ball.y);
     if (d >= t.radiusPx) return;
     const dir = ball.superDir;
@@ -317,7 +359,7 @@ export class GameSim {
     this.ball.integrate(h);
 
     for (const p of this.players) this.collidePlayerStatic(p);
-    this.collidePlayers();
+    if (!this.soloMode) this.collidePlayers();
     // Aynı alt adımda iki oyuncu da topa değerse önce çözülen avantajlı olur (eşzamanlı
     // kafa/şut düellosu, ör. simetrik santra). Sıra adım numarasının karıştırılmış bir bitiyle
     // seçilir: deterministik (tekrar bozulmaz) ama santra gibi düzenli zamanlamalarla hizalanmaz.
@@ -326,14 +368,18 @@ export class GameSim {
     const p1First = Math.imul(this.tick, ORDER_HASH) >>> ORDER_SHIFT === 0;
     // Işınlanan top görünmezdir ve oyuncuların içinden geçer.
     if (!this.ball.phased) {
-      this.collideBallPlayer(p1First ? p1 : p2);
-      this.collideBallPlayer(p1First ? p2 : p1);
+      if (this.soloMode) {
+        this.collideBallPlayer(p1);
+      } else {
+        this.collideBallPlayer(p1First ? p1 : p2);
+        this.collideBallPlayer(p1First ? p2 : p1);
+      }
     }
     const pinned = this.collideBallStatic(h);
     this.checkBalloon();
     if (pinned) {
       // Top bir yüzeye dayalıyken oyuncu onu içine itemez: oyuncuyu toptan dışarı it.
-      for (const p of this.players) this.pushPlayerOutOfBall(p);
+      for (const p of this.players) if (this.present(p)) this.pushPlayerOutOfBall(p);
       for (const p of this.players) this.collidePlayerStatic(p);
     }
   }
@@ -506,6 +552,7 @@ export class GameSim {
 
   private touchesPlayer(b: Ball): boolean {
     for (const p of this.players) {
+      if (!this.present(p)) continue;
       for (const part of BALL_PARTS) {
         if (circleVsCircle(b, p.partCircle(part))) return true;
       }

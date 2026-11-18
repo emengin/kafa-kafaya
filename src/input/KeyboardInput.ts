@@ -1,12 +1,16 @@
 import type { InputSource, InputState } from './InputState';
+import { virtualKeys } from './virtualKeys';
 
-/** Bir oyuncunun tuş eşlemesi (KeyboardEvent.code değerleri). */
+/** Bir eylemin tuşu ya da tuşları (herhangi biri). KeyboardEvent.code ya da sanal kod. */
+export type KeyCodes = string | readonly string[];
+
+/** Bir oyuncunun tuş eşlemesi (KeyboardEvent.code değerleri; gamepad/dokunmatik sanal kodlar). */
 export interface KeyBindings {
-  readonly left: string;
-  readonly right: string;
-  readonly jump: string;
-  readonly kick: string;
-  readonly super: string;
+  readonly left: KeyCodes;
+  readonly right: KeyCodes;
+  readonly jump: KeyCodes;
+  readonly kick: KeyCodes;
+  readonly super: KeyCodes;
 }
 
 interface KeyLikeEvent extends Event {
@@ -30,16 +34,20 @@ export class KeyTracker {
   /**
    * @param target        Olayların dinleneceği hedef (tarayıcıda `window`).
    * @param preventCodes  Varsayılan davranışı engellenecek tuşlar (sayfa kaydırma, F1 yardım…).
+   * @param virtual       Sanal tuş veri yolu (gamepad, dokunmatik); testlerde ayrı verilebilir.
    */
   constructor(
     private readonly target: EventTarget,
     private readonly preventCodes: ReadonlySet<string>,
+    private readonly virtual: EventTarget = virtualKeys,
   ) {}
 
   attach(): this {
     if (this.attached) return this;
-    this.target.addEventListener('keydown', this.onKeyDown);
-    this.target.addEventListener('keyup', this.onKeyUp);
+    for (const t of [this.target, this.virtual]) {
+      t.addEventListener('keydown', this.onKeyDown);
+      t.addEventListener('keyup', this.onKeyUp);
+    }
     this.target.addEventListener('blur', this.onBlur);
     this.attached = true;
     return this;
@@ -47,8 +55,10 @@ export class KeyTracker {
 
   detach(): void {
     if (!this.attached) return;
-    this.target.removeEventListener('keydown', this.onKeyDown);
-    this.target.removeEventListener('keyup', this.onKeyUp);
+    for (const t of [this.target, this.virtual]) {
+      t.removeEventListener('keydown', this.onKeyDown);
+      t.removeEventListener('keyup', this.onKeyUp);
+    }
     this.target.removeEventListener('blur', this.onBlur);
     this.attached = false;
     this.releaseAll();
@@ -58,6 +68,14 @@ export class KeyTracker {
   poll(code: string): boolean {
     const active = this.held.has(code) || this.latched.has(code);
     this.latched.delete(code);
+    return active;
+  }
+
+  /** Kodlardan herhangi biri için `poll` (hepsinin latch'ini tüketir, kısa devre yapmaz). */
+  pollAny(codes: KeyCodes): boolean {
+    if (typeof codes === 'string') return this.poll(codes);
+    let active = false;
+    for (const code of codes) active = this.poll(code) || active;
     return active;
   }
 
@@ -119,11 +137,11 @@ export class KeyboardInputSource implements InputSource {
   read(): InputState {
     const { tracker, bindings } = this;
     return {
-      left: tracker.poll(bindings.left),
-      right: tracker.poll(bindings.right),
-      jump: tracker.poll(bindings.jump),
-      kick: tracker.poll(bindings.kick),
-      super: tracker.poll(bindings.super),
+      left: tracker.pollAny(bindings.left),
+      right: tracker.pollAny(bindings.right),
+      jump: tracker.pollAny(bindings.jump),
+      kick: tracker.pollAny(bindings.kick),
+      super: tracker.pollAny(bindings.super),
     };
   }
 }

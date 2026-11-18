@@ -892,8 +892,61 @@ export const AI = {
 } as const;
 
 /**
+ * Gamepad düğmelerinin sanal tuş kodları (Faz 6). Gamepad yoklayıcısı düğme değişimlerini bu
+ * kodlarla `KeyTracker`a "tuş basıldı/bırakıldı" olarak düşürür; menüler ve oyun girdisi klavyeyle
+ * aynı yoldan okur. Slot 1 → P1, slot 2 → P2 (bağlanma sırasıyla).
+ */
+function padCodes<N extends 1 | 2>(n: N) {
+  return {
+    left: `Pad${n}Left`,
+    right: `Pad${n}Right`,
+    up: `Pad${n}Up`,
+    down: `Pad${n}Down`,
+    a: `Pad${n}A`,
+    b: `Pad${n}B`,
+    x: `Pad${n}X`,
+    y: `Pad${n}Y`,
+    lb: `Pad${n}LB`,
+    rb: `Pad${n}RB`,
+    lt: `Pad${n}LT`,
+    rt: `Pad${n}RT`,
+    start: `Pad${n}Start`,
+    back: `Pad${n}Back`,
+  } as const;
+}
+
+export const PAD_CODES = [padCodes(1), padCodes(2)] as const;
+export type PadButton = keyof (typeof PAD_CODES)[0];
+
+/** Dokunmatik butonların sanal tuş kodları (Faz 6). */
+export const TOUCH_CODES = {
+  left: 'TouchLeft',
+  right: 'TouchRight',
+  jump: 'TouchJump',
+  kick: 'TouchKick',
+  super: 'TouchSuper',
+  pause: 'TouchPause',
+  reset: 'TouchReset',
+  fill: 'TouchFill',
+} as const;
+
+const [PAD1, PAD2] = PAD_CODES;
+
+/** Gamepad oyun eşlemesi: sol çubuk/d-pad hareket, A zıpla, X/B şut, RB/RT süper. */
+function padBindings(p: (typeof PAD_CODES)[number]) {
+  return {
+    left: p.left,
+    right: p.right,
+    jump: p.a,
+    kick: [p.x, p.b],
+    super: [p.rb, p.rt],
+  } as const;
+}
+
+/**
  * Klavye eşlemeleri. KeyboardEvent.code değerleri kullanılır; böylece sol/sağ Shift
  * ayrılabilir ve klavye düzeninden (TR-Q, F, US) bağımsız fiziksel tuşlar okunur.
+ * Gamepad ve dokunmatik butonlar sanal kodlarla aynı tabloya bağlanır.
  */
 export const CONTROLS = {
   p1: { left: 'KeyA', right: 'KeyD', jump: 'KeyW', kick: 'Space', super: 'ShiftLeft' },
@@ -904,21 +957,128 @@ export const CONTROLS = {
     kick: 'Enter',
     super: 'ShiftRight',
   },
+  /** Gamepad oyun eşlemesi: [slot 1 → P1, slot 2 → P2]. */
+  pads: [padBindings(PAD1), padBindings(PAD2)],
+  /** Dokunmatik butonlar (her zaman P1). */
+  touch: {
+    left: TOUCH_CODES.left,
+    right: TOUCH_CODES.right,
+    jump: TOUCH_CODES.jump,
+    kick: TOUCH_CODES.kick,
+    super: TOUCH_CODES.super,
+  },
   /** Arayüz tuşları (oyun girdisi değildir, tekrar kaydına girmez). */
   ui: {
     debugToggle: 'F1',
     /** Duraklat / devam (herhangi biri). */
-    pause: ['Escape', 'KeyP'],
+    pause: ['Escape', 'KeyP', PAD1.start, PAD2.start, TOUCH_CODES.pause],
     /** Menülerde gezinme ve seçim. */
-    menuUp: ['ArrowUp', 'KeyW'],
-    menuDown: ['ArrowDown', 'KeyS'],
-    menuConfirm: ['Enter', 'NumpadEnter', 'Space'],
-    /** Ayarlanabilir menü öğeleri (ses düzeyi). */
-    menuLeft: ['ArrowLeft', 'KeyA'],
-    menuRight: ['ArrowRight', 'KeyD'],
+    menuUp: ['ArrowUp', 'KeyW', PAD1.up, PAD2.up],
+    menuDown: ['ArrowDown', 'KeyS', PAD1.down, PAD2.down],
+    menuConfirm: ['Enter', 'NumpadEnter', 'Space', PAD1.a, PAD2.a, PAD1.start, PAD2.start],
+    /** Ayarlanabilir menü öğeleri (ses düzeyi, zorluk…) ve yardım sayfaları. */
+    menuLeft: ['ArrowLeft', 'KeyA', PAD1.left, PAD2.left, PAD1.lb, PAD2.lb],
+    menuRight: ['ArrowRight', 'KeyD', PAD1.right, PAD2.right, PAD1.rb, PAD2.rb],
     /** Alt menüden geri dönüş. */
-    menuBack: ['Escape', 'Backspace'],
+    menuBack: ['Escape', 'Backspace', PAD1.b, PAD2.b],
   },
+  /** Antrenman kısayolları: topu sıfırla, süper barını doldur, kukla rakibi aç/kapa. */
+  training: {
+    resetBall: ['KeyR', PAD1.y, PAD2.y, TOUCH_CODES.reset],
+    fillSuper: ['KeyF', PAD1.lb, PAD2.lb, TOUCH_CODES.fill],
+    toggleDummy: ['KeyT', PAD1.back, PAD2.back],
+  },
+} as const;
+
+/**
+ * Gamepad API (Faz 6): standart düzen ("standard" mapping) düğme ve eksen sırası, çubuk ölü
+ * bölgesi (histerezisli: basma eşiği bırakma eşiğinden yüksek → titreşim yok), en fazla 2 kol.
+ */
+export const GAMEPAD = {
+  maxPads: 2,
+  buttons: {
+    a: 0,
+    b: 1,
+    x: 2,
+    y: 3,
+    lb: 4,
+    rb: 5,
+    lt: 6,
+    rt: 7,
+    back: 8,
+    start: 9,
+    up: 12,
+    down: 13,
+    left: 14,
+    right: 15,
+  },
+  axes: { x: 0, y: 1 },
+  /** Çubuk: bu değeri aşınca yön basılı, `stickRelease` altına inince bırakılır. */
+  stickPress: 0.5,
+  stickRelease: 0.35,
+  /** Analog tetik/düğme değerinin basılı sayıldığı eşik. */
+  buttonPress: 0.5,
+} as const;
+
+/**
+ * Dokunmatik kontroller (Faz 6): mantıksal koordinatlarda yarı saydam daire butonlar. Sol:
+ * ← →; sağ: Zıpla, Şut, Süper; üst sol: duraklat (antrenmanda topu sıfırla, barı doldur).
+ * Çoklu dokunuş: her parmak ayrı izlenir; parmak butonlar arasında kaydırılabilir.
+ */
+export const TOUCH = {
+  depth: 400,
+  alpha: 0.3,
+  pressedAlpha: 0.62,
+  /** Dokunuşun buton yarıçapından bu kadar dışarıda da sayılması (px). */
+  hitSlackPx: 16,
+  fillColor: 0xffffff,
+  pressedColor: 0xffd23f,
+  strokeColor: 0x0b1340,
+  strokePx: 4,
+  labelFontSizePx: 17,
+  /** "Barı doldur" butonundaki şimşek (yarıçapa oranlı köşe noktaları). */
+  boltIcon: [
+    [0.12, -0.72],
+    [-0.38, 0.1],
+    [-0.04, 0.1],
+    [-0.16, 0.72],
+    [0.38, -0.12],
+    [0.04, -0.12],
+  ],
+  buttons: {
+    left: { x: 108, y: 612, r: 62 },
+    right: { x: 250, y: 612, r: 62 },
+    jump: { x: 1022, y: 628, r: 62 },
+    kick: { x: 1168, y: 560, r: 68 },
+    super: { x: 1170, y: 408, r: 50 },
+    pause: { x: 50, y: 50, r: 32 },
+    reset: { x: 126, y: 50, r: 32 },
+    fill: { x: 202, y: 50, r: 32 },
+  },
+} as const;
+
+/** Oyun ayarları (Faz 6): seçenekler ve varsayılanlar; `localStorage`'da saklanır. */
+export const SETTINGS = {
+  /** Maç süresi seçenekleri (sn). */
+  matchDurations: [60, 90, 120],
+  defaults: { difficulty: 'medium', matchSeconds: 90, screenShake: true },
+} as const;
+
+/** İlerleme kaydı (Faz 6): istatistik sayaçlarının üst sınırı (bozuk/şişkin veriye karşı). */
+export const PROGRESS = {
+  maxCounter: 1_000_000_000,
+} as const;
+
+/**
+ * Turnuva (Faz 6): 8 kişilik eleme (çeyrek final → yarı final → final). Rakip zorluğu her turda
+ * artar: ayarlardaki zorluğun sırasına tur kayması eklenir (Orta → Kolay, Orta, Zor).
+ */
+export const TOURNAMENT = {
+  entrants: 8,
+  rounds: 3,
+  difficultyOffsets: [-1, 0, 1],
+  /** Sahnede oynanmayan (AI vs AI) maçların sonucu: kazananın gol aralığı (kaybeden daha az). */
+  aiScore: { winnerMin: 2, winnerMax: 7 },
 } as const;
 
 /**
@@ -945,6 +1105,11 @@ export const DEV = {
   /** `?c1=kor&c2=kaya` → karakterler (seçim ekranını atlar). */
   char1Param: 'c1',
   char2Param: 'c2',
+  /** `?unlock=all` → tüm karakterler açık (kayda yazılmaz). */
+  unlockParam: 'unlock',
+  unlockAllValue: 'all',
+  /** `?touch=1` → dokunmatik butonlar masaüstünde de görünür (test). */
+  touchParam: 'touch',
 } as const;
 
 /** Kalıcı kayıt (localStorage) anahtarları. */
@@ -960,6 +1125,12 @@ export const STORAGE = {
     volumeMaster: 'volumeMaster',
     volumeSfx: 'volumeSfx',
     volumeMusic: 'volumeMusic',
+    /** Faz 6: oyun ayarları (zorluk, maç süresi, ekran sarsıntısı) — JSON. */
+    settings: 'settings',
+    /** Faz 6: açılan karakterler ve istatistikler — JSON. */
+    progress: 'progress',
+    /** Faz 6: süren turnuva (yoksa kayıt silinir) — JSON. */
+    tournament: 'tournament',
   },
 } as const;
 
@@ -999,13 +1170,38 @@ export const MENU = {
     pulseScale: 1.035,
     pulseMs: 1300,
   },
-  /** Ana menü butonları (dikey liste). */
+  /** Ana menü butonları (dikey liste, 6 öğe). */
   items: {
-    yRatio: 0.43,
+    yRatio: 0.385,
     fontSizePx: 28,
-    spacingPx: 66,
+    spacingPx: 62,
     strokePx: 5,
     buttonWidth: 380,
+  },
+  /** Menü arayüzü bu derinlikte: arka plandaki demo maçın (ve vinyetinin) üstünde. */
+  uiDepth: 60,
+  /**
+   * Arka planda AI vs AI demo maçı (Faz 6): süresiz, rastgele iki karakter. Okunaklılık için
+   * hafif koyu perde; kalabalık uğultusu demo maçın atak tehlikesini izler (ölçekli).
+   */
+  demo: {
+    difficulty: 'hard',
+    dimColor: 0x070b26,
+    dimAlpha: 0.4,
+    crowdScale: 0.6,
+  },
+  /** Sol altta istatistik hapı (maç · galibiyet · gol · kupa). */
+  stats: { marginPx: 14, fontSizePx: 15, padX: 16, height: 30, alpha: 0.9 },
+  /** Ayarlar alt menüsü (9 öğe): büyük başlık gizlenir, sıkışık buton listesi. */
+  settings: {
+    titleY: 58,
+    titleFontSizePx: 40,
+    top: 128,
+    spacingPx: 52,
+    fontSizePx: 21,
+    strokePx: 4,
+    buttonWidth: 620,
+    buttonHeight: 44,
   },
   navHint: { yRatio: 0.935, fontSizePx: 16, alpha: 0.85 },
   footer: {
@@ -1212,20 +1408,20 @@ export const FX = {
 
 /** Karakter seçim ekranı. */
 export const SELECT = {
-  titleY: 54,
-  titleFontSizePx: 44,
+  titleY: 44,
+  titleFontSizePx: 40,
   /** Stadyum arka planını koyulaştıran perde. */
   dimColor: 0x070b26,
   dimAlpha: 0.55,
   /** Kart ve paneldeki karakterlerin ölçeği. */
-  cardRigScale: 0.55,
-  panelRigScale: 1.1,
-  grid: { columns: 5, cellW: 150, cellH: 128, gapPx: 16, top: 104 },
+  cardRigScale: 0.5,
+  panelRigScale: 0.95,
+  grid: { columns: 5, cellW: 140, cellH: 116, gapPx: 14, top: 80 },
   /** Kartın içindeki kafa çizimi (yarıçap kafa puanıyla büyür). */
   headY: 50,
   headScale: 0.95,
-  nameY: 106,
-  nameFontSizePx: 20,
+  nameY: 96,
+  nameFontSizePx: 18,
   cardColor: 0x0b1340,
   cardAlpha: 0.75,
   cardRadius: 14,
@@ -1233,20 +1429,48 @@ export const SELECT = {
   /** İki imleç aynı karttaysa P2 çerçevesi bu kadar içeride. */
   cursorInsetPx: 7,
   panel: {
-    y: 374,
-    width: 560,
-    height: 296,
-    marginX: 50,
+    y: 340,
+    width: 590,
+    height: 334,
+    marginX: 30,
     radius: 18,
     alpha: 0.82,
-    rigInset: 100,
-    textInset: 200,
+    rigInset: 112,
+    textInset: 232,
+    /** Büyük karakterin kafa merkezi (panel yüksekliğine oran). */
+    headYRatio: 0.29,
   },
-  statBar: { width: 200, height: 12, gapY: 24, labelWidth: 110, segments: 5 },
+  statBar: { width: 190, height: 12, gapY: 24, labelWidth: 104, segments: 5 },
   fontSizePx: 20,
-  descFontSizePx: 16,
-  hintY: 698,
-  hintFontSizePx: 17,
+  descFontSizePx: 15,
+  /**
+   * Süper şut önizlemesi (Faz 6): panelin dış sütununda, karakterin altında küçük saha. Gerçek
+   * GameSim'de (rakipsiz) karakterin süperli şutu bir kez oynatılıp kaydedilir, burada döngüde
+   * izletilir. `region` sahanın gösterilen kısmı (mantıksal px).
+   */
+  preview: {
+    insetX: 14,
+    top: 206,
+    width: 204,
+    height: 114,
+    radius: 12,
+    region: { left: 180, right: 1280, top: 40, bottom: 640 },
+    recordSeconds: 1.9,
+    holdSeconds: 0.7,
+    trailSteps: 26,
+    trailWidthPx: 3,
+    ballMinPx: 3,
+    groundColor: 0x3aa04a,
+    lineColor: 0xffffff,
+    labelFontSizePx: 11,
+    labelAlpha: 0.75,
+  },
+  /** Kilitli kart: koyu perde + kilit + yazı. */
+  locked: { dimAlpha: 0.66, iconSize: 34, fontSizePx: 13, shakePx: 8, shakeMs: 60 },
+  /** Sol üstte "Geri" butonu (dokunmatik/fare). */
+  back: { x: 82, y: 44, width: 132, height: 42, fontSizePx: 18 },
+  hintY: 700,
+  hintFontSizePx: 16,
   /** İki taraf hazır olunca maça geçmeden önceki bekleme (ms). */
   startDelayMs: 450,
   /** Paneldeki karakter adının başlık boyutuna oranı. */
@@ -1290,6 +1514,88 @@ export const OVERLAY = {
     selectedScale: 1.12,
   },
   hint: { fontSizePx: 16, alpha: 0.6, lineHeightPx: 36 },
+} as const;
+
+/** "Nasıl Oynanır" ve kontrol şeması paneli (Faz 6; ana menüde, demo maçın üstünde). */
+export const HELP = {
+  headingY: 54,
+  headingFontSizePx: 40,
+  panel: { top: 98, bottom: 648, width: 1100, radius: 24 },
+  pageTitleFontSizePx: 30,
+  pageTitleOffsetY: 40,
+  pageIndexFontSizePx: 18,
+  bodyTop: 178,
+  bodyFontSizePx: 18,
+  smallFontSizePx: 15,
+  lineGapPx: 8,
+  padX: 56,
+  /** Süper listesi ve güçlendiriciler iki sütun. */
+  columnGapPx: 40,
+  rowHeightPx: 46,
+  iconRadius: 18,
+  /** Kontrol tablosu: ilk sütun (eylem) genişliği ve satır yüksekliği. */
+  table: { firstColWidth: 170, rowHeightPx: 40, headerFontSizePx: 17, cellFontSizePx: 15 },
+  footerOffsetY: 38,
+  arrowFontSizePx: 34,
+  arrowInsetX: 70,
+} as const;
+
+/** Turnuva eleme ağacı ekranı (Faz 6). */
+export const BRACKET = {
+  /** Kalabalık arka planı koyulaştıran perde (ağaç okunaklı olsun). */
+  dimAlpha: 0.72,
+  titleY: 44,
+  titleFontSizePx: 42,
+  roundY: 96,
+  roundFontSizePx: 24,
+  infoY: 128,
+  infoFontSizePx: 17,
+  box: { width: 176, height: 52, radius: 14, portraitR: 18, portraitX: 28, nameX: 54 },
+  nameFontSizePx: 17,
+  scoreFontSizePx: 17,
+  /** Sütun merkezleri: çeyrek final, yarı final, final (sol taraf; sağ taraf aynalanır). */
+  columnsX: [118, 322, 530],
+  /** Çeyrek final kutularının y merkezleri (her yarıda 4 kutu). */
+  quarterY: [196, 262, 398, 464],
+  lineWidthPx: 3,
+  lineColor: 0xffffff,
+  lineAlpha: 0.3,
+  winColor: 0xffd23f,
+  eliminatedAlpha: 0.38,
+  trophy: { y: 252, size: 74 },
+  vsFontSizePx: 18,
+  menu: { top: 544, spacingPx: 54, buttonWidth: 340, fontSizePx: 22 },
+  /** Yeni sonuçların ağaçta belirmesi (ms) ve şampiyonlukta kupa ekranına geçiş (ms). */
+  revealMs: 520,
+  championDelayMs: 1500,
+  bannerY: 300,
+  bannerFontSizePx: 72,
+} as const;
+
+/** Kupa (şampiyonluk) ekranı (Faz 6). */
+export const TROPHY = {
+  titleY: 78,
+  titleFontSizePx: 86,
+  cup: { x: 640, y: 318, width: 220, height: 270 },
+  champion: { x: 300, rigScale: 1.25, jumpEverySeconds: 1.1 },
+  unlock: { x: 1018, y: 340, width: 360, height: 318, rigScale: 0.95, headYRatio: 0.42 },
+  unlockFontSizePx: 22,
+  nameFontSizePx: 34,
+  menu: { top: 600, spacingPx: 56, buttonWidth: 340, fontSizePx: 24 },
+  confettiEverySeconds: 0.35,
+  fireworksEverySeconds: 0.9,
+} as const;
+
+/** Platform (Faz 6): dikey ekran uyarısı, tam ekran düğmesi, PWA. */
+export const PLATFORM = {
+  /** Uygulama simgesi ve tema renkleri (PWA bildirimi, adres çubuğu). */
+  themeColor: '#0b1340',
+  backgroundColor: '#070b26',
+  /**
+   * Yön/boyut değişiminden bu kadar sonra ölçek yeniden hesaplanır (ms). Phaser'ın ölçek yöneticisi
+   * telefon döndürülünce bir adım geride kalabiliyor (tuval eski yönün boyutunda kalıyor).
+   */
+  scaleRefreshMs: [120, 600],
 } as const;
 
 /** Web Audio ile sentezlenen sesler. Süreler saniye, frekanslar Hz. */

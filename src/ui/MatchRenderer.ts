@@ -223,6 +223,20 @@ export class MatchRenderer {
     return { box };
   }
 
+  /** false → ekran sarsıntısı kapalı (Ayarlar; hareket hassasiyeti). Gol zoom'u etkilenmez. */
+  shakeEnabled = true;
+
+  /** Kafa üstü etiketleri (P1/P2/CPU) göster/gizle (menü demo maçında gizli). */
+  setTagsVisible(visible: boolean): void {
+    for (const tag of this.tags) tag.box.setVisible(visible);
+  }
+
+  /** Oyuncuyu göster/gizle (rakipsiz antrenmanda P2 sahada yok). */
+  setPlayerVisible(index: PlayerIndex, visible: boolean): void {
+    this.rigs[index].setVisible(visible);
+    this.tags[index].box.setVisible(visible);
+  }
+
   setQuality(level: QualityLevel): void {
     this.quality = level;
     // Tam ekran vinyet düşük kalitede kapanır (bir tam ekran karışım geçişi daha az).
@@ -306,7 +320,7 @@ export class MatchRenderer {
     this.updateFireworks(realDt);
 
     // Dünya dönüşümü: zoom (odak sabit) + sarsıntı (ekran ortası etrafında hafif dönüş).
-    this.shake.update(realDt, this.quality === 0 ? LOW_SHAKE : 1);
+    this.shake.update(realDt, this.shakeEnabled ? (this.quality === 0 ? LOW_SHAKE : 1) : 0);
     this.camera.update(realDt);
     const z = this.camera.zoom;
     const ox = this.camera.offsetX + this.shake.offsetX;

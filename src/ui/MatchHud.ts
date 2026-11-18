@@ -73,6 +73,8 @@ export class MatchHud {
     superTypes: readonly [SuperType, SuperType],
     characters: readonly [CharacterDef, CharacterDef],
     faces: readonly [FaceController, FaceController],
+    /** Süresiz modlarda (antrenman) saatin yerine yazılacak metin; null → saat. */
+    private readonly clockLabel: string | null = null,
   ) {
     const { height } = DISPLAY;
     const cx = this.cx;
@@ -261,8 +263,9 @@ export class MatchHud {
       this.subtitles.set(sub, { text, back });
     }
 
-    // Kontrol ipucu hapı.
+    // Kontrol ipucu hapı (dokunmatikte yok: butonlar ekranda).
     const h = HUD.hint;
+    if (hint === '') return;
     const hintText = scene.add
       .text(cx, height - h.marginPx - h.height / 2, hint, textStyle(h.fontSizePx, '#ffffff', 2))
       .setOrigin(0.5)
@@ -344,6 +347,15 @@ export class MatchHud {
 
   private updateClock(match: MatchFlow): void {
     const { clock } = HUD;
+    if (this.clockLabel !== null) {
+      // Süresiz (antrenman): saatin yerinde sabit yazı.
+      if (this.clock.text === this.clockLabel) return;
+      this.clock.setText(this.clockLabel).setFontSize(clock.goldenFontSizePx).setScale(1);
+      // Uzun yazı (ör. "ANTRENMAN") saat hapına sığacak kadar küçülür.
+      const room = HUD.board.clockW - CLOCK_LABEL_PAD * 2;
+      if (this.clock.width > room) this.clock.setScale(room / this.clock.width);
+      return;
+    }
     if (match.overtime) {
       if (this.shownGolden) return;
       this.shownGolden = true;
@@ -555,3 +567,4 @@ const BADGE_DROP = 3;
 const RAYS_TEX = 512;
 const RAYS_START = 0.4;
 const CLOCK_BACK_PULSE = 1.12;
+const CLOCK_LABEL_PAD = 8;

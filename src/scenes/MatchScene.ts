@@ -31,12 +31,18 @@ import { observe } from '../game/ai/worldView';
 import { getCharacter, loadoutFor, type CharacterDef } from '../game/characters';
 import { POWER_UP_TYPES } from '../game/entities/Player';
 import { GameSim } from '../game/GameSim';
-import { resolveMatchSetup, type MatchSetup } from '../game/matchSetup';
+import { isCpuMode, resolveMatchSetup, type MatchSetup } from '../game/matchSetup';
+import { applyPlayerResult, getSavedTournament, setSavedTournament } from '../game/tournament';
 import type { PlayerIndex, SimEvent } from '../game/types';
 import { format, t, upper } from '../i18n';
-import type { InputSource } from '../input/InputState';
+import { gamepads } from '../input/Gamepads';
+import { EMPTY_INPUT, type InputSource } from '../input/InputState';
 import { KeyboardInputSource, KeyTracker } from '../input/KeyboardInput';
 import { MergedInputSource } from '../input/MergedInput';
+import { isPortrait, isTouchDevice, onTouchDetected } from '../platform/device';
+import { setInMatch } from '../platform/fullscreen';
+import { getSettings } from '../save/gameSettings';
+import { saveMatchResult, saveTournamentWin } from '../save/progress';
 import { createGameLoop, lerp } from '../physics';
 import { DebugOverlay } from '../ui/DebugOverlay';
 import { displayedSecond } from '../ui/format';
@@ -45,6 +51,8 @@ import { MatchRenderer } from '../ui/MatchRenderer';
 import { MenuOverlay } from '../ui/MenuOverlay';
 import { RenderFrame } from '../ui/renderFrame';
 import { volumeMenuItems } from '../ui/settingsMenu';
+import type { TextMenuItem } from '../ui/TextMenu';
+import { TouchControls } from '../ui/TouchControls';
 import { devAiFlags, devMatchDuration, devQuality, wantsDebugOverlay } from './devFlags';
 import { SceneKeys } from './sceneKeys';
 
@@ -61,8 +69,11 @@ function cpuName(difficulty: AiDifficulty): string {
   return format('player.cpu', { level: t(`difficulty.${difficulty}`) });
 }
 
+/** Girdisiz kaynak (antrenman kuklası). */
+const IDLE_SOURCE: InputSource = { read: () => EMPTY_INPUT };
+
 /**
- * Maç sahnesi: 2 oyunculu ya da CPU'ya karşı. Kurallar ve durum makinesi GameSim/MatchFlow'dadır
+ * Maç sahnesi: Hızlı Maç (CPU), 2 oyuncu, turnuva maçı ya da antrenman. Kurallar ve durum makinesi GameSim/MatchFlow'dadır
  * (deterministik); sahne girdiyi toplar (klavye ya da yapay zekâ — ikisi de yalnızca
  * `InputState` üretir), sabit adımları koşar, çizer (`MatchRenderer`), sesi (`sfx`, `crowd`,
  * `music`) ve arayüzü (HUD, duraklatma, maç sonu) yönetir.
@@ -106,6 +117,11 @@ export class MatchScene extends Phaser.Scene {
   private readonly drawFrame = new RenderFrame();
   private avgStepMs = 0;
   private avgFrameMs = 0;
+  private touch: TouchControls | null = null;
+  /** Maç sonucu kayda (istatistik/turnuva) yazıldı mı? */
+  private recorded = false;
+  /** Duraklatma nedeni satırı (ör. gamepad bağlantısı koptu). */
+  private pauseNote: string | null = null;
 
   constructor() {
     super(SceneKeys.Match);
@@ -129,6 +145,10 @@ export class MatchScene extends Phaser.Scene {
     this.danger = 0;
     this.lastCountdown = -1;
     this.decoyTrack.length = 0;
+    this.touch = null;
+    this.recorded = false;
+    this.pauseNote = null;
+    this.inSettings = false;
 
     const fromMenu = typeof data === 'object' && data !== null && 'mode' in data;
     const dev = devAiFlags();
@@ -137,18 +157,24 @@ export class MatchScene extends Phaser.Scene {
     const seed = this.setup.seed ?? randomSeed();
     const [c1, c2] = this.setup.characters;
     this.characters = [getCharacter(c1), getCharacter(c2)];
-    const durationSeconds = devMatchDuration();
+    const { mode, difficulty, p1Ai } = this.setup;
+    const training = mode === 'training';
+    const durationSeconds = devMatchDuration() ?? this.setup.durationSeconds;
     this.sim = new GameSim({
-      ...(durationSeconds ? { rules: { durationSeconds } } : {}),
+      rules: training
+        ? { durationSeconds: Infinity, goldenGoalOvertime: false }
+        : { durationSeconds },
       loadouts: [loadoutFor(c1), loadoutFor(c2)],
       seed: mixSeed(seed, 2),
+      skipKickoff: training,
+      solo: training,
     });
     this.prevFrame.copyFrom(this.sim);
     this.currFrame.copyFrom(this.sim);
-    const { mode, difficulty, p1Ai } = this.setup;
-    this.names =
-      mode === 'cpu'
-        ? [p1Ai ? cpuName(p1Ai) : t('player.you'), cpuName(difficulty)]
+    this.names = isCpuMode(mode)
+      ? [p1Ai ? cpuName(p1Ai) : t('player.you'), cpuName(difficulty)]
+      : training
+        ? [t('player.you'), t('player.dummy')]
         : [t('player.1'), t('player.2')];
 
     const { p1, p2, ui } = CONTROLS;
@@ -161,26 +187,40 @@ export class MatchScene extends Phaser.Scene {
       ...ui.menuConfirm,
     ]);
     this.tracker = new KeyTracker(window, prevent).attach();
-    this.inputs = this.createInputs(
-      new KeyboardInputSource(this.tracker, p1),
-      new KeyboardInputSource(this.tracker, p2),
-      seed,
-    );
+    this.inputs = this.createInputs(seed);
+    const stopTouchWatch = onTouchDetected(() => {
+      this.createTouchControls();
+    });
+    const onVisibility = (): void => {
+      if (document.hidden) this.autoPause(null);
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    gamepads.onDisconnect = () => {
+      this.autoPause(t('pause.padDisconnected'));
+    };
+    setInMatch(true);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.tracker.detach();
       this.overlay?.destroy();
       this.overlay = null;
+      stopTouchWatch();
+      document.removeEventListener('visibilitychange', onVisibility);
+      gamepads.onDisconnect = null;
+      setInMatch(false);
       crowd.stop();
     });
 
     const fixed = devQuality();
     this.governor = new QualityGovernor(fixed ?? sessionQuality(), fixed !== null);
-    const tags: readonly [string, string] =
-      mode === 'cpu' ? [p1Ai ? 'CPU' : 'P1', 'CPU'] : ['P1', 'P2'];
+    const tags: readonly [string, string] = isCpuMode(mode)
+      ? [p1Ai ? t('tag.cpu') : t('tag.p1'), t('tag.cpu')]
+      : [t('tag.p1'), t('tag.p2')];
     this.view = new MatchRenderer(this, this.sim, this.characters, tags, this.governor.level, {
       title: t('game.title'),
       goal: t('board.goal'),
     });
+    this.view.shakeEnabled = getSettings().screenShake;
+    if (training) this.view.setPlayerVisible(1, false);
     for (const c of this.characters) {
       this.view.prewarmText(
         upper(t(`super.${c.superType}`)),
@@ -190,13 +230,15 @@ export class MatchScene extends Phaser.Scene {
     }
     for (const type of POWER_UP_TYPES)
       this.view.prewarmText(t(`powerUp.${type}`), FX.powerUpColors[type], HUD.popText);
+    const hint = training ? 'match.hintTraining' : isCpuMode(mode) ? 'match.hintCpu' : 'match.hint';
     this.hud = new MatchHud(
       this,
       this.names,
-      t(mode === 'cpu' ? 'match.hintCpu' : 'match.hint'),
+      isTouchDevice() ? '' : t(hint),
       [this.characters[0].superType, this.characters[1].superType],
       this.characters,
       [this.view.rigs[0].face, this.view.rigs[1].face],
+      training ? t('match.trainingClock') : null,
     );
     this.hud.update(this.sim.match, this.sim.players);
     this.screenFlash = this.add
@@ -205,27 +247,38 @@ export class MatchScene extends Phaser.Scene {
       .setDepth(HUD.depth - 1);
     this.debug = new DebugOverlay(this);
     this.debug.setVisible(wantsDebugOverlay());
+    if (isTouchDevice()) this.createTouchControls();
     this.cameras.main.fadeIn(HUD.kickoffFadeMs);
     music.play('match');
     crowd.start();
   }
 
   /**
-   * 2 oyuncu: iki klavye eşlemesi. CPU'ya karşı: insan P1 her iki eşlemeyle de oynar, P2
-   * yapay zekâdır (`?cpu1=` ile P1 de). AI yalnızca simülasyonun görünümünü okur.
+   * 2 oyuncu: P1 = A/D/W/Space + 1. kol + dokunmatik, P2 = oklar/Enter + 2. kol. Tek insanlı
+   * modlarda (CPU, turnuva, antrenman) insan P1 her iki tuş takımı, iki kol ve dokunmatikle
+   * oynar; P2 yapay zekâ (antrenmanda girdisiz kukla; `?cpu1=` ile P1 de AI). AI yalnızca
+   * simülasyonun görünümünü okur.
    */
-  private createInputs(
-    kb1: KeyboardInputSource,
-    kb2: KeyboardInputSource,
-    seed: number,
-  ): readonly [InputSource, InputSource] {
+  private createInputs(seed: number): readonly [InputSource, InputSource] {
     this.ais = [];
+    const tr = this.tracker;
+    const { p1, p2, pads, touch } = CONTROLS;
+    const [pad1, pad2] = pads;
+    const kb1 = new KeyboardInputSource(tr, p1);
+    const kb2 = new KeyboardInputSource(tr, p2);
+    const gp1 = new KeyboardInputSource(tr, pad1);
+    const gp2 = new KeyboardInputSource(tr, pad2);
+    const tc = new KeyboardInputSource(tr, touch);
     const { mode, difficulty, p1Ai } = this.setup;
-    if (mode === 'versus') return [kb1, kb2];
+    if (mode === 'versus') {
+      return [new MergedInputSource(kb1, gp1, tc), new MergedInputSource(kb2, gp2)];
+    }
+    const human = new MergedInputSource(kb1, kb2, gp1, gp2, tc);
+    if (mode === 'training') return [human, IDLE_SOURCE];
     const view = (): ReturnType<typeof observe> => observe(this.sim);
     const ai2 = new AiController({ index: 1, difficulty, seed: mixSeed(seed, 1) });
     this.ais.push(ai2);
-    let first: InputSource = new MergedInputSource(kb1, kb2);
+    let first: InputSource = human;
     if (p1Ai) {
       const ai1 = new AiController({ index: 0, difficulty: p1Ai, seed: mixSeed(seed, 0) });
       this.ais.push(ai1);
@@ -254,10 +307,13 @@ export class MatchScene extends Phaser.Scene {
     }
     if (this.endShown) {
       this.overlay?.update(this.tracker);
-    } else if (this.tracker.consumeAny(ui.pause)) {
+    } else if (this.tracker.consumeAny(ui.pause) || (isTouchDevice() && isPortrait())) {
       this.pause();
       return;
     }
+    if (this.setup.mode === 'training') this.trainingShortcuts();
+    const me = this.sim.players[0];
+    this.touch?.setSuperReady(me.power >= 1 || me.superArmed, time / UNITS.msPerSecond);
 
     const realDt = Math.min(deltaMs, MAX_FRAME_MS) / UNITS.msPerSecond;
     this.view.rememberBalloon();
@@ -345,6 +401,7 @@ export class MatchScene extends Phaser.Scene {
           if (e.reason === 'time') this.hud.onFullTime();
           this.view.onMatchEnd(e.winner);
           if (e.winner !== null) crowd.cheer();
+          this.recordResult(e.winner);
           break;
         case 'kick': {
           const power = Math.min(1, e.speed / BALL.maxSpeed);
@@ -508,40 +565,69 @@ export class MatchScene extends Phaser.Scene {
     // Menü tuşları (Enter, ↑) oyuncu girdisine sarkmasın; basılı tuşlar yeniden basılmalı.
     this.tracker.releaseAll();
     this.tweens.pauseAll();
+    this.touch?.setEnabled(false);
     this.showPauseMenu();
+  }
+
+  /** Sekme gizlenince ya da gamepad kopunca kendiliğinden duraklat (nedeni panelde yazar). */
+  private autoPause(note: string | null): void {
+    if (this.leaving || this.endShown) return;
+    if (this.paused) {
+      if (note && !this.inSettings) {
+        this.pauseNote = note;
+        this.showPauseMenu();
+      }
+      return;
+    }
+    this.pauseNote = note;
+    this.pause();
   }
 
   private showPauseMenu(): void {
     this.overlay?.destroy();
     this.inSettings = false;
+    const items: TextMenuItem[] = [
+      {
+        label: t('pause.resume'),
+        onSelect: () => {
+          this.resume();
+        },
+      },
+    ];
+    if (this.setup.mode === 'training') {
+      items.push({
+        label: () =>
+          format('pause.dummy', { state: t(this.sim.solo ? 'settings.off' : 'settings.on') }),
+        onSelect: () => {
+          this.toggleDummy();
+        },
+      });
+    }
+    items.push({
+      label: t('pause.settings'),
+      onSelect: () => {
+        this.showSettings();
+      },
+    });
+    // Turnuvada yeniden başlatma yok (kaybedilen maç silinemesin); antrenmanda gereksiz.
+    if (this.setup.mode === 'cpu' || this.setup.mode === 'versus') {
+      items.push({
+        label: t('pause.restart'),
+        onSelect: () => {
+          this.restart();
+        },
+      });
+    }
+    items.push({
+      label: t('pause.mainMenu'),
+      onSelect: () => {
+        this.toMainMenu();
+      },
+    });
     this.overlay = new MenuOverlay(this, {
       title: t('pause.title'),
-      items: [
-        {
-          label: t('pause.resume'),
-          onSelect: () => {
-            this.resume();
-          },
-        },
-        {
-          label: t('pause.settings'),
-          onSelect: () => {
-            this.showSettings();
-          },
-        },
-        {
-          label: t('pause.restart'),
-          onSelect: () => {
-            this.restart();
-          },
-        },
-        {
-          label: t('pause.mainMenu'),
-          onSelect: () => {
-            this.toMainMenu();
-          },
-        },
-      ],
+      ...(this.pauseNote ? { lines: [this.pauseNote] } : {}),
+      items,
     });
   }
 
@@ -551,7 +637,7 @@ export class MatchScene extends Phaser.Scene {
       this.overlay?.destroy();
       this.inSettings = true;
       this.overlay = new MenuOverlay(this, {
-        title: t('settings.title'),
+        title: t('settings.soundTitle'),
         lines: [t('settings.hint')],
         items: volumeMenuItems(() => {
           this.time.delayedCall(0, () => {
@@ -563,12 +649,65 @@ export class MatchScene extends Phaser.Scene {
   }
 
   private resume(): void {
+    // Dikey ekranda devam edilemez (uyarı görünür); yan çevrilince yeniden denenir.
+    if (isTouchDevice() && isPortrait()) return;
     this.overlay?.destroy();
     this.overlay = null;
     this.paused = false;
     this.inSettings = false;
+    this.pauseNote = null;
     this.tracker.releaseAll();
     this.tweens.resumeAll();
+    this.touch?.setEnabled(true);
+  }
+
+  private createTouchControls(): void {
+    if (this.touch) return;
+    this.touch = new TouchControls(this, this.setup.mode === 'training');
+    this.touch.setEnabled(!this.paused && !this.endShown);
+  }
+
+  /** Antrenman: R/Y topu sıfırla, F/LB süper barını doldur, T/Back kukla rakip. */
+  private trainingShortcuts(): void {
+    const keys = CONTROLS.training;
+    if (this.tracker.consumeAny(keys.resetBall)) {
+      this.sim.resetBall();
+      this.currFrame.copyFrom(this.sim);
+      this.prevFrame.copyFromFrame(this.currFrame);
+      sfx.whistle('kickoff');
+    }
+    if (this.tracker.consumeAny(keys.fillSuper)) {
+      this.sim.fillPower(0);
+      sfx.superArmed();
+    }
+    if (this.tracker.consumeAny(keys.toggleDummy)) this.toggleDummy();
+  }
+
+  private toggleDummy(): void {
+    const solo = !this.sim.solo;
+    this.sim.setSolo(solo);
+    this.view.setPlayerVisible(1, !solo);
+    this.currFrame.copyFrom(this.sim);
+    this.prevFrame.copyFromFrame(this.currFrame);
+    sfx.menuMove();
+  }
+
+  /**
+   * Maç bitti: istatistikler ve (turnuvada) turnuva ilerlemesi hemen kaydedilir; sonuç ekranından
+   * çıkmadan sayfa kapansa bile kaybolmaz. Antrenman ve AI vs AI kaydedilmez.
+   */
+  private recordResult(winner: PlayerIndex | null): void {
+    if (this.recorded || this.setup.p1Ai) return;
+    this.recorded = true;
+    const { mode } = this.setup;
+    const [a, b] = this.sim.match.score;
+    saveMatchResult({ mode, score: [a, b], winner });
+    if (mode !== 'tournament') return;
+    const state = getSavedTournament();
+    if (state?.status !== 'active') return;
+    const next = applyPlayerResult(state, a, b);
+    setSavedTournament(next);
+    if (next.status === 'won') saveTournamentWin();
   }
 
   private showEndScreen(): void {
@@ -579,25 +718,37 @@ export class MatchScene extends Phaser.Scene {
     const [a, b] = match.score;
     const lines = [`${upper(this.names[0])}  ${a} – ${b}  ${upper(this.names[1])}`];
     if (match.endReason === 'goldenGoal') lines.push(t('end.byGoldenGoal'));
+    this.touch?.setEnabled(false);
+    const items: TextMenuItem[] =
+      this.setup.mode === 'tournament'
+        ? [
+            {
+              label: t('tournament.continue'),
+              onSelect: () => {
+                this.leaveTo(SceneKeys.Tournament, { justPlayed: true });
+              },
+            },
+          ]
+        : [
+            {
+              label: t('end.playAgain'),
+              onSelect: () => {
+                this.restart();
+              },
+            },
+            {
+              label: t('end.mainMenu'),
+              onSelect: () => {
+                this.toMainMenu();
+              },
+            },
+          ];
     this.overlay = new MenuOverlay(this, {
       title:
         winner === null ? t('end.draw') : upper(format('end.winner', { name: this.names[winner] })),
       ...(winner === null ? {} : { titleColor: HUD.playerColors[winner] }),
       lines,
-      items: [
-        {
-          label: t('end.playAgain'),
-          onSelect: () => {
-            this.restart();
-          },
-        },
-        {
-          label: t('end.mainMenu'),
-          onSelect: () => {
-            this.toMainMenu();
-          },
-        },
-      ],
+      items,
     });
   }
 
@@ -609,12 +760,16 @@ export class MatchScene extends Phaser.Scene {
   }
 
   private toMainMenu(): void {
+    this.leaveTo(SceneKeys.Menu, {});
+  }
+
+  private leaveTo(key: string, data: object): void {
     if (this.leaving) return;
     this.leaving = true;
     this.tweens.resumeAll();
     this.cameras.main.fadeOut(HUD.exitFadeMs);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-      this.scene.start(SceneKeys.Menu);
+      this.scene.start(key, data);
     });
   }
 }

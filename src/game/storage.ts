@@ -19,4 +19,11 @@ export const storage = {
       // Kayıt yapılamıyorsa sessizce yok say.
     }
   },
+  remove(key: string): void {
+    try {
+      globalThis.localStorage.removeItem(STORAGE.prefix + key);
+    } catch {
+      // Yok say.
+    }
+  },
 };

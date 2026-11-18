@@ -132,6 +132,19 @@ export const CHARACTERS: readonly CharacterDef[] = [
 
 export const CHARACTER_IDS: readonly CharacterId[] = CHARACTERS.map((c) => c.id);
 
+/** Baştan açık karakterler (Faz 6). Diğerleri turnuva kazanılarak sırayla açılır. */
+export const STARTER_CHARACTERS: readonly CharacterId[] = [
+  'kor',
+  'ayaz',
+  'simsek',
+  'kaya',
+  'bora',
+  'yay',
+];
+
+/** Kilitli karakterlerin açılma sırası: her turnuva şampiyonluğu sıradakini açar. */
+export const UNLOCK_ORDER: readonly CharacterId[] = ['demir', 'sis', 'pamuk', 'toprak'];
+
 export function isCharacterId(value: unknown): value is CharacterId {
   return typeof value === 'string' && (CHARACTER_IDS as readonly string[]).includes(value);
 }

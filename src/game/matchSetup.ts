@@ -1,8 +1,22 @@
-import { AI_DIFFICULTIES, type AiDifficulty } from '../config/gameConfig';
+import { AI_DIFFICULTIES, MATCH, type AiDifficulty } from '../config/gameConfig';
 import { isCharacterId, type CharacterId } from './characters';
 
-/** Maç modu: insan vs CPU ya da aynı klavyede iki kişi. */
-export type MatchMode = 'cpu' | 'versus';
+/**
+ * Maç modu: insan vs CPU (Hızlı Maç), aynı cihazda iki kişi, turnuva maçı (insan vs CPU, sonuç
+ * turnuvaya yazılır) ya da antrenman (süresiz, rakipsiz/kukla rakipli).
+ */
+export type MatchMode = 'cpu' | 'versus' | 'tournament' | 'training';
+
+export const MATCH_MODES: readonly MatchMode[] = ['cpu', 'versus', 'tournament', 'training'];
+
+export function isMatchMode(value: unknown): value is MatchMode {
+  return typeof value === 'string' && (MATCH_MODES as readonly string[]).includes(value);
+}
+
+/** P2 yapay zekâ mı? (Hızlı Maç ve turnuva.) */
+export function isCpuMode(mode: MatchMode): boolean {
+  return mode === 'cpu' || mode === 'tournament';
+}
 
 /** Menünün maç sahnesine verdiği kurulum (sahne yeniden başlatılınca aynen korunur). */
 export interface MatchSetup {
@@ -15,6 +29,8 @@ export interface MatchSetup {
   readonly seed: number | null;
   /** [P1, P2] karakterleri. */
   readonly characters: readonly [CharacterId, CharacterId];
+  /** Maç süresi (sn; ayarlardan). Antrenmanda kullanılmaz (süresiz). */
+  readonly durationSeconds: number;
 }
 
 export const DEFAULT_MATCH_SETUP: MatchSetup = {
@@ -23,6 +39,7 @@ export const DEFAULT_MATCH_SETUP: MatchSetup = {
   p1Ai: null,
   seed: null,
   characters: ['kor', 'ayaz'],
+  durationSeconds: MATCH.durationSeconds,
 };
 
 function parseCharacters(value: unknown): readonly [CharacterId, CharacterId] | null {
@@ -52,12 +69,17 @@ export function resolveMatchSetup(
   const input = (typeof data === 'object' && data !== null ? data : {}) as Partial<
     Record<keyof MatchSetup, unknown>
   >;
+  const duration = input.durationSeconds;
   let setup: MatchSetup = {
-    mode: input.mode === 'cpu' ? 'cpu' : DEFAULT_MATCH_SETUP.mode,
+    mode: isMatchMode(input.mode) ? input.mode : DEFAULT_MATCH_SETUP.mode,
     difficulty: isDifficulty(input.difficulty) ? input.difficulty : DEFAULT_MATCH_SETUP.difficulty,
     p1Ai: isDifficulty(input.p1Ai) ? input.p1Ai : null,
     seed: typeof input.seed === 'number' && Number.isFinite(input.seed) ? input.seed : null,
     characters: parseCharacters(input.characters) ?? DEFAULT_MATCH_SETUP.characters,
+    durationSeconds:
+      typeof duration === 'number' && Number.isFinite(duration) && duration > 0
+        ? duration
+        : DEFAULT_MATCH_SETUP.durationSeconds,
   };
   if (dev.cpu) setup = { ...setup, mode: 'cpu', difficulty: dev.cpu };
   if (dev.cpu1) setup = { ...setup, mode: 'cpu', p1Ai: dev.cpu1 };

@@ -1,4 +1,5 @@
 import { AUDIO, STORAGE } from '../config/gameConfig';
+import type { KeyValueStore } from '../save/store';
 
 /** Ses düzeyleri (0–1): ana, efekt (kalabalık dahil), müzik. */
 export interface VolumeSettings {
@@ -11,11 +12,7 @@ export type VolumeChannel = keyof VolumeSettings;
 
 export const VOLUME_CHANNELS: readonly VolumeChannel[] = ['master', 'sfx', 'music'];
 
-/** Kalıcı kayıt arayüzü (testlerde sahte depo verilebilir). */
-export interface KeyValueStore {
-  get(key: string): string | null;
-  set(key: string, value: string): void;
-}
+export type { KeyValueStore };
 
 const KEYS: Readonly<Record<VolumeChannel, string>> = {
   master: STORAGE.keys.volumeMaster,

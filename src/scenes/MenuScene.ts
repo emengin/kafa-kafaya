@@ -2,44 +2,39 @@ import Phaser from 'phaser';
 import { crowd } from '../audio/Crowd';
 import { music } from '../audio/Music';
 import { sfx } from '../audio/Sfx';
-import { BALL_BAKE_RADIUS, FX_KEYS } from '../art/fxArt';
-import { STAGE_KEYS } from '../art/stadiumArt';
-import { addPanel, goldFill, panelTexture, textStyle } from '../art/uiArt';
+import { goldFill, panelTexture, textStyle } from '../art/uiArt';
 import {
   AI_DIFFICULTIES,
-  ANIM,
-  BALL,
   CONTROLS,
   DISPLAY,
   MENU,
   OVERLAY,
-  PITCH,
-  STORAGE,
   UI_THEME,
-  UNITS,
   type AiDifficulty,
 } from '../config/gameConfig';
-import { CHARACTERS, paramsFromStats, type CharacterDef } from '../game/characters';
-import { PLAYER_STAND_OFFSET } from '../game/entities/Player';
-import { DEFAULT_MATCH_SETUP, isDifficulty, type MatchSetup } from '../game/matchSetup';
-import { storage } from '../game/storage';
-import { getLanguage, setLanguage, t } from '../i18n';
+import { CHARACTERS, type CharacterDef } from '../game/characters';
+import { DEFAULT_MATCH_SETUP, type MatchMode, type MatchSetup } from '../game/matchSetup';
+import { getSavedTournament } from '../game/tournament';
+import { format, getLanguage, setLanguage, t, upper } from '../i18n';
 import { KeyTracker } from '../input/KeyboardInput';
-import { createGameLoop } from '../physics';
-import { CharacterRig, type RigPose } from '../ui/CharacterRig';
+import { setInMatch } from '../platform/fullscreen';
+import { cycleOption, getSettings, MATCH_DURATIONS, updateSettings } from '../save/gameSettings';
+import { getProgress } from '../save/progress';
+import { DemoMatch } from '../ui/DemoMatch';
+import { HelpPanel, type HelpPage } from '../ui/HelpPanel';
 import { volumeMenuItems } from '../ui/settingsMenu';
-import { StadiumView } from '../ui/StadiumView';
 import { TextMenu, type TextMenuItem } from '../ui/TextMenu';
-import { sessionQuality } from '../fx/feel';
 import { SceneKeys } from './sceneKeys';
 
-/** Son seçilen zorluk (kayıtlı değilse Orta). */
-function savedDifficulty(): AiDifficulty {
-  const value = storage.get(STORAGE.keys.aiDifficulty);
-  return isDifficulty(value) ? value : DEFAULT_MATCH_SETUP.difficulty;
+/** Menünün açılacağı görünüm (dil değişince ya da alt ekrandan dönüşte). */
+export interface MenuData {
+  readonly view?: 'main' | 'settings' | 'help';
+  /** Seçili gelecek öğe. */
+  readonly index?: number;
+  readonly helpPage?: HelpPage;
 }
 
-/** İki farklı rastgele karakter (yalnızca menü süsü). */
+/** İki farklı rastgele karakter (demo maç). */
 function randomPair(): [CharacterDef, CharacterDef] {
   const a = Math.floor(Math.random() * CHARACTERS.length);
   const b = (a + 1 + Math.floor(Math.random() * (CHARACTERS.length - 1))) % CHARACTERS.length;
@@ -49,80 +44,45 @@ function randomPair(): [CharacterDef, CharacterDef] {
   ];
 }
 
+/** Ana menü öğelerinin sırası. */
+const MAIN = { quick: 0, versus: 1, tournament: 2, training: 3, settings: 4, help: 5 } as const;
+/** Ayarlar öğelerinin sırası. */
+const SET = { language: 6, controls: 7 } as const;
+
 /**
- * Ana menü: canlı stadyum (kalabalık, bulutlar, ışıklar), altın başlık, buton menüsü (CPU'ya
- * Karşı → zorluk, 2 Oyuncu, Ses Ayarları, Dil) ve iki karakter — biri topu kafasında sektirir,
- * diğeri gözleriyle izler. Menü müziği ses kilidi açılınca başlar. Klavye ve fareyle kullanılır.
+ * Ana menü (Faz 6): arka planda canlı AI vs AI demo maçı (gerçek simülasyon ve çizim), altın başlık
+ * ve altı seçenek — Hızlı Maç, 2 Oyuncu, Turnuva, Antrenman, Ayarlar, Nasıl Oynanır. Ayarlar alt
+ * menüsü (zorluk, maç süresi, ses düzeyleri, ekran sarsıntısı, dil, kontrol şeması) ve sayfalı
+ * yardım paneli aynı sahnede, demo maçın üstünde açılır. Sol altta istatistikler. Klavye, fare,
+ * dokunmatik ve gamepad ile kullanılır.
  */
 export class MenuScene extends Phaser.Scene {
-  private readonly loop = createGameLoop();
   private tracker!: KeyTracker;
+  private demo!: DemoMatch;
   private menu: TextMenu | null = null;
-  private submenuTitle: Phaser.GameObjects.Text | null = null;
-  private submenuPanel: Phaser.GameObjects.Image | null = null;
-  private inSubmenu = false;
-  /** Alt menüden çıkınca ana menüde seçili gelecek öğe (açan öğe). */
-  private backIndex = 0;
-  private starting = false;
-  private stadium!: StadiumView;
-  private rigs!: [CharacterRig, CharacterRig];
-  private ball!: Phaser.GameObjects.Container;
-  private ballPattern!: Phaser.GameObjects.Image;
-  private ballShadow!: Phaser.GameObjects.Image;
+  private help: HelpPanel | null = null;
+  private view: 'main' | 'settings' | 'help' = 'main';
   private title!: Phaser.GameObjects.Text;
-
-  // Demo top: simülasyon yalnızca sabit adımda ilerler, çizim enterpole edilir.
-  private ballY = 0;
-  private prevBallY = 0;
-  private ballVy = 0;
-  private angle = 0;
-  private prevAngle = 0;
+  private heading: Phaser.GameObjects.Text | null = null;
+  private starting = false;
 
   constructor() {
     super(SceneKeys.Menu);
   }
 
-  create(): void {
+  create(data?: MenuData): void {
     const { width, height } = DISPLAY;
-    this.loop.reset();
     this.starting = false;
     this.menu = null;
-    this.submenuTitle = null;
-    this.submenuPanel = null;
-    this.inSubmenu = false;
+    this.help = null;
+    this.heading = null;
+    setInMatch(false);
 
-    const world = this.add.container(0, 0);
-    const pair = randomPair();
-    this.stadium = new StadiumView(this, world, {
-      leftColors: [pair[0].palette.body, pair[0].palette.accent],
-      rightColors: [pair[1].palette.body, pair[1].palette.accent],
-      quality: sessionQuality(),
-      title: t('game.title'),
-      goalText: t('board.goal'),
-    });
-    const shadows = this.add.container(0, 0);
-    world.add(shadows);
-    const groundY = PITCH.groundY;
-    this.rigs = [
-      new CharacterRig(this, pair[0], { shadowLayer: shadows, groundY }),
-      new CharacterRig(this, pair[1], { shadowLayer: shadows, groundY }),
-    ];
-    world.add([this.rigs[0].root, this.rigs[1].root]);
-
-    // Demo top: sağdaki karakterin kafasında seker.
-    this.ballShadow = this.add.image(0, groundY, FX_KEYS.shadow);
-    shadows.add(this.ballShadow);
-    this.ballPattern = this.add.image(0, 0, FX_KEYS.ballPattern);
-    this.ball = this.add.container(this.ballX, 0, [
-      this.ballPattern,
-      this.add.image(0, 0, FX_KEYS.ballShade),
-    ]);
-    this.ball.setScale(BALL.radius / BALL_BAKE_RADIUS);
-    world.add(this.ball);
-    this.ballY = this.prevBallY = this.ballRestY - DEMO.startDrop;
-    this.ballVy = 0;
-    this.angle = this.prevAngle = 0;
-    this.add.image(0, 0, STAGE_KEYS.vignette).setOrigin(0);
+    this.demo = new DemoMatch(this, randomPair());
+    this.add
+      .rectangle(0, 0, width, height, MENU.demo.dimColor, MENU.demo.dimAlpha)
+      .setOrigin(0)
+      .setDepth(MENU.uiDepth - 1);
 
     // Başlık: altın gradyan, kalın kontur, nefes alır.
     this.title = this.add
@@ -132,7 +92,8 @@ export class MenuScene extends Phaser.Scene {
         t('game.title'),
         textStyle(MENU.title.fontSizePx, '#ffffff', MENU.title.strokePx),
       )
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setDepth(MENU.uiDepth);
     goldFill(this.title);
     this.tweens.add({
       targets: this.title,
@@ -157,10 +118,235 @@ export class MenuScene extends Phaser.Scene {
     ).attach();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.tracker.detach();
+      this.help?.destroy();
     });
-    this.showMainMenu(0);
 
-    // Alt bilgi: gezinme ipucu hapı ve sürüm.
+    this.createFooter();
+    const view = data?.view ?? 'main';
+    if (view === 'settings') this.showSettings(data?.index ?? 0);
+    else if (view === 'help') this.showHelp(data?.helpPage ?? 'rules', 'main');
+    else this.showMain(data?.index ?? 0);
+
+    this.cameras.main.fadeIn(MENU.startFadeMs);
+    music.play('menu');
+    crowd.start();
+  }
+
+  override update(time: number, deltaMs: number): void {
+    this.demo.update(time, deltaMs);
+    crowd.setIntensity(this.demo.excitement * MENU.demo.crowdScale);
+    if (this.starting) return;
+    if (this.view === 'help') {
+      this.help?.update(this.tracker);
+      return;
+    }
+    if (this.view === 'settings' && this.tracker.consumeAny(CONTROLS.ui.menuBack)) {
+      sfx.menuBack();
+      this.showMain(MAIN.settings);
+      return;
+    }
+    this.menu?.update(this.tracker);
+  }
+
+  // ───────────────────────────── Görünümler ─────────────────────────────
+
+  private showMain(selected: number): void {
+    const s = getSettings();
+    const tournament = getSavedTournament();
+    const active = tournament?.status === 'active';
+    const items: TextMenuItem[] = [
+      {
+        label: t('menu.quickMatch'),
+        onSelect: () => {
+          this.toSelect('cpu', s.difficulty);
+        },
+      },
+      {
+        label: t('menu.twoPlayers'),
+        onSelect: () => {
+          this.toSelect('versus', s.difficulty);
+        },
+      },
+      {
+        label: active ? t('menu.tournamentContinue') : t('menu.tournament'),
+        onSelect: () => {
+          if (active) this.leave(SceneKeys.Tournament, {});
+          else this.toSelect('tournament', s.difficulty);
+        },
+      },
+      {
+        label: t('menu.training'),
+        onSelect: () => {
+          this.toSelect('training', s.difficulty);
+        },
+      },
+      {
+        label: t('menu.settings'),
+        onSelect: () => {
+          this.later(() => {
+            this.showSettings(0);
+          });
+        },
+      },
+      {
+        label: t('menu.howToPlay'),
+        onSelect: () => {
+          this.later(() => {
+            this.showHelp('rules', 'main');
+          });
+        },
+      },
+    ];
+    this.view = 'main';
+    this.setHeading(null);
+    const st = MENU.items;
+    this.setMenu(items, selected, DISPLAY.height * st.yRatio, {
+      fontSizePx: st.fontSizePx,
+      spacingPx: st.spacingPx,
+      strokePx: st.strokePx,
+      buttonWidth: st.buttonWidth,
+    });
+  }
+
+  /** Ayarlar: zorluk, maç süresi, ses düzeyleri, sarsıntı, dil, kontrol şeması, geri. */
+  private showSettings(selected: number): void {
+    const toggle = (on: boolean): string => (on ? t('settings.on') : t('settings.off'));
+    const row = (label: string, value: string): string => `${label}   ◄ ${value} ►`;
+    const items: TextMenuItem[] = [
+      {
+        label: () => row(t('settings.difficulty'), t(`difficulty.${getSettings().difficulty}`)),
+        onAdjust: (dir) => {
+          updateSettings({
+            difficulty: cycleOption<AiDifficulty>(AI_DIFFICULTIES, getSettings().difficulty, dir),
+          });
+        },
+        onSelect: () => {
+          updateSettings({
+            difficulty: cycleOption<AiDifficulty>(AI_DIFFICULTIES, getSettings().difficulty, 1),
+          });
+        },
+      },
+      {
+        label: () =>
+          row(
+            t('settings.duration'),
+            format('settings.seconds', { n: getSettings().matchSeconds }),
+          ),
+        onAdjust: (dir) => {
+          updateSettings({
+            matchSeconds: cycleOption(MATCH_DURATIONS, getSettings().matchSeconds, dir),
+          });
+        },
+        onSelect: () => {
+          updateSettings({
+            matchSeconds: cycleOption(MATCH_DURATIONS, getSettings().matchSeconds, 1),
+          });
+        },
+      },
+      ...volumeMenuItems(() => undefined).slice(0, VOLUME_ITEMS),
+      {
+        label: () => row(t('settings.shake'), toggle(getSettings().screenShake)),
+        onAdjust: () => {
+          updateSettings({ screenShake: !getSettings().screenShake });
+        },
+        onSelect: () => {
+          updateSettings({ screenShake: !getSettings().screenShake });
+        },
+      },
+      {
+        label: () => row(t('settings.language'), t('settings.languageName')),
+        onAdjust: () => {
+          this.toggleLanguage();
+        },
+        onSelect: () => {
+          this.toggleLanguage();
+        },
+      },
+      {
+        label: t('settings.controls'),
+        onSelect: () => {
+          this.later(() => {
+            this.showHelp('controls', 'settings');
+          });
+        },
+      },
+      {
+        label: t('menu.back'),
+        onSelect: () => {
+          this.later(() => {
+            this.showMain(MAIN.settings);
+          });
+        },
+      },
+    ];
+    this.view = 'settings';
+    const st = MENU.settings;
+    this.setHeading(t('settings.title'));
+    this.setMenu(items, selected, st.top, {
+      fontSizePx: st.fontSizePx,
+      spacingPx: st.spacingPx,
+      strokePx: st.strokePx,
+      buttonWidth: st.buttonWidth,
+      buttonHeight: st.buttonHeight,
+    });
+  }
+
+  private showHelp(page: HelpPage, returnTo: 'main' | 'settings'): void {
+    this.menu?.destroy();
+    this.menu = null;
+    this.setHeading(null);
+    this.title.setVisible(false);
+    this.view = 'help';
+    this.help = new HelpPanel(this, page, MENU.uiDepth + 1, () => {
+      this.help = null;
+      if (returnTo === 'settings') this.showSettings(SET.controls);
+      else this.showMain(MAIN.help);
+    });
+  }
+
+  private setMenu(
+    items: readonly TextMenuItem[],
+    selected: number,
+    y: number,
+    style: {
+      fontSizePx: number;
+      spacingPx: number;
+      strokePx: number;
+      buttonWidth: number;
+      buttonHeight?: number;
+    },
+  ): void {
+    if (this.starting) return;
+    this.menu?.destroy();
+    this.menu = new TextMenu(this, DISPLAY.width / 2, y, items, {
+      fontFamily: MENU.fontFamily,
+      color: OVERLAY.items.color,
+      selectedColor: OVERLAY.items.selectedColor,
+      selectedScale: UI_THEME.button.selectedScale,
+      depth: MENU.uiDepth + 1,
+      ...style,
+    });
+    this.menu.select(selected);
+  }
+
+  /** Alt menü başlığı (büyük başlık gizlenir); null → ana menü başlığı. */
+  private setHeading(text: string | null): void {
+    this.heading?.destroy();
+    this.heading = null;
+    this.title.setVisible(text === null);
+    if (text === null) return;
+    const st = MENU.settings;
+    this.heading = this.add
+      .text(DISPLAY.width / 2, st.titleY, upper(text), textStyle(st.titleFontSizePx, '#ffffff'))
+      .setOrigin(0.5)
+      .setDepth(MENU.uiDepth + 1);
+    goldFill(this.heading);
+  }
+
+  /** Alt bilgi: gezinme ipucu hapı, istatistikler (sol alt), sürüm (sağ alt). */
+  private createFooter(): void {
+    const { width, height } = DISPLAY;
+    const d = MENU.uiDepth;
     const hint = this.add
       .text(
         width / 2,
@@ -169,14 +355,34 @@ export class MenuScene extends Phaser.Scene {
         textStyle(MENU.navHint.fontSizePx, '#ffffff', 2),
       )
       .setOrigin(0.5)
-      .setDepth(1);
+      .setDepth(d + 1);
     this.add
       .image(
         hint.x,
         hint.y,
         panelTexture(this, hint.width + HINT_PAD * 2, HINT_H, 'dark', HINT_H / 2),
       )
-      .setAlpha(MENU.navHint.alpha);
+      .setAlpha(MENU.navHint.alpha)
+      .setDepth(d);
+    const st = MENU.stats;
+    const s = getProgress().stats;
+    const stats = this.add
+      .text(
+        st.marginPx + st.padX,
+        height - st.marginPx - st.height / 2,
+        format('menu.stats', { m: s.matches, w: s.wins, g: s.goals, c: s.tournamentsWon }),
+        textStyle(st.fontSizePx, '#ffffff', 2),
+      )
+      .setOrigin(0, 0.5)
+      .setDepth(d + 1);
+    this.add
+      .image(
+        st.marginPx + (stats.width + st.padX * 2) / 2,
+        stats.y,
+        panelTexture(this, stats.width + st.padX * 2, st.height, 'dark', st.height / 2),
+      )
+      .setAlpha(st.alpha)
+      .setDepth(d);
     this.add
       .text(
         width - MENU.footer.marginPx,
@@ -185,241 +391,55 @@ export class MenuScene extends Phaser.Scene {
         textStyle(MENU.footer.fontSizePx, '#ffffff', 2),
       )
       .setOrigin(1, 1)
-      .setAlpha(MENU.footer.alpha);
-
-    this.cameras.main.fadeIn(MENU.startFadeMs);
-    music.play('menu');
-    crowd.start();
+      .setAlpha(MENU.footer.alpha)
+      .setDepth(d);
   }
 
-  private get ballX(): number {
-    return DISPLAY.width * DEMO.rightXRatio + DEMO.ballOffsetX;
+  // ───────────────────────────── Geçişler ─────────────────────────────
+
+  /** Menü öğesinin işleyicisinden çağrılan görünüm değişimleri bir sonraki karede yapılır. */
+  private later(fn: () => void): void {
+    this.time.delayedCall(0, fn);
   }
 
-  /** Topun kafaya değdiği y (sağdaki karakterin kafa üstü). */
-  private get ballRestY(): number {
-    return this.headY - paramsFromStats(this.rigs[1].def.stats).headRadius - BALL.radius;
+  private toSelect(mode: MatchMode, difficulty: AiDifficulty): void {
+    const setup: MatchSetup = {
+      ...DEFAULT_MATCH_SETUP,
+      mode,
+      difficulty,
+      durationSeconds: getSettings().matchSeconds,
+    };
+    this.leave(SceneKeys.Select, setup);
   }
 
-  private get headY(): number {
-    return PITCH.groundY - PLAYER_STAND_OFFSET;
-  }
-
-  override update(time: number, deltaMs: number): void {
-    if (!this.starting) {
-      if (this.inSubmenu && this.tracker.consumeAny(CONTROLS.ui.menuBack)) {
-        sfx.menuBack();
-        this.showMainMenu(this.backIndex);
-      } else {
-        this.menu?.update(this.tracker);
-      }
-    }
-    const dt = Math.min(deltaMs, MAX_FRAME_MS) / UNITS.msPerSecond;
-    this.loop.advance(dt, (stepDt) => {
-      this.stepBall(stepDt);
-    });
-    const alpha = this.loop.alpha;
-    const by = Phaser.Math.Linear(this.prevBallY, this.ballY, alpha);
-    this.ball.setPosition(this.ballX, by);
-    this.ballPattern.setRotation(Phaser.Math.Linear(this.prevAngle, this.angle, alpha));
-    const height = Math.max(0, PITCH.groundY - by);
-    const f = Math.max(SHADOW_MIN, 1 - height / SHADOW_FADE);
-    this.ballShadow
-      .setPosition(this.ballX, PITCH.groundY)
-      .setScale((BALL.radius * 2 * f) / SHADOW_TEX, (BALL.radius * f) / SHADOW_TEX)
-      .setAlpha(SHADOW_ALPHA * f);
-
-    const seconds = time / UNITS.msPerSecond;
-    this.stadium.update(dt, seconds);
-    const look = { x: this.ballX, y: by };
-    this.rigs.forEach((rig, i) => {
-      rig.face.update(dt, { frozen: false, straining: false, armed: false });
-      const pose: RigPose = {
-        x: DISPLAY.width * (i === 0 ? DEMO.leftXRatio : DEMO.rightXRatio),
-        y: this.headY,
-        headRadius: paramsFromStats(rig.def.stats).headRadius,
-        footAngle: DEMO.footAngle,
-        facing: i === 0 ? 1 : -1,
-        vx: 0,
-        vy: 0,
-        grounded: true,
-        maxSpeed: 1,
-        kick: 0,
-        frozen: false,
-        armed: false,
-      };
-      rig.update(dt, pose, look, seconds);
-    });
-  }
-
-  /** Tek sabit adım: yerçekimi + kafada sekme. Phaser'dan bağımsız saf hesap. */
-  private stepBall(dt: number): void {
-    const cfg = MENU.demoBall;
-    this.prevBallY = this.ballY;
-    this.prevAngle = this.angle;
-    this.ballVy += cfg.gravity * dt;
-    this.ballY += this.ballVy * dt;
-    this.angle += cfg.spinSpeed * dt;
-    const rest = this.ballRestY;
-    if (this.ballY >= rest && this.ballVy > 0) {
-      this.ballY = rest;
-      this.ballVy = -cfg.relaunchSpeed;
-      this.rigs[1].anim.onLand(DEMO.headerSquash);
-    }
-  }
-
-  private showMainMenu(selected: number): void {
-    this.setMenu(
-      [
-        {
-          label: t('menu.vsCpu'),
-          onSelect: () => {
-            this.showDifficultyMenu();
-          },
-        },
-        {
-          label: t('menu.twoPlayers'),
-          onSelect: () => {
-            this.onStart({ ...DEFAULT_MATCH_SETUP, mode: 'versus' });
-          },
-        },
-        {
-          label: t('menu.settings'),
-          onSelect: () => {
-            this.showSettingsMenu();
-          },
-        },
-        {
-          label: t('menu.language'),
-          onSelect: () => {
-            this.toggleLanguage();
-          },
-        },
-      ],
-      selected,
-      null,
-    );
-  }
-
-  /** CPU'ya karşı: Kolay / Orta / Zor / Geri. Son seçilen zorluk işaretli gelir. */
-  private showDifficultyMenu(): void {
-    const items: TextMenuItem[] = AI_DIFFICULTIES.map((difficulty) => ({
-      label: t(`difficulty.${difficulty}`),
-      onSelect: () => {
-        storage.set(STORAGE.keys.aiDifficulty, difficulty);
-        this.onStart({ ...DEFAULT_MATCH_SETUP, mode: 'cpu', difficulty });
-      },
-    }));
-    items.push({
-      label: t('menu.back'),
-      onSelect: () => {
-        this.showMainMenu(MAIN_CPU);
-      },
-    });
-    this.backIndex = MAIN_CPU;
-    this.setMenu(items, AI_DIFFICULTIES.indexOf(savedDifficulty()), t('menu.difficultyTitle'));
-  }
-
-  /** Ses ayarları: Ana ses / Efektler / Müzik (←/→) ve Geri. */
-  private showSettingsMenu(): void {
-    this.backIndex = MAIN_SETTINGS;
-    this.setMenu(
-      volumeMenuItems(() => {
-        this.showMainMenu(MAIN_SETTINGS);
-      }),
-      0,
-      t('settings.hint'),
-    );
-  }
-
-  private setMenu(items: readonly TextMenuItem[], selected: number, title: string | null): void {
-    if (this.starting) return;
-    this.menu?.destroy();
-    this.submenuTitle?.destroy();
-    this.submenuPanel?.destroy();
-    this.submenuTitle = null;
-    this.submenuPanel = null;
-    const { width, height } = DISPLAY;
-    const style = MENU.items;
-    const y = height * style.yRatio;
-    this.menu = new TextMenu(this, width / 2, y, items, {
-      fontFamily: MENU.fontFamily,
-      fontSizePx: style.fontSizePx,
-      spacingPx: style.spacingPx,
-      strokePx: style.strokePx,
-      color: OVERLAY.items.color,
-      selectedColor: OVERLAY.items.selectedColor,
-      selectedScale: UI_THEME.button.selectedScale,
-      depth: 2,
-      buttonWidth: style.buttonWidth,
-    });
-    this.menu.select(selected);
-    this.inSubmenu = title !== null;
-    if (title !== null) {
-      const st = MENU.submenuTitle;
-      this.submenuTitle = this.add
-        .text(width / 2, y - st.offsetY, title, textStyle(st.fontSizePx, st.color, st.strokePx))
-        .setOrigin(0.5)
-        .setDepth(2);
-      this.submenuPanel = addPanel(
-        this,
-        width / 2,
-        y - st.offsetY,
-        this.submenuTitle.width + HINT_PAD * 2,
-        HINT_H,
-        'dark',
-        HINT_H / 2,
-      )
-        .setDepth(1)
-        .setAlpha(SUBTITLE_PANEL_ALPHA);
-    }
-  }
-
-  /** Karakter seçimine geç: top havaya, karakterler sevinir, ekran kararır. */
-  private onStart(setup: MatchSetup): void {
+  /** Sahneden çık: kısa flaş + vuruş sesi + kararma. */
+  private leave(key: string, data: object): void {
     if (this.starting) return;
     this.starting = true;
     sfx.unlock();
     sfx.kick(KICK_SOUND);
     const flash = MENU.clickFlash;
     this.cameras.main.flash(flash.durationMs, flash.red, flash.green, flash.blue);
-    this.ballVy = -MENU.demoBall.kickSpeed;
-    for (const rig of this.rigs) rig.face.trigger('happy', ANIM.expressions.happySeconds);
     this.cameras.main.fadeOut(MENU.startFadeMs);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-      this.scene.start(SceneKeys.Select, setup);
+      this.scene.start(key, data);
     });
   }
 
-  /** Türkçe ↔ İngilizce; metinler yeniden kurulsun diye sahne yeniden başlatılır. */
+  /** Türkçe ↔ İngilizce; metinler yeniden kurulsun diye sahne ayarlar açık yeniden başlar. */
   private toggleLanguage(): void {
     if (this.starting) return;
     setLanguage(getLanguage() === 'tr' ? 'en' : 'tr');
     document.title = t('game.title');
-    this.time.delayedCall(0, () => {
-      this.scene.restart();
+    document.documentElement.lang = getLanguage();
+    this.starting = true;
+    this.later(() => {
+      this.scene.restart({ view: 'settings', index: SET.language } satisfies MenuData);
     });
   }
 }
 
-/** Menü süsünün yerleşimi (yalnızca şekil). */
-const DEMO = {
-  leftXRatio: 0.16,
-  rightXRatio: 0.84,
-  ballOffsetX: 4,
-  startDrop: 260,
-  footAngle: 0.76,
-  headerSquash: 700,
-} as const;
-const MAX_FRAME_MS = 100;
-/** Ana menü öğelerinin sırası (alt menüden dönüşte seçili gelir). */
-const MAIN_CPU = 0;
-const MAIN_SETTINGS = 2;
-const SHADOW_MIN = 0.35;
-const SHADOW_FADE = 520;
-const SHADOW_TEX = 128;
-const SHADOW_ALPHA = 0.4;
+const VOLUME_ITEMS = 3;
 const HINT_PAD = 18;
 const HINT_H = 32;
-const SUBTITLE_PANEL_ALPHA = 0.85;
 const KICK_SOUND = 0.8;

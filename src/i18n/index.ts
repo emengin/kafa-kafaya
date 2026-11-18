@@ -18,9 +18,26 @@ export function getLanguage(): Language {
   return current;
 }
 
+const listeners = new Set<(language: Language) => void>();
+
 export function setLanguage(language: Language): void {
   current = language;
   storage.set(STORAGE.keys.language, language);
+  for (const fn of listeners) fn(language);
+}
+
+/** Dil değişince çağrılır (sahne dışı DOM metinleri: dikey ekran uyarısı, tam ekran düğmesi). */
+export function onLanguageChange(fn: (language: Language) => void): void {
+  listeners.add(fn);
+}
+
+function locale(): string {
+  return current === 'tr' ? 'tr-TR' : 'en-US';
+}
+
+/** Ondalık sayı etkin dilin biçiminde (Türkçede virgül): 1.8 → "1,8". */
+export function formatDecimal(value: number): string {
+  return value.toLocaleString(locale(), { maximumFractionDigits: 1 });
 }
 
 /** Etkin dildeki metni döndürür. */
@@ -38,5 +55,5 @@ export function format(key: StringKey, vars: Readonly<Record<string, string | nu
 
 /** Etkin dile göre büyük harf (Türkçede i → İ). */
 export function upper(text: string): string {
-  return text.toLocaleUpperCase(current === 'tr' ? 'tr-TR' : 'en-US');
+  return text.toLocaleUpperCase(locale());
 }

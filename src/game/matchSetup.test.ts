@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_MATCH_SETUP, isDifficulty, resolveMatchSetup } from './matchSetup';
+import {
+  DEFAULT_MATCH_SETUP,
+  isCpuMode,
+  isDifficulty,
+  isMatchMode,
+  resolveMatchSetup,
+} from './matchSetup';
 
 const NO_DEV = { cpu: null, cpu1: null, seed: null } as const;
 
@@ -19,6 +25,7 @@ describe('Maç kurulumu', () => {
       p1Ai: null,
       seed: 9,
       characters: DEFAULT_MATCH_SETUP.characters,
+      durationSeconds: DEFAULT_MATCH_SETUP.durationSeconds,
     });
   });
 
@@ -46,6 +53,7 @@ describe('Maç kurulumu', () => {
       p1Ai: 'hard',
       seed: 5,
       characters: DEFAULT_MATCH_SETUP.characters,
+      durationSeconds: DEFAULT_MATCH_SETUP.durationSeconds,
     });
   });
 
@@ -53,5 +61,20 @@ describe('Maç kurulumu', () => {
     expect(['easy', 'medium', 'hard'].every(isDifficulty)).toBe(true);
     expect(isDifficulty('Easy')).toBe(false);
     expect(isDifficulty(null)).toBe(false);
+  });
+
+  it('Faz 6 modları (turnuva, antrenman) ve maç süresi korunur; geçersiz süre varsayılana döner', () => {
+    expect(resolveMatchSetup({ mode: 'tournament' }, NO_DEV).mode).toBe('tournament');
+    expect(resolveMatchSetup({ mode: 'training' }, NO_DEV).mode).toBe('training');
+    expect(resolveMatchSetup({ durationSeconds: 60 }, NO_DEV).durationSeconds).toBe(60);
+    for (const bad of [0, -5, Number.NaN, Infinity, '90', null]) {
+      expect(resolveMatchSetup({ durationSeconds: bad }, NO_DEV).durationSeconds).toBe(
+        DEFAULT_MATCH_SETUP.durationSeconds,
+      );
+    }
+    expect(['cpu', 'versus', 'tournament', 'training'].every(isMatchMode)).toBe(true);
+    expect(isMatchMode('online')).toBe(false);
+    expect(isCpuMode('cpu') && isCpuMode('tournament')).toBe(true);
+    expect(isCpuMode('versus') || isCpuMode('training')).toBe(false);
   });
 });

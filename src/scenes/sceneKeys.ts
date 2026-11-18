@@ -4,6 +4,8 @@ export const SceneKeys = {
   Menu: 'Menu',
   Select: 'Select',
   Match: 'Match',
+  Tournament: 'Tournament',
+  Trophy: 'Trophy',
 } as const;
 
 export type SceneKey = (typeof SceneKeys)[keyof typeof SceneKeys];

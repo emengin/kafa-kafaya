@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { format, getLanguage, setLanguage, t, upper } from './index';
+import {
+  format,
+  formatDecimal,
+  getLanguage,
+  onLanguageChange,
+  setLanguage,
+  t,
+  upper,
+} from './index';
 import { en, tr } from './strings';
 
 describe('i18n', () => {
@@ -29,5 +37,19 @@ describe('i18n', () => {
   it('iki dilde de aynı anahtarlar vardır ve boş metin yoktur', () => {
     expect(Object.keys(en).sort()).toEqual(Object.keys(tr).sort());
     expect(Object.values(en).every((s) => s.length > 0)).toBe(true);
+  });
+});
+
+describe('i18n — Faz 6', () => {
+  it('ondalık sayı dilin biçiminde; dil dinleyicisi çağrılır', () => {
+    const seen: string[] = [];
+    onLanguageChange((l) => seen.push(l));
+    setLanguage('tr');
+    expect(formatDecimal(1.8)).toBe('1,8');
+    expect(formatDecimal(8)).toBe('8');
+    setLanguage('en');
+    expect(formatDecimal(1.8)).toBe('1.8');
+    setLanguage('tr');
+    expect(seen).toEqual(['tr', 'en', 'tr']);
   });
 });

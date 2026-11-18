@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { sfx } from '../audio/Sfx';
-import { hex } from '../art/canvas';
+import { css, hex, makeCanvasTexture } from '../art/canvas';
 import { STAGE_KEYS } from '../art/stadiumArt';
 import { addPanel, goldFill, panelTexture, textStyle } from '../art/uiArt';
 import {
@@ -10,6 +10,7 @@ import {
   HUD,
   KICK,
   MENU,
+  PAD_CODES,
   SELECT,
   STORAGE,
   UI_THEME,
@@ -24,10 +25,14 @@ import {
 } from '../game/characters';
 import { resolveMatchSetup, type MatchSetup } from '../game/matchSetup';
 import { storage } from '../game/storage';
-import { t, upper } from '../i18n';
+import { createTournament, roundDifficulties, setSavedTournament } from '../game/tournament';
+import { format, t, upper } from '../i18n';
 import { KeyTracker } from '../input/KeyboardInput';
+import { getProgress, isUnlocked, nextUnlock } from '../save/progress';
 import { CharacterRig, type RigPose } from '../ui/CharacterRig';
+import { PillButton } from '../ui/PillButton';
 import { StadiumView } from '../ui/StadiumView';
+import { SuperPreview } from '../ui/SuperPreview';
 import { sessionQuality, type QualityLevel } from '../fx/feel';
 import { SceneKeys } from './sceneKeys';
 
@@ -36,12 +41,14 @@ const WHITE = 0xffffff;
 
 type Text = Phaser.GameObjects.Text;
 
-/** Bir oyuncunun seçim durumu. */
+/**
+ * Bir oyuncunun seçim durumu. `auto`: insan kontrol etmez (CPU rakibi, antrenman kuklası ya da
+ * turnuvada ödül paneli). `index` −1 → panel karakter yerine bilgi gösterir.
+ */
 interface Picker {
   index: number;
   ready: boolean;
-  /** CPU'nun seçimi (insan kontrol etmez). */
-  readonly cpu: boolean;
+  readonly auto: boolean;
 }
 
 interface PanelView {
@@ -54,24 +61,44 @@ interface PanelView {
   readonly desc: Text;
   readonly statLabels: readonly Text[];
   readonly ready: Text;
+  readonly preview: SuperPreview;
   rig: CharacterRig | null;
   shownIndex: number;
 }
 
-/** Yön tuşları: P1 (A/D/W/S) ve P2 (oklar). */
+const [PAD1, PAD2] = PAD_CODES;
+
+/** Yön tuşları: P1 (A/D/W/S + 1. kol) ve P2 (oklar + 2. kol). */
 const KEYS = {
-  p1: { left: CONTROLS.p1.left, right: CONTROLS.p1.right, up: CONTROLS.p1.jump, down: 'KeyS' },
-  p2: { left: CONTROLS.p2.left, right: CONTROLS.p2.right, up: CONTROLS.p2.jump, down: 'ArrowDown' },
-  confirm1: [CONTROLS.p1.kick],
-  confirm2: [CONTROLS.p2.kick, 'NumpadEnter'],
+  p1: {
+    left: [CONTROLS.p1.left, PAD1.left],
+    right: [CONTROLS.p1.right, PAD1.right],
+    up: [CONTROLS.p1.jump, PAD1.up],
+    down: ['KeyS', PAD1.down],
+  },
+  p2: {
+    left: [CONTROLS.p2.left, PAD2.left],
+    right: [CONTROLS.p2.right, PAD2.right],
+    up: [CONTROLS.p2.jump, PAD2.up],
+    down: ['ArrowDown', PAD2.down],
+  },
+  confirm1: [CONTROLS.p1.kick, PAD1.a, PAD1.start],
+  confirm2: [CONTROLS.p2.kick, 'NumpadEnter', PAD2.a, PAD2.start],
 } as const;
+
+interface NavKeys {
+  readonly left: readonly string[];
+  readonly right: readonly string[];
+  readonly up: readonly string[];
+  readonly down: readonly string[];
+}
 
 const STAT_KEYS = ['speed', 'jump', 'kick', 'head'] as const;
 
 function savedIndex(key: string, fallback: number): number {
   const id = storage.get(key);
   const i = isCharacterId(id) ? CHARACTERS.findIndex((c) => c.id === id) : -1;
-  return i >= 0 ? i : fallback;
+  return i >= 0 && isUnlocked(CHARACTERS[i]?.id ?? 'kor') ? i : fallback;
 }
 
 /** Duran karakterin pozu (menü/seçim ekranı). */
@@ -92,12 +119,26 @@ function standPose(def: CharacterDef, x: number, y: number, facing: 1 | -1): Rig
   };
 }
 
+/** Rastgele bir açık karakter (`except` dışında). */
+function randomUnlocked(except: number): number {
+  const choices = CHARACTERS.map((_, i) => i).filter(
+    (i) => i !== except && isUnlocked(CHARACTERS[i]?.id ?? 'kor'),
+  );
+  return choices[Math.floor(Math.random() * choices.length)] ?? 0;
+}
+
 /**
- * Karakter seçimi: 5×2 kart (her kartta canlı, göz kırpan küçük karakter); altta iki panel
- * (büyük karakter — fareyi gözleriyle izler, hazır olunca sevinir —, isim, istatistik çubukları,
- * süper şut ve karşı oyunu). 2 oyuncuda iki imleç aynı anda (P1: A/D/W/S + Space, P2: oklar +
- * Enter); CPU'ya karşı modda insan iki tuş takımıyla da seçer, CPU kalan karakterlerden rastgele
- * birini alır. Fareyle de seçilir. Esc/Backspace: hazırı geri al, yoksa ana menü.
+ * Karakter seçimi (Faz 4–6): 5×2 kart ızgarası (her kartta canlı küçük karakter; kilitli kartlar
+ * karartılmış, kilitli ve seçilemez), altta iki panel — büyük karakter, isim, 5 bölmeli istatistik
+ * çubukları, süper şutun adı ve açıklaması, gerçek simülasyondan kaydedilmiş süper şut önizlemesi.
+ *
+ * - **2 Oyuncu:** iki imleç aynı anda (P1: A/D/W/S + Space ya da 1. kol; P2: oklar + Enter ya da
+ *   2. kol). Fare/dokunmatik henüz hazır olmayan ilk oyuncuyu yönetir.
+ * - **Hızlı Maç:** insan iki tuş takımıyla (ve iki kolla) seçer; CPU kalan açık karakterlerden
+ *   rastgele birini alır. **Antrenman:** aynı, ikinci panel kukla rakip.
+ * - **Turnuva:** ikinci panel ödülü (sıradaki kilitli karakter) gösterir; seçimle turnuva kurulur.
+ *
+ * Esc/Backspace/B ya da "Geri": hazırı geri al, yoksa ana menü.
  */
 export class CharacterSelectScene extends Phaser.Scene {
   private setup!: MatchSetup;
@@ -105,6 +146,8 @@ export class CharacterSelectScene extends Phaser.Scene {
   private pickers!: [Picker, Picker];
   private cursors!: Phaser.GameObjects.Graphics;
   private cards: { x: number; y: number; rig: CharacterRig }[] = [];
+  /** Kilitli kartların kilit simgeleri (karta göre). */
+  private readonly locks = new Map<number, Phaser.GameObjects.Image>();
   private panels!: [PanelView, PanelView];
   private bars!: Phaser.GameObjects.Graphics;
   private stadium!: StadiumView;
@@ -117,18 +160,26 @@ export class CharacterSelectScene extends Phaser.Scene {
   create(data?: unknown): void {
     this.leaving = false;
     this.cards = [];
+    this.locks.clear();
     this.setup = resolveMatchSetup(data, { cpu: null, cpu1: null, seed: null });
-    const cpu = this.setup.mode === 'cpu';
+    const mode = this.setup.mode;
+    const solo = mode !== 'versus';
+    const p1Index = savedIndex(STORAGE.keys.character1, 0);
+    const reward = mode === 'tournament' ? nextUnlock(getProgress()) : null;
+    const p2Index =
+      mode === 'tournament'
+        ? CHARACTERS.findIndex((c) => c.id === reward)
+        : savedIndex(STORAGE.keys.character2, 1);
     this.pickers = [
-      { index: savedIndex(STORAGE.keys.character1, 0), ready: false, cpu: false },
-      { index: savedIndex(STORAGE.keys.character2, 1), ready: false, cpu },
+      { index: p1Index, ready: false, auto: false },
+      { index: p2Index, ready: false, auto: solo },
     ];
     const { ui } = CONTROLS;
     this.tracker = new KeyTracker(
       window,
       new Set<string>([
-        ...Object.values(KEYS.p1),
-        ...Object.values(KEYS.p2),
+        ...Object.values(KEYS.p1).flat(),
+        ...Object.values(KEYS.p2).flat(),
         ...KEYS.confirm1,
         ...KEYS.confirm2,
         ...ui.menuBack,
@@ -160,8 +211,22 @@ export class CharacterSelectScene extends Phaser.Scene {
       )
       .setOrigin(0.5);
     goldFill(title);
+    const b = SELECT.back;
+    new PillButton(
+      this,
+      b.x,
+      b.y,
+      b.width,
+      b.height,
+      t('menu.back'),
+      b.fontSizePx,
+      () => {
+        if (!this.leaving) this.back();
+      },
+      1,
+    );
     this.createCards();
-    this.cursors = this.add.graphics();
+    this.cursors = this.add.graphics().setDepth(2);
     this.panels = [this.createPanel(0), this.createPanel(1)];
     // Çubuklar panellerin üstünde çizilmeli.
     this.bars = this.add.graphics();
@@ -169,7 +234,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       .text(
         DISPLAY.width / 2,
         SELECT.hintY,
-        t(cpu ? 'select.hintCpu' : 'select.hintVersus'),
+        t(solo ? 'select.hintCpu' : 'select.hintVersus'),
         textStyle(SELECT.hintFontSizePx, '#ffffff', 2),
       )
       .setOrigin(0.5)
@@ -197,13 +262,12 @@ export class CharacterSelectScene extends Phaser.Scene {
       return;
     }
     const [p1, p2] = this.pickers;
-    const cpu = p2.cpu;
-    // CPU modunda insan iki tuş takımını da kullanır.
+    // Tek insanlı modlarda insan iki tuş takımını (ve iki kolu) da kullanır.
     this.navigate(p1, KEYS.p1);
-    if (cpu) this.navigate(p1, KEYS.p2);
+    if (p2.auto) this.navigate(p1, KEYS.p2);
     else this.navigate(p2, KEYS.p2);
     if (tr.consumeAny(KEYS.confirm1)) this.confirm(p1);
-    if (tr.consumeAny(KEYS.confirm2)) this.confirm(cpu ? p1 : p2);
+    if (tr.consumeAny(KEYS.confirm2)) this.confirm(p2.auto ? p1 : p2);
   }
 
   /** Kartlardaki ve panellerdeki karakterler: göz kırpma, fareyi izleme, imleç nabzı. */
@@ -222,12 +286,13 @@ export class CharacterSelectScene extends Phaser.Scene {
     this.panels.forEach((panel, i) => {
       const p = this.pickers[i as 0 | 1];
       const def = CHARACTERS[p.index];
+      panel.preview.update(dt);
       if (!panel.rig || !def) return;
       panel.rig.face.update(dt, { frozen: false, straining: false, armed: false });
       const pose = standPose(
         def,
         panel.rigX,
-        SELECT.panel.y + SELECT.panel.height * PANEL_HEAD_Y,
+        SELECT.panel.y + SELECT.panel.height * SELECT.panel.headYRatio,
         i === 0 ? 1 : -1,
       );
       panel.rig.update(dt, pose, look, seconds);
@@ -237,18 +302,15 @@ export class CharacterSelectScene extends Phaser.Scene {
     this.drawCursors(pulse);
   }
 
-  private navigate(
-    p: Picker,
-    keys: { left: string; right: string; up: string; down: string },
-  ): void {
+  private navigate(p: Picker, keys: NavKeys): void {
     const tr = this.tracker;
     const cols = SELECT.grid.columns;
     const n = CHARACTERS.length;
     let moved = false;
-    if (tr.consumePress(keys.left)) moved = this.move(p, (p.index - 1 + n) % n);
-    if (tr.consumePress(keys.right)) moved = this.move(p, (p.index + 1) % n) || moved;
-    if (tr.consumePress(keys.up)) moved = this.move(p, (p.index - cols + n) % n) || moved;
-    if (tr.consumePress(keys.down)) moved = this.move(p, (p.index + cols) % n) || moved;
+    if (tr.consumeAny(keys.left)) moved = this.move(p, (p.index - 1 + n) % n);
+    if (tr.consumeAny(keys.right)) moved = this.move(p, (p.index + 1) % n) || moved;
+    if (tr.consumeAny(keys.up)) moved = this.move(p, (p.index - cols + n) % n) || moved;
+    if (tr.consumeAny(keys.down)) moved = this.move(p, (p.index + cols) % n) || moved;
     if (moved) {
       sfx.menuMove();
       this.refresh();
@@ -256,37 +318,58 @@ export class CharacterSelectScene extends Phaser.Scene {
   }
 
   private move(p: Picker, index: number): boolean {
-    if (p.ready || p.cpu || p.index === index) return false;
+    if (p.ready || p.auto || p.index === index) return false;
     p.index = index;
     return true;
   }
 
   private confirm(p: Picker): void {
-    if (p.ready || p.cpu) return;
+    if (p.ready || p.auto) return;
+    const def = CHARACTERS[p.index];
+    if (!def || !isUnlocked(def.id)) {
+      this.refuse(p.index);
+      return;
+    }
     p.ready = true;
     sfx.unlock();
     sfx.menuSelect();
     sfx.kick(CONFIRM_KICK);
     const other = this.pickers[1];
-    if (other.cpu && p === this.pickers[0]) {
-      // CPU, insanın seçmediği karakterlerden rastgele birini alır (yalnızca arayüz; maç
-      // determinizmini etkilemez).
-      const choices = CHARACTERS.map((_, i) => i).filter((i) => i !== p.index);
-      other.index = choices[Math.floor(Math.random() * choices.length)] ?? 0;
+    if (other.auto && p === this.pickers[0]) {
+      // CPU/kukla, insanın seçmediği açık karakterlerden rastgele birini alır (yalnızca arayüz;
+      // maç determinizmini etkilemez). Turnuvada ödül paneli olduğu gibi kalır.
+      if (this.setup.mode !== 'tournament') other.index = randomUnlocked(p.index);
       other.ready = true;
     }
     this.refresh();
     if (this.pickers.every((x) => x.ready)) this.start();
   }
 
+  /** Kilitli karta onay: "olmaz" sesi ve kilidin kısa sarsılması. */
+  private refuse(index: number): void {
+    sfx.menuBack();
+    const lock = this.locks.get(index);
+    if (!lock) return;
+    const lk = SELECT.locked;
+    this.tweens.killTweensOf(lock);
+    lock.setX(lock.getData('x') as number);
+    this.tweens.add({
+      targets: lock,
+      x: `+=${lk.shakePx}`,
+      duration: lk.shakeMs,
+      yoyo: true,
+      repeat: 2,
+    });
+  }
+
   private back(): void {
     const [p1, p2] = this.pickers;
     sfx.menuBack();
-    if (p2.ready && !p2.cpu) {
+    if (p2.ready && !p2.auto) {
       p2.ready = false;
     } else if (p1.ready) {
       p1.ready = false;
-      if (p2.cpu) p2.ready = false;
+      if (p2.auto) p2.ready = false;
     } else {
       this.leave(SceneKeys.Menu, undefined);
       return;
@@ -295,20 +378,36 @@ export class CharacterSelectScene extends Phaser.Scene {
   }
 
   private start(): void {
-    const ids = this.pickers.map((p) => CHARACTERS[p.index]?.id ?? 'kor') as [
-      CharacterId,
-      CharacterId,
-    ];
-    storage.set(STORAGE.keys.character1, ids[0]);
-    if (!this.pickers[1].cpu) storage.set(STORAGE.keys.character2, ids[1]);
-    const setup: MatchSetup = { ...this.setup, characters: ids };
+    const [p1, p2] = this.pickers;
+    const id1 = CHARACTERS[p1.index]?.id ?? 'kor';
+    storage.set(STORAGE.keys.character1, id1);
+    this.leaving = true;
+    if (this.setup.mode === 'tournament') {
+      const reward = nextUnlock(getProgress());
+      const state = createTournament({
+        player: id1,
+        seed: crypto.getRandomValues(new Uint32Array(1))[0] ?? 0,
+        difficulty: this.setup.difficulty,
+        reward,
+      });
+      setSavedTournament(state);
+      this.time.delayedCall(SELECT.startDelayMs, () => {
+        this.leave(SceneKeys.Tournament, { fresh: true });
+      });
+      return;
+    }
+    const id2 = CHARACTERS[p2.index]?.id ?? 'ayaz';
+    if (!p2.auto) storage.set(STORAGE.keys.character2, id2);
+    const setup: MatchSetup = {
+      ...this.setup,
+      characters: [id1, id2] as [CharacterId, CharacterId],
+    };
     this.time.delayedCall(SELECT.startDelayMs, () => {
       this.leave(SceneKeys.Match, setup);
     });
-    this.leaving = true;
   }
 
-  private leave(key: string, data: MatchSetup | undefined): void {
+  private leave(key: string, data: object | undefined): void {
     this.leaving = true;
     this.cameras.main.fadeOut(MENU.startFadeMs);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
@@ -323,6 +422,7 @@ export class CharacterSelectScene extends Phaser.Scene {
     const gridW = columns * cellW + (columns - 1) * gapPx;
     const left = (DISPLAY.width - gridW) / 2;
     const cardKey = panelTexture(this, cellW, cellH, 'card', SELECT.cardRadius);
+    const lockKey = this.lockTexture();
     this.cards = CHARACTERS.map((c, i) => {
       const x = left + (i % columns) * (cellW + gapPx);
       const y = top + Math.floor(i / columns) * (cellH + gapPx);
@@ -348,6 +448,7 @@ export class CharacterSelectScene extends Phaser.Scene {
           textStyle(SELECT.nameFontSizePx, '#ffffff', HUD.label.strokePx),
         )
         .setOrigin(0.5);
+      if (!isUnlocked(c.id)) this.locks.set(i, this.addLockOverlay(x, y, lockKey));
       const zone = this.add
         .zone(x, y, cellW, cellH)
         .setOrigin(0)
@@ -362,17 +463,58 @@ export class CharacterSelectScene extends Phaser.Scene {
       zone.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
         const p = this.mousePicker();
         if (!p) return;
-        this.move(p, i);
+        if (this.move(p, i)) this.refresh();
         this.confirm(p);
       });
       return { x, y, rig };
     });
   }
 
-  /** Fare, henüz hazır olmayan ilk insan oyuncuyu yönetir. */
+  /** Kilitli kart: koyu perde, kilit ve "KİLİTLİ". */
+  private addLockOverlay(x: number, y: number, lockKey: string): Phaser.GameObjects.Image {
+    const { cellW, cellH } = SELECT.grid;
+    const lk = SELECT.locked;
+    const g = this.add.graphics().setDepth(1);
+    g.fillStyle(SELECT.dimColor, lk.dimAlpha);
+    g.fillRoundedRect(x + 2, y + 2, cellW - LOCK_INSET, cellH - LOCK_INSET, SELECT.cardRadius);
+    const lock = this.add.image(x + cellW / 2, y + cellH * LOCK_Y, lockKey).setDepth(1);
+    lock.setData('x', lock.x);
+    this.add
+      .text(
+        x + cellW / 2,
+        y + cellH * LOCK_TEXT_Y,
+        t('select.locked'),
+        textStyle(lk.fontSizePx, UI_THEME.text.gold[1], DESC_STROKE),
+      )
+      .setOrigin(0.5)
+      .setDepth(1);
+    return lock;
+  }
+
+  private lockTexture(): string {
+    const key = 'ui-lock';
+    const s = SELECT.locked.iconSize;
+    makeCanvasTexture(this, key, s, s, (ctx) => {
+      const gold = css(Phaser.Display.Color.HexStringToColor(UI_THEME.text.gold[1]).color);
+      ctx.lineWidth = s * LOCK_LINE;
+      ctx.strokeStyle = gold;
+      ctx.beginPath();
+      ctx.arc(s / 2, s * LOCK_SHACKLE_Y, s * LOCK_SHACKLE_R, Math.PI, 0);
+      ctx.stroke();
+      ctx.fillStyle = gold;
+      ctx.fillRect(s * LOCK_BODY_X, s * LOCK_SHACKLE_Y, s * (1 - LOCK_BODY_X * 2), s * LOCK_BODY_H);
+      ctx.fillStyle = css(SELECT.dimColor);
+      ctx.beginPath();
+      ctx.arc(s / 2, s * LOCK_HOLE_Y, s * LOCK_HOLE_R, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    return key;
+  }
+
+  /** Fare/dokunmatik, henüz hazır olmayan ilk insan oyuncuyu yönetir. */
   private mousePicker(): Picker | null {
     if (this.leaving) return null;
-    return this.pickers.find((p) => !p.ready && !p.cpu) ?? null;
+    return this.pickers.find((p) => !p.ready && !p.auto) ?? null;
   }
 
   private createPanel(i: 0 | 1): PanelView {
@@ -380,9 +522,12 @@ export class CharacterSelectScene extends Phaser.Scene {
     const x = i === 0 ? pn.marginX : DISPLAY.width - pn.marginX - pn.width;
     addPanel(this, x + pn.width / 2, pn.y + pn.height / 2, pn.width, pn.height, 'panel', pn.radius);
     const pad = pn.radius;
-    // Büyük karakter panelin dış yanında, yazılar iç yanında.
+    // Büyük karakter ve önizleme panelin dış yanında, yazılar iç yanında.
     const rigX = i === 0 ? x + pn.rigInset : x + pn.width - pn.rigInset;
     const textX = i === 0 ? x + pn.textInset : x + pad;
+    const pv = SELECT.preview;
+    const previewX = i === 0 ? x + pv.insetX : x + pn.width - pv.insetX - pv.width;
+    const preview = new SuperPreview(this, previewX, pn.y + pv.top, i === 1, 0);
     const tag = this.add.text(
       textX,
       pn.y + pad,
@@ -391,7 +536,7 @@ export class CharacterSelectScene extends Phaser.Scene {
     );
     const name = this.add.text(
       textX,
-      pn.y + pad * 2 + SELECT.fontSizePx,
+      pn.y + pad + SELECT.fontSizePx + NAME_GAP,
       '',
       textStyle(SELECT.titleFontSizePx * SELECT.panelNameScale, '#ffffff'),
     );
@@ -402,9 +547,9 @@ export class CharacterSelectScene extends Phaser.Scene {
         '',
         textStyle(SELECT.fontSizePx, UI_THEME.text.gold[1]),
       )
-      .setOrigin(1, 0);
+      .setOrigin(i === 0 ? 1 : 0, 0);
     const sb = SELECT.statBar;
-    const statTop = pn.y + pad * 2 + SELECT.fontSizePx * SELECT.statTopLines;
+    const statTop = pn.y + pad + SELECT.fontSizePx * SELECT.statTopLines;
     const statLabels = STAT_KEYS.map((k, row) =>
       this.add.text(
         textX,
@@ -413,7 +558,7 @@ export class CharacterSelectScene extends Phaser.Scene {
         textStyle(SELECT.descFontSizePx, '#ffffff', DESC_STROKE),
       ),
     );
-    const superY = statTop + STAT_KEYS.length * sb.gapY;
+    const superY = statTop + STAT_KEYS.length * sb.gapY + SUPER_GAP;
     const superName = this.add.text(
       textX,
       superY,
@@ -434,6 +579,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       desc,
       statLabels,
       ready,
+      preview,
       rig: null,
       shownIndex: -1,
     };
@@ -444,6 +590,8 @@ export class CharacterSelectScene extends Phaser.Scene {
     g.clear();
     const { cellW, cellH } = SELECT.grid;
     this.pickers.forEach((p, i) => {
+      // Turnuvada ödül paneli bir imleç değildir.
+      if (i === 1 && this.setup.mode === 'tournament') return;
       const card = this.cards[p.index];
       if (!card) return;
       const inset = i === 1 && this.pickers[0].index === p.index ? SELECT.cursorInsetPx : 0;
@@ -471,27 +619,69 @@ export class CharacterSelectScene extends Phaser.Scene {
   private refresh(): void {
     this.bars.clear();
     this.pickers.forEach((p, i) => {
-      const c = CHARACTERS[p.index];
-      if (c) this.updatePanel(i as 0 | 1, p, c);
+      this.updatePanel(i as 0 | 1, p, CHARACTERS[p.index] ?? null);
     });
   }
 
-  private updatePanel(i: 0 | 1, p: Picker, c: CharacterDef): void {
+  /** Paneldeki etiket: P1/P2, CPU · zorluk, KUKLA ya da ÖDÜL. */
+  private panelTag(i: 0 | 1): string {
+    if (i === 0) return t('tag.p1');
+    switch (this.setup.mode) {
+      case 'cpu':
+        return format('player.cpu', { level: t(`difficulty.${this.setup.difficulty}`) });
+      case 'training':
+        return t('select.dummy');
+      case 'tournament':
+        return t('select.reward');
+      case 'versus':
+        return t('tag.p2');
+    }
+  }
+
+  private updatePanel(i: 0 | 1, p: Picker, c: CharacterDef | null): void {
     const panel = this.panels[i];
+    const tournamentInfo = i === 1 && this.setup.mode === 'tournament';
     if (panel.shownIndex !== p.index) {
       panel.rig?.destroy();
-      panel.rig = new CharacterRig(this, c);
-      panel.rig.scale = SELECT.panelRigScale;
+      panel.rig = null;
+      if (c) {
+        panel.rig = new CharacterRig(this, c);
+        panel.rig.scale = SELECT.panelRigScale;
+      }
       panel.shownIndex = p.index;
     }
-    panel.rig?.face.setPersistent(p.ready ? 'happy' : null);
-    if (p.ready) panel.rig?.anim.onJump();
-    const tag = p.cpu ? t('select.cpu') : `P${i + 1}`;
-    panel.tag.setText(tag);
+    panel.rig?.face.setPersistent(p.ready && !tournamentInfo ? 'happy' : null);
+    if (p.ready && !tournamentInfo) panel.rig?.anim.onJump();
+    panel.tag.setText(c || !tournamentInfo ? this.panelTag(i) : t('select.trophy'));
+    panel.ready.setText(p.ready && !tournamentInfo ? t('select.ready') : '');
+    panel.preview.setVisible(c !== null);
+    for (const label of panel.statLabels) label.setVisible(c !== null);
+    if (!c) {
+      // Turnuva, her şey açık: ödül yerine kupa ve tur zorlukları.
+      const [r1, r2, r3] = roundDifficulties(this.setup.difficulty).map((d) =>
+        t(`difficulty.${d}`),
+      );
+      panel.name.setText(upper(t('tournament.title'))).setColor(UI_THEME.text.gold[1]);
+      panel.superName.setText('');
+      panel.desc.setText(
+        format('select.allUnlocked', { r1: r1 ?? '', r2: r2 ?? '', r3: r3 ?? '' }),
+      );
+      return;
+    }
+    panel.preview.setCharacter(c);
+    const locked = !isUnlocked(c.id);
     panel.name.setText(upper(c.name)).setColor(hex(c.palette.accent));
-    panel.ready.setText(p.ready ? t('select.ready') : '');
     panel.superName.setText(upper(t(`super.${c.superType}`)));
-    panel.desc.setText(t(`superDesc.${c.superType}`));
+    if (tournamentInfo) {
+      const [r1, r2, r3] = roundDifficulties(this.setup.difficulty).map((d) =>
+        t(`difficulty.${d}`),
+      );
+      panel.desc.setText(format('select.rewardDesc', { r1: r1 ?? '', r2: r2 ?? '', r3: r3 ?? '' }));
+    } else if (locked) {
+      panel.desc.setText(`${t('select.locked')} · ${t('select.lockedHint')}`);
+    } else {
+      panel.desc.setText(t(`superDesc.${c.superType}`));
+    }
     // İstatistik çubukları: 5 yuvarlak bölme.
     const sb = SELECT.statBar;
     const g = this.bars;
@@ -527,7 +717,6 @@ const MAX_FRAME_MS = 100;
 const HINT_PAD = 18;
 const HINT_H = 30;
 const CARD_HEAD_Y = 0.36;
-const PANEL_HEAD_Y = 0.42;
 const CARD_STRIPE = 6;
 const CARD_STRIPE_ALPHA = 0.9;
 const CURSOR_PULSE_HZ = 1.6;
@@ -541,3 +730,15 @@ const CURSOR_GROW = 2;
 const DESC_STROKE = 3;
 const STAT_SHINE = 0.35;
 const STAT_SHINE_H = 0.4;
+const NAME_GAP = 6;
+const SUPER_GAP = 4;
+const LOCK_Y = 0.4;
+const LOCK_TEXT_Y = 0.62;
+const LOCK_LINE = 0.12;
+const LOCK_SHACKLE_Y = 0.45;
+const LOCK_SHACKLE_R = 0.22;
+const LOCK_BODY_X = 0.18;
+const LOCK_BODY_H = 0.45;
+const LOCK_HOLE_Y = 0.66;
+const LOCK_HOLE_R = 0.07;
+const LOCK_INSET = 4;

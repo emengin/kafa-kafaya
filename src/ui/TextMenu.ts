@@ -24,6 +24,8 @@ export interface TextMenuStyle {
   readonly depth: number;
   /** Verilirse öğeler bu genişlikte yuvarlak butonların içinde çizilir. */
   readonly buttonWidth?: number;
+  /** Buton yüksekliği (varsayılan `UI_THEME.button.height`). */
+  readonly buttonHeight?: number;
 }
 
 function labelOf(item: TextMenuItem): string {
@@ -53,7 +55,7 @@ export class TextMenu {
   ) {
     this.nav = new MenuNav(items.length);
     const bw = style.buttonWidth;
-    const bh = UI_THEME.button.height;
+    const bh = style.buttonHeight ?? UI_THEME.button.height;
     this.normalKey = bw ? panelTexture(scene, bw, bh, 'button', bh / 2) : null;
     this.activeKey = bw ? panelTexture(scene, bw, bh, 'active', bh / 2) : null;
     this.texts = items.map((item, i) => {
