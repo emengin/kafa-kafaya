@@ -12,7 +12,7 @@ const PORT = 4173;
 export default defineConfig({
   testDir: 'e2e',
   testMatch: /smoke\.spec\.ts$/,
-  timeout: 60_000,
+  timeout: 120_000,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? 'github' : 'list',
   use: {

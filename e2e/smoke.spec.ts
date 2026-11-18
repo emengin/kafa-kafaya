@@ -23,8 +23,28 @@ const isActive = (page: Page, key: string): Promise<boolean> =>
 const frame = (page: Page): Promise<number> =>
   page.evaluate(() => window.__KAFA_GAME__?.loop.frame ?? -1);
 
+/** 10 sn'de en az bu kadar kare (CI yazılım çiziminde ~70, yerelde ~600). */
+const MIN_FRAMES = 30;
+
 const matchTick = (page: Page): Promise<number> =>
   page.evaluate(() => window.__KAFA_GAME__?.scene.getScene('Match').sim?.tick ?? -1);
+
+/**
+ * Sahne açılana kadar tuşa yeniden basar: yavaş CI makinesinde sahne geçişi (solma, girdi
+ * kilidi) sürerken basılan tuş yok sayılabilir. Seçim ekranında onay tekrarına karşı korumalı.
+ */
+async function pressUntilActive(page: Page, key: string, scene: string): Promise<void> {
+  await expect
+    .poll(
+      async () => {
+        if (await isActive(page, scene)) return true;
+        await page.keyboard.press(key);
+        return isActive(page, scene);
+      },
+      { timeout: 30_000, intervals: [1000] },
+    )
+    .toBe(true);
+}
 
 test('oyun açılıyor, maç başlıyor, 10 sn hatasız çalışıyor', async ({ page }) => {
   const errors = collectErrors(page);
@@ -33,10 +53,8 @@ test('oyun açılıyor, maç başlıyor, 10 sn hatasız çalışıyor', async ({
   await expect.poll(() => isActive(page, 'Menu'), { timeout: 20_000 }).toBe(true);
 
   // Hızlı Maç → karakter seçimi → maç (gerçek klavye girdisi).
-  await page.keyboard.press('Enter');
-  await expect.poll(() => isActive(page, 'Select'), { timeout: 10_000 }).toBe(true);
-  await page.keyboard.press('Space');
-  await expect.poll(() => isActive(page, 'Match'), { timeout: 10_000 }).toBe(true);
+  await pressUntilActive(page, 'Enter', 'Select');
+  await pressUntilActive(page, 'Space', 'Match');
 
   const startFrame = await frame(page);
   const startTick = await matchTick(page);
@@ -46,9 +64,9 @@ test('oyun açılıyor, maç başlıyor, 10 sn hatasız çalışıyor', async ({
   await page.keyboard.up('KeyD');
   await page.waitForTimeout(9000);
 
-  // 10 sn boyunca oyun çizilmeye ve simülasyon ilerlemeye devam etmeli (yavaş CI GPU'sunda bile
-  // saniyede onlarca kare).
-  expect((await frame(page)) - startFrame).toBeGreaterThan(150);
+  // 10 sn boyunca oyun çizilmeye ve simülasyon ilerlemeye devam etmeli. CI'da GPU yok (yazılım
+  // çizimi, ~7 FPS) — eşik kare hızını değil, döngünün donmadığını denetler.
+  expect((await frame(page)) - startFrame).toBeGreaterThan(MIN_FRAMES);
   expect(await matchTick(page)).toBeGreaterThan(startTick);
   expect(await isActive(page, 'Match')).toBe(true);
   expect(errors).toEqual([]);
