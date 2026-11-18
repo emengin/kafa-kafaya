@@ -110,6 +110,12 @@ export class Player implements ContactBody {
   prevSuper = false;
   /** Dokunuş dolumunun bekleme süresi (sn). */
   touchCooldown = 0;
+  /** `partCircle` için yeniden kullanılan daireler (durum değildir; kaydedilmez). */
+  private readonly circles = {
+    head: { x: 0, y: 0, radius: 0 },
+    body: { x: 0, y: 0, radius: PLAYER.body.radius },
+    foot: { x: 0, y: 0, radius: PLAYER.foot.radius },
+  };
 
   constructor(
     readonly index: PlayerIndex,
@@ -370,15 +376,31 @@ export class Player implements ContactBody {
     };
   }
 
+  /**
+   * Parçanın çarpışma dairesi. Parça başına tek bir nesne yeniden kullanılır (alt adım başına
+   * onlarca çağrı bellek ayırmasın): dönen değer bir sonraki aynı parça çağrısına kadar geçerlidir.
+   */
   partCircle(part: PlayerPart): Circle {
     switch (part) {
-      case 'head':
-        return { x: this.x, y: this.y, radius: this.headRadius };
-      case 'body':
-        return { x: this.x, y: this.y + PLAYER.body.offsetY, radius: PLAYER.body.radius };
+      case 'head': {
+        const c = this.circles.head;
+        c.x = this.x;
+        c.y = this.y;
+        c.radius = this.headRadius;
+        return c;
+      }
+      case 'body': {
+        const c = this.circles.body;
+        c.x = this.x;
+        c.y = this.y + PLAYER.body.offsetY;
+        return c;
+      }
       case 'foot': {
-        const o = footOffset(this.footAngle, this.facing);
-        return { x: this.x + o.x, y: this.y + o.y, radius: PLAYER.foot.radius };
+        const c = this.circles.foot;
+        const a = this.footAngle;
+        c.x = this.x + this.facing * Math.sin(a) * PLAYER.foot.legLength;
+        c.y = this.y + (PLAYER.foot.hipOffsetY + Math.cos(a) * PLAYER.foot.legLength);
+        return c;
       }
     }
   }

@@ -4,6 +4,7 @@ import { attackDanger } from '../audio/crowdMood';
 import { music } from '../audio/Music';
 import { sfx } from '../audio/Sfx';
 import {
+  ACCESSIBILITY,
   BALL,
   CONTROLS,
   CROWD,
@@ -12,7 +13,9 @@ import {
   FX,
   HUD,
   JUICE,
+  LOOP,
   MATCH,
+  REPLAY,
   SUPER_FX,
   UNITS,
   type AiDifficulty,
@@ -32,11 +35,13 @@ import { getCharacter, loadoutFor, type CharacterDef } from '../game/characters'
 import { POWER_UP_TYPES } from '../game/entities/Player';
 import { GameSim } from '../game/GameSim';
 import { isCpuMode, resolveMatchSetup, type MatchSetup } from '../game/matchSetup';
+import { ReplayRecorder, type ReplayPlan } from '../game/replay';
+import type { SimState } from '../game/simState';
 import { applyPlayerResult, getSavedTournament, setSavedTournament } from '../game/tournament';
 import type { PlayerIndex, SimEvent } from '../game/types';
 import { format, t, upper } from '../i18n';
 import { gamepads } from '../input/Gamepads';
-import { EMPTY_INPUT, type InputSource } from '../input/InputState';
+import { EMPTY_INPUT, type InputSource, type InputState } from '../input/InputState';
 import { KeyboardInputSource, KeyTracker } from '../input/KeyboardInput';
 import { MergedInputSource } from '../input/MergedInput';
 import { isPortrait, isTouchDevice, onTouchDetected } from '../platform/device';
@@ -50,6 +55,8 @@ import { MatchHud } from '../ui/MatchHud';
 import { MatchRenderer } from '../ui/MatchRenderer';
 import { MenuOverlay } from '../ui/MenuOverlay';
 import { RenderFrame } from '../ui/renderFrame';
+import { playerColorHex, playerMark } from '../ui/identity';
+import { ReplayOverlay } from '../ui/ReplayOverlay';
 import { volumeMenuItems } from '../ui/settingsMenu';
 import type { TextMenuItem } from '../ui/TextMenu';
 import { TouchControls } from '../ui/TouchControls';
@@ -123,6 +130,22 @@ export class MatchScene extends Phaser.Scene {
   /** Duraklatma nedeni satırı (ör. gamepad bağlantısı koptu). */
   private pauseNote: string | null = null;
 
+  // ── Gol tekrarı (Faz 7) ──
+  /** Son saniyelerin halka tamponu (antrenmanda ve ayar kapalıyken yok). */
+  private recorder: ReplayRecorder | null = null;
+  private replayOverlay!: ReplayOverlay;
+  /** Oynatılan tekrar (yoksa null). */
+  private replay: ReplayPlan | null = null;
+  /** Santrada planlanan, bu karenin sonunda başlayacak tekrar. */
+  private replayPlan: ReplayPlan | null = null;
+  /** Kutlaması süren golün adımı (−1: yok). */
+  private pendingGoalTick = -1;
+  /** Tekrar bitince geri yüklenecek canlı durum (nesne yeniden kullanılır). */
+  private liveState: SimState | undefined;
+  private readonly replayLoop = createGameLoop();
+  /** `sim.step`'e verilen girdi çifti (her adımda yeni dizi ayrılmasın). */
+  private readonly stepInputs: [InputState, InputState] = [EMPTY_INPUT, EMPTY_INPUT];
+
   constructor() {
     super(SceneKeys.Match);
   }
@@ -149,6 +172,10 @@ export class MatchScene extends Phaser.Scene {
     this.recorded = false;
     this.pauseNote = null;
     this.inSettings = false;
+    this.replay = null;
+    this.replayPlan = null;
+    this.pendingGoalTick = -1;
+    this.replayLoop.reset();
 
     const fromMenu = typeof data === 'object' && data !== null && 'mode' in data;
     const dev = devAiFlags();
@@ -171,6 +198,7 @@ export class MatchScene extends Phaser.Scene {
     });
     this.prevFrame.copyFrom(this.sim);
     this.currFrame.copyFrom(this.sim);
+    this.recorder = !training && getSettings().replays ? new ReplayRecorder(this.sim) : null;
     this.names = isCpuMode(mode)
       ? [p1Ai ? cpuName(p1Ai) : t('player.you'), cpuName(difficulty)]
       : training
@@ -212,14 +240,20 @@ export class MatchScene extends Phaser.Scene {
 
     const fixed = devQuality();
     this.governor = new QualityGovernor(fixed ?? sessionQuality(), fixed !== null);
-    const tags: readonly [string, string] = isCpuMode(mode)
+    const baseTags: readonly [string, string] = isCpuMode(mode)
       ? [p1Ai ? t('tag.cpu') : t('tag.p1'), t('tag.cpu')]
       : [t('tag.p1'), t('tag.p2')];
+    const tags: readonly [string, string] = [
+      `${playerMark(0)}${baseTags[0]}`,
+      `${playerMark(1)}${baseTags[1]}`,
+    ];
     this.view = new MatchRenderer(this, this.sim, this.characters, tags, this.governor.level, {
       title: t('game.title'),
       goal: t('board.goal'),
     });
-    this.view.shakeEnabled = getSettings().screenShake;
+    const settings = getSettings();
+    this.view.shakeEnabled = settings.screenShake;
+    this.view.setAccessibility(ACCESSIBILITY.effects[settings.effects], settings.colorblind);
     if (training) this.view.setPlayerVisible(1, false);
     for (const c of this.characters) {
       this.view.prewarmText(
@@ -245,6 +279,9 @@ export class MatchScene extends Phaser.Scene {
       .rectangle(0, 0, DISPLAY.width, DISPLAY.height, WHITE, 0)
       .setOrigin(0)
       .setDepth(HUD.depth - 1);
+    this.replayOverlay = new ReplayOverlay(this, () => {
+      this.endReplay();
+    });
     this.debug = new DebugOverlay(this);
     this.debug.setVisible(wantsDebugOverlay());
     if (isTouchDevice()) this.createTouchControls();
@@ -311,6 +348,10 @@ export class MatchScene extends Phaser.Scene {
       this.pause();
       return;
     }
+    if (this.replay) {
+      this.updateReplay(time, deltaMs);
+      return;
+    }
     if (this.setup.mode === 'training') this.trainingShortcuts();
     const me = this.sim.players[0];
     this.touch?.setSuperReady(me.power >= 1 || me.superArmed, time / UNITS.msPerSecond);
@@ -320,6 +361,10 @@ export class MatchScene extends Phaser.Scene {
     this.trackDecoys();
     const simMs = this.hitStop.filter(deltaMs);
     this.advanceSimulation(simMs);
+    if (this.replayPlan) {
+      this.startReplay();
+      return;
+    }
     const worldDt = (Math.min(simMs, MAX_FRAME_MS) / UNITS.msPerSecond) * this.sim.match.timeScale;
     this.view.draw(
       this.drawFrame.lerpFrom(this.prevFrame, this.currFrame, this.loop.alpha),
@@ -346,9 +391,16 @@ export class MatchScene extends Phaser.Scene {
     const frameSeconds = (deltaMs / UNITS.msPerSecond) * this.sim.match.timeScale;
     let stepTime = 0;
     const steps = this.loop.advance(frameSeconds, (_dt, tick) => {
+      // Santrada tekrar planlandıysa canlı simülasyon bu karede durur (tekrar bitince sürer).
+      if (this.replayPlan) return;
       const start = performance.now();
       this.prevFrame.copyFrom(this.sim);
-      const events = this.sim.step([this.inputs[0].read(tick), this.inputs[1].read(tick)]);
+      const a = this.inputs[0].read(tick);
+      const b = this.inputs[1].read(tick);
+      this.recorder?.record(this.sim.tick, a, b);
+      this.stepInputs[0] = a;
+      this.stepInputs[1] = b;
+      const events = this.sim.step(this.stepInputs);
       this.currFrame.copyFrom(this.sim);
       stepTime += performance.now() - start;
       this.handleEvents(events);
@@ -374,6 +426,7 @@ export class MatchScene extends Phaser.Scene {
     for (const e of events) {
       switch (e.type) {
         case 'goal':
+          this.pendingGoalTick = this.sim.tick - 1;
           this.hud.onGoal(e.scorer);
           this.view.onGoal(e.scorer);
           this.hitStop.trigger(JUICE.hitStop.goalMs);
@@ -384,6 +437,10 @@ export class MatchScene extends Phaser.Scene {
           this.flash(WHITE, GOAL_FLASH);
           break;
         case 'kickoff':
+          // Önce biten golün tekrarı planlanır, sonra yeni bölüm başlar (tekrar santradan
+          // öncesine gitmez).
+          this.queueReplay();
+          this.recorder?.markSegmentStart(this.sim.tick);
           // Işınlanma: santra konumlarına enterpolasyonla "kayma" olmasın; kısa kararma gizler.
           this.prevFrame.copyFromFrame(this.currFrame);
           this.view.onKickoff();
@@ -397,6 +454,7 @@ export class MatchScene extends Phaser.Scene {
           sfx.whistle('goldenGoal');
           break;
         case 'matchEnd':
+          this.queueReplay();
           sfx.whistle('fullTime');
           if (e.reason === 'time') this.hud.onFullTime();
           this.view.onMatchEnd(e.winner);
@@ -546,10 +604,12 @@ export class MatchScene extends Phaser.Scene {
     if (second > 0 && second <= MATCH.finalCountdownSeconds) sfx.countdown(second <= FINAL_TICKS);
   }
 
-  /** Tüm ekranda kısa renkli parlama (HUD'un altında). */
+  /** Tüm ekranda kısa renkli parlama (HUD'un altında); efekt yoğunluğuyla ölçeklenir. */
   private flash(color: number, alpha: number): void {
+    const k = ACCESSIBILITY.effects[getSettings().effects].flashes;
+    if (k <= 0) return;
     this.tweens.killTweensOf(this.screenFlash);
-    this.screenFlash.setFillStyle(color, alpha);
+    this.screenFlash.setFillStyle(color, alpha * k);
     this.tweens.add({
       targets: this.screenFlash,
       fillAlpha: 0,
@@ -661,6 +721,148 @@ export class MatchScene extends Phaser.Scene {
     this.touch?.setEnabled(true);
   }
 
+  // ───────────────────────────── Gol tekrarı ─────────────────────────────
+
+  /** Kutlama bitti (santra ya da maç sonu): golün tekrarını planla (ayar kapalıysa yok). */
+  private queueReplay(): void {
+    const goal = this.pendingGoalTick;
+    this.pendingGoalTick = -1;
+    if (goal < 0 || !this.recorder) return;
+    this.replayPlan = this.recorder.plan(goal, this.sim.tick - 1);
+  }
+
+  /** Canlı durumu sakla, anahtar kareyi yükle, tekrar kamerası ve kaplamayla oynat. */
+  private startReplay(): void {
+    const plan = this.replayPlan;
+    this.replayPlan = null;
+    if (!plan) return;
+    this.liveState = this.sim.saveState(this.liveState);
+    this.sim.loadState(plan.state);
+    this.replay = plan;
+    this.replayLoop.reset();
+    this.prevFrame.copyFrom(this.sim);
+    this.currFrame.copyFrom(this.sim);
+    this.decoyTrack.length = 0;
+    this.view.onKickoff();
+    this.replayOverlay.show();
+    this.touch?.setEnabled(false);
+    this.tracker.releaseAll();
+    this.cameras.main.fadeIn(REPLAY.fadeMs);
+  }
+
+  /**
+   * Tekrarın bir karesi: kaydedilen girdilerle deterministik ilerleme (golün çevresinde daha
+   * yavaş), topu ortalayan yakın plan kamera. Enter/Space/A ya da "Atla" ile atlanır.
+   */
+  private updateReplay(time: number, deltaMs: number): void {
+    const plan = this.replay;
+    if (!plan) return;
+    if (this.tracker.consumeAny(CONTROLS.ui.menuConfirm)) {
+      this.endReplay();
+      return;
+    }
+    const realDt = Math.min(deltaMs, MAX_FRAME_MS) / UNITS.msPerSecond;
+    const slow = Math.abs(this.sim.tick - plan.goalTick) < REPLAY.goalSlowSeconds * LOOP.stepHz;
+    const speed = slow ? REPLAY.goalSpeed : REPLAY.speed;
+    const state = { done: false };
+    this.replayLoop.advance(realDt * speed, () => {
+      const inputs = this.recorder?.inputAt(this.sim.tick);
+      if (state.done || !inputs || this.sim.tick > plan.endTick) {
+        state.done = true;
+        return;
+      }
+      this.prevFrame.copyFrom(this.sim);
+      this.stepInputs[0] = inputs[0];
+      this.stepInputs[1] = inputs[1];
+      const events = this.sim.step(this.stepInputs);
+      this.currFrame.copyFrom(this.sim);
+      this.handleReplayEvents(events);
+    });
+    const ball = this.sim.ball;
+    const floorY = this.sim.pitch.groundY - REPLAY.groundLiftPx;
+    const focusY = ball.y + (floorY - ball.y) * REPLAY.groundBias;
+    this.view.camera.track(REPLAY.zoom, ball.x, focusY, REPLAY.tiltRad, REPLAY.followRate, realDt);
+    this.view.rememberBalloon();
+    this.trackDecoys();
+    const seconds = time / UNITS.msPerSecond;
+    this.view.draw(
+      this.drawFrame.lerpFrom(this.prevFrame, this.currFrame, this.replayLoop.alpha),
+      realDt,
+      realDt * speed,
+      seconds,
+    );
+    this.replayOverlay.update(seconds);
+    if (state.done) this.endReplay();
+  }
+
+  /** Tekrarda yalnızca görsel efektler ve vuruş sesleri (skor, HUD, saat, hit-stop yok). */
+  private handleReplayEvents(events: readonly SimEvent[]): void {
+    for (const e of events) {
+      switch (e.type) {
+        case 'goal':
+          this.view.onGoal(e.scorer);
+          sfx.net(BALL.maxSpeed);
+          crowd.cheer();
+          break;
+        case 'kick':
+          sfx.kick(Math.min(1, e.speed / BALL.maxSpeed));
+          this.view.onKick(e.player, e.speed, e.super);
+          break;
+        case 'header':
+          sfx.header(Math.min(1, e.speed / BALL.maxSpeed));
+          this.view.onHeader(e.player, e.speed, this.time.now / UNITS.msPerSecond);
+          break;
+        case 'ballTouch':
+          this.view.onTouch(e.player, e.speed);
+          break;
+        case 'ballImpact':
+          this.onImpact(e.surface, e.speed, e.x, e.y);
+          break;
+        case 'jump':
+          this.view.onJump(e.player, e.air);
+          break;
+        case 'land':
+          this.view.onLand(e.player, e.speed);
+          break;
+        case 'superLaunch':
+          sfx.superShot(e.superType);
+          this.view.onSuperLaunch(e.player, e.superType);
+          break;
+        case 'superHit':
+          this.view.onSuperHit(e.player, e.superType);
+          break;
+        case 'teleportExit':
+          this.view.onTeleportExit(e.x, e.y);
+          break;
+        case 'balloonPop':
+          sfx.pop();
+          this.view.onBalloonPop(e.player, e.powerUp);
+          break;
+        case 'balloonExpire':
+          this.view.onBalloonExpire();
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
+  /** Tekrar bitti ya da atlandı: canlı durumu (santra) birebir geri yükle. */
+  private endReplay(): void {
+    if (!this.replay || !this.liveState) return;
+    this.sim.loadState(this.liveState);
+    this.replay = null;
+    this.prevFrame.copyFrom(this.sim);
+    this.currFrame.copyFrom(this.sim);
+    this.decoyTrack.length = 0;
+    this.view.camera.stopTracking();
+    this.view.onKickoff();
+    this.replayOverlay.hide();
+    this.touch?.setEnabled(!this.paused && !this.endShown);
+    this.tracker.releaseAll();
+    this.cameras.main.fadeIn(REPLAY.fadeMs);
+  }
+
   private createTouchControls(): void {
     if (this.touch) return;
     this.touch = new TouchControls(this, this.setup.mode === 'training');
@@ -746,7 +948,7 @@ export class MatchScene extends Phaser.Scene {
     this.overlay = new MenuOverlay(this, {
       title:
         winner === null ? t('end.draw') : upper(format('end.winner', { name: this.names[winner] })),
-      ...(winner === null ? {} : { titleColor: HUD.playerColors[winner] }),
+      ...(winner === null ? {} : { titleColor: playerColorHex(winner) }),
       lines,
       items,
     });

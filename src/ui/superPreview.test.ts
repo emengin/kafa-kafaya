@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CHARACTERS } from '../game/characters';
-import { recordSuperPreview } from './SuperPreview';
+import { recordSuperPreview } from './superPreviewTrack';
 
 describe('Seçim ekranı süper önizlemesi', () => {
   it('her karakterin kaydında süper şut gerçekten atılır ve top rakip kaleye doğru gider', () => {

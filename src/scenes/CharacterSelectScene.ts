@@ -30,6 +30,7 @@ import { format, t, upper } from '../i18n';
 import { KeyTracker } from '../input/KeyboardInput';
 import { getProgress, isUnlocked, nextUnlock } from '../save/progress';
 import { CharacterRig, type RigPose } from '../ui/CharacterRig';
+import { playerColor, playerColorHex, playerMark } from '../ui/identity';
 import { PillButton } from '../ui/PillButton';
 import { StadiumView } from '../ui/StadiumView';
 import { SuperPreview } from '../ui/SuperPreview';
@@ -532,7 +533,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       textX,
       pn.y + pad,
       '',
-      textStyle(SELECT.fontSizePx, HUD.playerColors[i]),
+      textStyle(SELECT.fontSizePx, playerColorHex(i)),
     );
     const name = this.add.text(
       textX,
@@ -595,7 +596,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       const card = this.cards[p.index];
       if (!card) return;
       const inset = i === 1 && this.pickers[0].index === p.index ? SELECT.cursorInsetPx : 0;
-      const color = Phaser.Display.Color.HexStringToColor(HUD.playerColors[i === 0 ? 0 : 1]).color;
+      const color = playerColor(i === 0 ? 0 : 1);
       const alpha = p.ready ? 1 : SELECT.cursorIdleAlpha * (CURSOR_MIN + (1 - CURSOR_MIN) * pulse);
       g.lineStyle(SELECT.cursorWidthPx + CURSOR_GLOW, color, alpha * CURSOR_GLOW_ALPHA);
       g.strokeRoundedRect(
@@ -625,7 +626,7 @@ export class CharacterSelectScene extends Phaser.Scene {
 
   /** Paneldeki etiket: P1/P2, CPU · zorluk, KUKLA ya da ÖDÜL. */
   private panelTag(i: 0 | 1): string {
-    if (i === 0) return t('tag.p1');
+    if (i === 0) return `${playerMark(0)}${t('tag.p1')}`;
     switch (this.setup.mode) {
       case 'cpu':
         return format('player.cpu', { level: t(`difficulty.${this.setup.difficulty}`) });
@@ -634,7 +635,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       case 'tournament':
         return t('select.reward');
       case 'versus':
-        return t('tag.p2');
+        return `${playerMark(1)}${t('tag.p2')}`;
     }
   }
 

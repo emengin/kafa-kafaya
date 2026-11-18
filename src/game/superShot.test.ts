@@ -109,7 +109,7 @@ describe('Süper vuruş', () => {
     isolate(sim);
     ballAtFoot(sim);
     sim.players[0].superArmed = armed;
-    const events = sim.step([input({ kick: true }), EMPTY_INPUT]);
+    const events = [...sim.step([input({ kick: true }), EMPTY_INPUT])];
     return { vx: sim.ball.vx, vy: sim.ball.vy, events };
   };
 

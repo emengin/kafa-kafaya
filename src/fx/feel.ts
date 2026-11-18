@@ -100,6 +100,12 @@ export class CameraRig {
   focusY = 0;
   private target = 1;
   private holdSeconds = 0;
+  /** Tekrar kamerası: izlenen nokta (yumuşak takip) ve hafif eğim (rad). */
+  private tracking = false;
+  private trackX = 0;
+  private trackY = 0;
+  tilt = 0;
+  private tiltTarget = 0;
 
   constructor(
     private readonly width: number,
@@ -122,8 +128,34 @@ export class CameraRig {
     this.holdSeconds = 0;
   }
 
+  /**
+   * Tekrar kamerası (Faz 7): `zoom` ölçeğinde (x, y) noktasını ekran ortasına getirerek yumuşakça
+   * izler; görünen alan dünyanın dışına taşmaz (kenarda boşluk yok). Her karede çağrılır.
+   */
+  track(zoom: number, x: number, y: number, tilt: number, rate: number, dt: number): void {
+    if (!this.tracking) {
+      this.tracking = true;
+      this.trackX = x;
+      this.trackY = y;
+    }
+    this.trackX = approach(this.trackX, x, rate, dt);
+    this.trackY = approach(this.trackY, y, rate, dt);
+    this.target = zoom;
+    this.holdSeconds = 0;
+    this.tiltTarget = tilt;
+  }
+
+  /** Tekrar bitti: normal kameraya anında dön. */
+  stopTracking(): void {
+    this.tracking = false;
+    this.tilt = 0;
+    this.tiltTarget = 0;
+    this.reset();
+  }
+
   update(dt: number): void {
     const z = JUICE.zoom;
+    this.tilt = approach(this.tilt, this.tiltTarget, z.inRate, dt);
     if (this.holdSeconds > 0) {
       this.holdSeconds -= dt;
       if (this.holdSeconds <= 0) this.target = 1;
@@ -133,12 +165,18 @@ export class CameraRig {
     if (Math.abs(this.zoom - this.target) < ZOOM_EPSILON) this.zoom = this.target;
   }
 
-  /** Ölçeklenen katmanın konumu: odak noktası ekranda yerinde kalır. */
+  /**
+   * Ölçeklenen katmanın konumu: normalde odak noktası ekranda yerinde kalır; tekrar kamerasında
+   * izlenen nokta ortalanır ve görünen alan [0, genişlik] × [0, yükseklik] içinde kalacak şekilde
+   * sınırlanır.
+   */
   get offsetX(): number {
+    if (this.tracking) return centered(this.width, this.zoom, this.trackX);
     return this.focusX * (1 - this.zoom);
   }
 
   get offsetY(): number {
+    if (this.tracking) return centered(this.height, this.zoom, this.trackY);
     return this.focusY * (1 - this.zoom);
   }
 
@@ -149,6 +187,12 @@ export class CameraRig {
   }
 }
 const ZOOM_EPSILON = 1e-4;
+
+/** `p` noktasını ortalayan kayma, görünen alan dünyanın içinde kalacak şekilde sınırlı. */
+function centered(size: number, zoom: number, p: number): number {
+  const ideal = size / 2 - zoom * p;
+  return Math.min(0, Math.max(size * (1 - zoom), ideal));
+}
 
 /** Kalite kademeleri: 0 düşük, 1 orta, 2 yüksek. */
 export type QualityLevel = 0 | 1 | 2;

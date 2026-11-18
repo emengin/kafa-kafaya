@@ -25,6 +25,11 @@ export class SeededRandom {
     return this.current;
   }
 
+  /** İç durumu geri yükler (gol tekrarı: simülasyon durumu birebir geri alınır). */
+  set state(value: number) {
+    this.current = value >>> 0;
+  }
+
   /** [0, 1) aralığında sayı. */
   next(): number {
     this.current = (this.current + INCREMENT) >>> 0;

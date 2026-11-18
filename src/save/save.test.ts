@@ -85,7 +85,14 @@ describe('Kayıt — oyun ayarları', () => {
   it('eski zorluk anahtarından geçiş; kaydet → yükle aynı ayarı verir', () => {
     const store = memoryStore({ [STORAGE.keys.aiDifficulty]: 'easy' });
     expect(loadSettings(store).difficulty).toBe('easy');
-    const s = { difficulty: 'hard', matchSeconds: 60, screenShake: false } as const;
+    const s = {
+      difficulty: 'hard',
+      matchSeconds: 60,
+      screenShake: false,
+      replays: false,
+      colorblind: true,
+      effects: 'low',
+    } as const;
     saveSettings(store, s);
     expect(loadSettings(store)).toEqual(s);
   });

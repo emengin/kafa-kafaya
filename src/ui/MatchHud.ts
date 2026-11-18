@@ -19,9 +19,11 @@ import type { MatchFlow } from '../game/rules/MatchFlow';
 import type { PlayerIndex } from '../game/types';
 import { format, t, upper } from '../i18n';
 import { CharacterRig } from './CharacterRig';
+import { playerColor, playerColorHex, playerMark } from './identity';
 import { displayedSecond, formatClock } from './format';
 import { ICON_RADIUS, iconKey, strokeRing } from './icons';
 import { css, makeCanvasTexture } from '../art/canvas';
+import { LiteGraphics } from './LiteGraphics';
 
 /** Sık kullanılan renk. */
 const GOLD = 0xffd23f;
@@ -87,9 +89,9 @@ export class MatchHud {
     this.portraits = [0, 1].map((i) => {
       const side = sides[i] ?? 1;
       const x = cx + side * b.portraitX;
-      const color = Phaser.Display.Color.HexStringToColor(HUD.playerColors[i] ?? '#ffffff').color;
+      const color = playerColor(i as PlayerIndex);
       const R = b.portraitR + PORTRAIT_RING;
-      const key = `ui-portrait-${i}`;
+      const key = `ui-portrait-${i}-${color}`;
       makeCanvasTexture(scene, key, R * 2 + 2, R * 2 + 2, (ctx, w) => {
         const c = w / 2;
         ctx.fillStyle = css(UI_THEME.styles.dark.bottom);
@@ -116,8 +118,8 @@ export class MatchHud {
         .text(
           cx + side * b.nameX,
           b.nameY,
-          upper(names[i]),
-          textStyle(HUD.name.fontSizePx, HUD.playerColors[i], HUD.name.strokePx),
+          `${playerMark(i)}${upper(names[i])}`,
+          textStyle(HUD.name.fontSizePx, playerColorHex(i), HUD.name.strokePx),
         )
         .setOrigin(i === 0 ? 0 : 1, 0.5)
         .setDepth(d);
@@ -160,7 +162,7 @@ export class MatchHud {
       const mid = i === 0 ? outer + pw.width / 2 : outer - pw.width / 2;
       scene.add.image(mid, pw.y, trackKey).setDepth(d);
     }
-    this.power = scene.add.graphics().setDepth(d);
+    this.power = new LiteGraphics(scene).setDepth(d);
     const superLabel = (i: PlayerIndex): Text =>
       scene.add
         .text(
@@ -176,7 +178,7 @@ export class MatchHud {
     this.superLabels = [superLabel(0), superLabel(1)];
     this.superLabels[0].setPosition(cx - b.nameX, pw.y + LABEL_BELOW).setOrigin(0, 0.5);
     this.superLabels[1].setPosition(cx + b.nameX, pw.y + LABEL_BELOW).setOrigin(1, 0.5);
-    this.powerUpIcons = scene.add.graphics().setDepth(d + 1);
+    this.powerUpIcons = new LiteGraphics(scene).setDepth(d + 1);
     // Güçlendirici rozetleri: oyuncu başına her tür için hazır sprite (oyunda nesne kurulmaz).
     const pu = HUD.powerUps;
     const badgeKey = 'ui-badge';

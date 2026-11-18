@@ -9,6 +9,7 @@ import { FaceController } from '../fx/FaceController';
 import type { CharacterDef } from '../game/characters';
 import { PLAYER_STAND_OFFSET } from '../game/entities/Player';
 import { shade } from '../art/canvas';
+import { LiteGraphics } from './LiteGraphics';
 
 type Image = Phaser.GameObjects.Image;
 
@@ -103,7 +104,7 @@ export class CharacterRig {
     this.back = add.image(0, this.headLocalY, charKey.back(def.id));
     parts.push(this.back);
 
-    this.limbs = headOnly ? null : add.graphics();
+    this.limbs = headOnly ? null : new LiteGraphics(scene);
     if (this.limbs) parts.push(this.limbs);
     this.bodyImg = headOnly
       ? null
@@ -113,7 +114,7 @@ export class CharacterRig {
     if (this.bodyImg) parts.push(this.bodyImg);
 
     this.head = add.image(0, this.headLocalY, charKey.head(def.id));
-    this.faceG = add.graphics();
+    this.faceG = new LiteGraphics(scene);
     this.front = add.image(0, this.headLocalY, charKey.front(def.id));
     parts.push(this.head, this.faceG, this.front);
 

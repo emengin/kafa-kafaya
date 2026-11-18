@@ -49,7 +49,7 @@ function run(sim: GameSim, n: number, inputs = IDLE): SimEvent[] {
 }
 
 function kickSuper(sim: GameSim): SimEvent[] {
-  return sim.step(KICK1);
+  return [...sim.step(KICK1)];
 }
 
 describe('Süper şutlar — ortak', () => {

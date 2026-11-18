@@ -49,6 +49,7 @@ import {
   type MatchRules,
   type MatchSnapshot,
 } from './rules/MatchFlow';
+import { copyFields, type SimState } from './simState';
 import type { PlayerIndex, SimEvent } from './types';
 
 /** Simülasyonun sabit adım süresi. Gerçek zamandan bağımsızdır (determinizm). */
@@ -173,6 +174,9 @@ export class GameSim {
   private readonly events: SimEvent[] = [];
   /** Bu adımda topun oyunculara pasif temasının en yüksek hızı (`ballTouch` olayı için). */
   private readonly touchSpeeds: [number, number] = [0, 0];
+  /** Adım başına geçici değerler (yeniden kullanılır). */
+  private readonly wasGrounded: [boolean, boolean] = [false, false];
+  private readonly fallSpeeds: [number, number] = [0, 0];
   private readonly rng: SeededRandom;
   private readonly powerUpsEnabled: boolean;
   private soloMode = false;
@@ -231,13 +235,18 @@ export class GameSim {
     return this.match.score;
   }
 
-  /** Bir sabit adım ilerletir ve bu adımda olan olayları döndürür. */
-  step(inputs: readonly [InputState, InputState]): SimEvent[] {
+  /**
+   * Bir sabit adım ilerletir ve bu adımda olan olayları döndürür. Dönen dizi simülasyona aittir
+   * ve bir sonraki adıma kadar geçerlidir (her adımda yeni dizi ayrılmaz); saklamak için kopyalayın.
+   */
+  step(inputs: readonly [InputState, InputState]): readonly SimEvent[] {
     this.events.length = 0;
     const [p1, p2] = this.players;
     const active = this.match.playersActive;
     this.applyPowerUpModifiers(STEP_SECONDS);
-    const wasGrounded = [p1.grounded, p2.grounded] as const;
+    const wasGrounded = this.wasGrounded;
+    wasGrounded[0] = p1.grounded;
+    wasGrounded[1] = p2.grounded;
     for (const p of this.players) {
       const wasArmed = p.superArmed;
       const wasJumping = p.jumping;
@@ -250,7 +259,9 @@ export class GameSim {
     }
     this.applyTornado(STEP_SECONDS);
     this.ball.clampSpeed();
-    const fallSpeeds = [p1.vy, p2.vy] as const;
+    const fallSpeeds = this.fallSpeeds;
+    fallSpeeds[0] = p1.vy;
+    fallSpeeds[1] = p2.vy;
     this.touchSpeeds[0] = 0;
     this.touchSpeeds[1] = 0;
     this.ball.impactSpeed = 0;
@@ -274,7 +285,7 @@ export class GameSim {
     this.stepDecoys(STEP_SECONDS);
     this.applyRules(STEP_SECONDS);
     this.tick++;
-    return this.events.slice();
+    return this.events;
   }
 
   /**
@@ -747,6 +758,93 @@ export class GameSim {
   /** `index` oyuncusunun hücum ettiği kalenin çizgisi. */
   static attackLineX(index: PlayerIndex): number {
     return attackLineX(index);
+  }
+
+  /**
+   * Tam durumu kaydeder (gol tekrarı). `into` verilirse onun nesneleri yeniden kullanılır
+   * (anahtar kareler her karede bellek ayırmasın). Yanılsamalar ve balon kopyalanır.
+   */
+  saveState(into?: SimState): SimState {
+    const m = this.match;
+    const s: SimState = into ?? {
+      tick: 0,
+      match: {
+        phase: m.phase,
+        overtime: false,
+        timeLeft: 0,
+        phaseTime: 0,
+        score: [0, 0],
+        lastScorer: -1,
+        winner: null,
+        endReason: null,
+      },
+      players: [{}, {}],
+      ball: {},
+      decoys: [],
+      balloon: null,
+      balloonTimer: 0,
+      goalMouths: [0, 0],
+      rngState: 0,
+      solo: false,
+    };
+    s.tick = this.tick;
+    const ms = s.match;
+    ms.phase = m.phase;
+    ms.overtime = m.overtime;
+    ms.timeLeft = m.timeLeft;
+    ms.phaseTime = m.phaseTime;
+    ms.score[0] = m.score[0];
+    ms.score[1] = m.score[1];
+    ms.lastScorer = m.lastScorer;
+    ms.winner = m.winner;
+    ms.endReason = m.endReason;
+    copyFields(s.players[0], this.players[0]);
+    copyFields(s.players[1], this.players[1]);
+    copyFields(s.ball, this.ball);
+    s.decoys.length = this.decoys.length;
+    this.decoys.forEach((d, i) => {
+      const slot = (s.decoys[i] ??= { ball: {}, ttl: 0 });
+      copyFields(slot.ball, d.ball);
+      slot.ttl = d.ttl;
+    });
+    s.balloon = this.balloon ? { ...this.balloon } : null;
+    s.balloonTimer = this.balloonTimer;
+    s.goalMouths[0] = this.pitch.goals[0].mouthHeight;
+    s.goalMouths[1] = this.pitch.goals[1].mouthHeight;
+    s.rngState = this.rng.state;
+    s.solo = this.soloMode;
+    return s;
+  }
+
+  /** `saveState` ile alınan durumu birebir geri yükler (aynı kurulumla oluşturulmuş simülasyona). */
+  loadState(s: SimState): void {
+    this.tick = s.tick;
+    const m = this.match;
+    const ms = s.match;
+    m.phase = ms.phase;
+    m.overtime = ms.overtime;
+    m.timeLeft = ms.timeLeft;
+    m.phaseTime = ms.phaseTime;
+    m.score[0] = ms.score[0];
+    m.score[1] = ms.score[1];
+    m.lastScorer = ms.lastScorer;
+    m.winner = ms.winner;
+    m.endReason = ms.endReason;
+    copyFields(this.players[0], s.players[0]);
+    copyFields(this.players[1], s.players[1]);
+    copyFields(this.ball, s.ball);
+    this.decoys.length = 0;
+    for (const d of s.decoys) {
+      const ball = new Ball();
+      copyFields(ball, d.ball);
+      this.decoys.push({ ball, ttl: d.ttl });
+    }
+    this.balloon = s.balloon ? { ...s.balloon } : null;
+    this.balloonTimer = s.balloonTimer;
+    setGoalMouthHeight(this.pitch.goals[0], s.goalMouths[0]);
+    setGoalMouthHeight(this.pitch.goals[1], s.goalMouths[1]);
+    this.rng.state = s.rngState;
+    this.soloMode = s.solo;
   }
 
   snapshot(): SimSnapshot {

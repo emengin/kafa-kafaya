@@ -3,6 +3,7 @@ import { css, remakeCanvasTexture } from '../art/canvas';
 import { NET, PITCH } from '../config/gameConfig';
 import { NetSim } from '../fx/NetSim';
 import type { GoalDef, Pitch } from '../game/pitch';
+import { LiteGraphics } from './LiteGraphics';
 
 /** Ağ yayının bir düğümünü yerleştiren fonksiyon (dünya koordinatı). */
 type NodeFn = (i: number, j: number) => { x: number; y: number };
@@ -48,7 +49,7 @@ export class GoalView {
         .setOrigin(0);
     this.interiors = [interior(pitch.goals[0]), interior(pitch.goals[1])];
     backLayer.add(this.interiors);
-    this.live = scene.add.graphics();
+    this.live = new LiteGraphics(scene);
     frontLayer.add(this.live);
   }
 
@@ -131,12 +132,14 @@ export class GoalView {
       ctx.strokeStyle = css(NET.color, NET.alpha);
       ctx.lineWidth = NET.lineWidthPx;
       const fn = this.nodeFn(goal, net);
-      forEachNetLine(net, fn, (pts) => {
+      forEachNetLine(net, fn, (pts, n) => {
         ctx.beginPath();
-        pts.forEach((p, k) => {
+        for (let k = 0; k < n; k++) {
+          const p = pts[k];
+          if (!p) break;
           if (k === 0) ctx.moveTo(p.x, p.y);
           else ctx.lineTo(p.x, p.y);
-        });
+        }
         ctx.stroke();
       });
     });
@@ -202,44 +205,62 @@ export class GoalView {
 const MAX_GROWTH = 80;
 const SHADE_FROM = 0.6;
 
-/** Ağın baklava deseni: iki çapraz yönde çoklu çizgiler. */
+/** Çizgi noktaları için yeniden kullanılan havuz (her karede dizi/nesne ayrılmasın). */
+const linePool: { x: number; y: number }[] = [];
+
+function poolPoint(k: number, x: number, y: number): void {
+  const p = linePool[k];
+  if (p) {
+    p.x = x;
+    p.y = y;
+  } else {
+    linePool[k] = { x, y };
+  }
+}
+
+/**
+ * Ağın baklava deseni: iki çapraz yönde çoklu çizgiler. Noktalar paylaşılan havuza yazılır;
+ * `emit` çağrısı sırasında geçerlidir (n: bu çizginin nokta sayısı).
+ */
 function forEachNetLine(
   net: NetSim,
   node: NodeFn,
-  emit: (pts: { x: number; y: number }[]) => void,
+  emit: (pts: readonly { x: number; y: number }[], n: number) => void,
 ): void {
   const { cols, rows } = net;
   // Çapraz çizgiler: (i + j) sabit ve (i − j) sabit.
   for (let s = 0; s <= cols - 1 + rows - 1; s++) {
-    const a: { x: number; y: number }[] = [];
+    let n = 0;
     for (let i = 0; i < cols; i++) {
       const j = s - i;
       if (j < 0 || j >= rows) continue;
       const p = node(i, j);
-      a.push({ x: p.x, y: p.y });
+      poolPoint(n++, p.x, p.y);
     }
-    if (a.length > 1) emit(a);
+    if (n > 1) emit(linePool, n);
   }
   for (let s = -(rows - 1); s <= cols - 1; s++) {
-    const b: { x: number; y: number }[] = [];
+    let n = 0;
     for (let i = 0; i < cols; i++) {
       const j = i - s;
       if (j < 0 || j >= rows) continue;
       const p = node(i, j);
-      b.push({ x: p.x, y: p.y });
+      poolPoint(n++, p.x, p.y);
     }
-    if (b.length > 1) emit(b);
+    if (n > 1) emit(linePool, n);
   }
 }
 
 function drawNetGraphics(g: Phaser.GameObjects.Graphics, net: NetSim, node: NodeFn): void {
   g.lineStyle(NET.lineWidthPx, NET.color, NET.alpha);
-  forEachNetLine(net, node, (pts) => {
+  forEachNetLine(net, node, (pts, n) => {
     g.beginPath();
-    pts.forEach((p, k) => {
+    for (let k = 0; k < n; k++) {
+      const p = pts[k];
+      if (!p) break;
       if (k === 0) g.moveTo(p.x, p.y);
       else g.lineTo(p.x, p.y);
-    });
+    }
     g.strokePath();
   });
 }

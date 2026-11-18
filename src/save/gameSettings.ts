@@ -1,4 +1,12 @@
 import { SETTINGS, STORAGE, type AiDifficulty } from '../config/gameConfig';
+
+/** Efekt yoğunluğu (erişilebilirlik). */
+export type EffectLevel = (typeof SETTINGS.effectLevels)[number];
+export const EFFECT_LEVELS: readonly EffectLevel[] = SETTINGS.effectLevels;
+
+function isEffectLevel(value: unknown): value is EffectLevel {
+  return typeof value === 'string' && (EFFECT_LEVELS as readonly string[]).includes(value);
+}
 import { isDifficulty } from '../game/matchSetup';
 import { storage } from '../game/storage';
 import { isRecord, readJson, writeJson, type KeyValueStore } from './store';
@@ -12,12 +20,21 @@ export interface GameSettings {
   /** Maç süresi (sn): `SETTINGS.matchDurations` seçeneklerinden biri. */
   readonly matchSeconds: number;
   readonly screenShake: boolean;
+  /** Golden sonra tekrar (Faz 7). */
+  readonly replays: boolean;
+  /** Renk körü dostu oyuncu renkleri + kimlik halkası ve şekilleri (Faz 7). */
+  readonly colorblind: boolean;
+  /** Efekt yoğunluğu: parçacıklar, ekran parlamaları, gol yakınlaşması (Faz 7). */
+  readonly effects: EffectLevel;
 }
 
 export const DEFAULT_SETTINGS: GameSettings = {
   difficulty: SETTINGS.defaults.difficulty,
   matchSeconds: SETTINGS.defaults.matchSeconds,
   screenShake: SETTINGS.defaults.screenShake,
+  replays: SETTINGS.defaults.replays,
+  colorblind: SETTINGS.defaults.colorblind,
+  effects: SETTINGS.defaults.effects,
 };
 
 export const MATCH_DURATIONS: readonly number[] = SETTINGS.matchDurations;
@@ -41,6 +58,9 @@ export function parseSettings(value: unknown, legacyDifficulty: unknown = null):
         ? seconds
         : DEFAULT_SETTINGS.matchSeconds,
     screenShake: typeof v.screenShake === 'boolean' ? v.screenShake : DEFAULT_SETTINGS.screenShake,
+    replays: typeof v.replays === 'boolean' ? v.replays : DEFAULT_SETTINGS.replays,
+    colorblind: typeof v.colorblind === 'boolean' ? v.colorblind : DEFAULT_SETTINGS.colorblind,
+    effects: isEffectLevel(v.effects) ? v.effects : DEFAULT_SETTINGS.effects,
   };
 }
 

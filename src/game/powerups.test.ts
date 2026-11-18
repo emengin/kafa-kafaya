@@ -36,7 +36,7 @@ function hitBalloon(sim: GameSim, toucher: 0 | 1 | -1): SimEvent[] {
   if (!pos) throw new Error('balon yok');
   sim.ball.resetTo(pos.x, pos.y);
   sim.ball.lastTouch = toucher;
-  return sim.step(IDLE);
+  return [...sim.step(IDLE)];
 }
 
 function grant(sim: GameSim, player: 0 | 1, type: PowerUpType): void {

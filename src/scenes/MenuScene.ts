@@ -18,7 +18,13 @@ import { getSavedTournament } from '../game/tournament';
 import { format, getLanguage, setLanguage, t, upper } from '../i18n';
 import { KeyTracker } from '../input/KeyboardInput';
 import { setInMatch } from '../platform/fullscreen';
-import { cycleOption, getSettings, MATCH_DURATIONS, updateSettings } from '../save/gameSettings';
+import {
+  cycleOption,
+  EFFECT_LEVELS,
+  getSettings,
+  MATCH_DURATIONS,
+  updateSettings,
+} from '../save/gameSettings';
 import { getProgress } from '../save/progress';
 import { DemoMatch } from '../ui/DemoMatch';
 import { HelpPanel, type HelpPage } from '../ui/HelpPanel';
@@ -47,7 +53,7 @@ function randomPair(): [CharacterDef, CharacterDef] {
 /** Ana menü öğelerinin sırası. */
 const MAIN = { quick: 0, versus: 1, tournament: 2, training: 3, settings: 4, help: 5 } as const;
 /** Ayarlar öğelerinin sırası. */
-const SET = { language: 6, controls: 7 } as const;
+const SET = { language: 9, controls: 10 } as const;
 
 /**
  * Ana menü (Faz 6): arka planda canlı AI vs AI demo maçı (gerçek simülasyon ve çizim), altın başlık
@@ -65,6 +71,8 @@ export class MenuScene extends Phaser.Scene {
   private title!: Phaser.GameObjects.Text;
   private heading: Phaser.GameObjects.Text | null = null;
   private starting = false;
+  /** Bir sonraki karede yapılacak görünüm değişimi bekliyor mu? */
+  private pendingView = false;
 
   constructor() {
     super(SceneKeys.Menu);
@@ -73,6 +81,7 @@ export class MenuScene extends Phaser.Scene {
   create(data?: MenuData): void {
     const { width, height } = DISPLAY;
     this.starting = false;
+    this.pendingView = false;
     this.menu = null;
     this.help = null;
     this.heading = null;
@@ -135,7 +144,7 @@ export class MenuScene extends Phaser.Scene {
   override update(time: number, deltaMs: number): void {
     this.demo.update(time, deltaMs);
     crowd.setIntensity(this.demo.excitement * MENU.demo.crowdScale);
-    if (this.starting) return;
+    if (this.starting || this.pendingView) return;
     if (this.view === 'help') {
       this.help?.update(this.tracker);
       return;
@@ -243,6 +252,15 @@ export class MenuScene extends Phaser.Scene {
           });
         },
       },
+      {
+        label: () => row(t('settings.replays'), toggle(getSettings().replays)),
+        onAdjust: () => {
+          updateSettings({ replays: !getSettings().replays });
+        },
+        onSelect: () => {
+          updateSettings({ replays: !getSettings().replays });
+        },
+      },
       ...volumeMenuItems(() => undefined).slice(0, VOLUME_ITEMS),
       {
         label: () => row(t('settings.shake'), toggle(getSettings().screenShake)),
@@ -251,6 +269,24 @@ export class MenuScene extends Phaser.Scene {
         },
         onSelect: () => {
           updateSettings({ screenShake: !getSettings().screenShake });
+        },
+      },
+      {
+        label: () => row(t('settings.effects'), t(`effects.${getSettings().effects}`)),
+        onAdjust: (dir) => {
+          updateSettings({ effects: cycleOption(EFFECT_LEVELS, getSettings().effects, dir) });
+        },
+        onSelect: () => {
+          updateSettings({ effects: cycleOption(EFFECT_LEVELS, getSettings().effects, 1) });
+        },
+      },
+      {
+        label: () => row(t('settings.colorblind'), toggle(getSettings().colorblind)),
+        onAdjust: () => {
+          updateSettings({ colorblind: !getSettings().colorblind });
+        },
+        onSelect: () => {
+          updateSettings({ colorblind: !getSettings().colorblind });
         },
       },
       {
@@ -297,6 +333,7 @@ export class MenuScene extends Phaser.Scene {
     this.setHeading(null);
     this.title.setVisible(false);
     this.view = 'help';
+    this.help?.destroy();
     this.help = new HelpPanel(this, page, MENU.uiDepth + 1, () => {
       this.help = null;
       if (returnTo === 'settings') this.showSettings(SET.controls);
@@ -397,9 +434,18 @@ export class MenuScene extends Phaser.Scene {
 
   // ───────────────────────────── Geçişler ─────────────────────────────
 
-  /** Menü öğesinin işleyicisinden çağrılan görünüm değişimleri bir sonraki karede yapılır. */
+  /**
+   * Menü öğesinin işleyicisinden çağrılan görünüm değişimleri bir sonraki karede yapılır. Bekleyen
+   * bir değişim varken yenisi yok sayılır ve menü girdisi dinlenmez: çok hızlı art arda basışta
+   * (iki karede iki Enter) aynı panel iki kez açılmaz (Faz 7 hata avı).
+   */
   private later(fn: () => void): void {
-    this.time.delayedCall(0, fn);
+    if (this.pendingView) return;
+    this.pendingView = true;
+    this.time.delayedCall(0, () => {
+      this.pendingView = false;
+      fn();
+    });
   }
 
   private toSelect(mode: MatchMode, difficulty: AiDifficulty): void {

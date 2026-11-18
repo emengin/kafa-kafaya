@@ -1,6 +1,7 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
 import { PLATFORM } from './src/config/gameConfig.ts';
+import { customPhaser } from './scripts/phaser/plugin.ts';
 import { pwa } from './scripts/pwa/plugin.ts';
 
 /**
@@ -10,14 +11,16 @@ import { pwa } from './scripts/pwa/plugin.ts';
 const DEFAULT_REPO_NAME = 'kafa-kafaya';
 const repoName = process.env.GITHUB_REPOSITORY?.split('/')[1] ?? DEFAULT_REPO_NAME;
 
-/** Phaser tek başına ~1.2 MB; Vite'ın 500 kB uyarısını anlamlı bir sınıra çekiyoruz. */
-const CHUNK_SIZE_WARNING_KB = 1600;
+/** Özel Phaser derlemesi ~700 kB; Vite'ın 500 kB uyarısını anlamlı bir sınıra çekiyoruz. */
+const CHUNK_SIZE_WARNING_KB = 800;
 
 // `vite preview` da command === 'serve' ile çalışır; derlenmiş dosyalar depo alt yolunu
 // beklediği için önizlemede de aynı base kullanılmalı (yoksa varlıklar 404 verir).
 export default defineConfig(({ command, isPreview }) => ({
   base: command === 'build' || isPreview === true ? `/${repoName}/` : '/',
   plugins: [
+    // Özel Phaser derlemesi: yalnızca oyunun kullandığı modüller (yalnızca üretim derlemesi).
+    customPhaser(),
     // PWA: manifest, kodla çizilen simgeler ve çevrimdışı önbellek (yalnızca üretim derlemesi).
     pwa({
       name: 'Kafa Kafaya',
@@ -32,6 +35,15 @@ export default defineConfig(({ command, isPreview }) => ({
   build: {
     target: 'es2022',
     chunkSizeWarningLimit: CHUNK_SIZE_WARNING_KB,
+    rollupOptions: {
+      output: {
+        // Kod bölme: motor (Phaser) ayrı parçada — oyun kodu değişince yeniden indirilmez,
+        // tarayıcı ve service worker önbelleğinde kalır.
+        manualChunks(id: string): string | undefined {
+          return /[/\\](phaser|scripts[/\\]phaser)[/\\]/.test(id) ? 'phaser' : undefined;
+        },
+      },
+    },
   },
   test: {
     environment: 'node',

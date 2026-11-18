@@ -5,6 +5,7 @@ import type { QualityLevel } from '../fx/feel';
 import type { BallView } from './BallView';
 import type { ParticleLayer, SpritePool } from './ParticleLayer';
 import { strokeArc } from './shapes';
+import { LiteGraphics } from './LiteGraphics';
 
 /** Sık kullanılan renk. */
 const WHITE = 0xffffff;
@@ -72,7 +73,7 @@ export class SuperFx {
       scene.add.image(0, 0, FX_KEYS.glow).setBlendMode(Phaser.BlendModes.ADD).setVisible(false);
     this.glow = glow();
     for (let i = 0; i < 2; i++) this.decoyGlows.push(glow());
-    this.g = scene.add.graphics();
+    this.g = new LiteGraphics(scene);
     behindBall.add([this.glow, ...this.decoyGlows, this.g]);
   }
 

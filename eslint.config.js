@@ -38,9 +38,15 @@ export default tseslint.config(
     },
   },
   {
-    files: ['**/*.js'],
+    files: ['**/*.js', '**/*.cjs'],
     extends: [tseslint.configs.disableTypeChecked],
     languageOptions: { globals: { ...globals.node } },
+  },
+  {
+    // Özel Phaser girişi: Phaser kaynağı CommonJS olduğu için `require` ile derlenir.
+    files: ['**/*.cjs'],
+    languageOptions: { sourceType: 'commonjs' },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
   },
   prettier,
 );

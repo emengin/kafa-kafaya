@@ -294,9 +294,9 @@ export const SUPER_SHOTS = {
   ice: {
     speedMultiplier: 0.9,
     elevationScale: 0.75,
-    duration: 1,
+    duration: 0.8,
     endsOnBounce: true,
-    freezeSeconds: 1.5,
+    freezeSeconds: 1.1,
   },
   /** Zikzak: yerçekimsiz, dikeyde dalgalanarak ilerler (y = −A·(1 − cos ωt)). */
   zigzag: {
@@ -323,11 +323,11 @@ export const SUPER_SHOTS = {
     exitBeforeGoalPx: 250,
     /** Işınlanma için topun kaleye en az bu kadar daha yol alması gerekir (px). */
     minPhaseTravelPx: 120,
-    exitSpeedScale: 0.65,
+    exitSpeedScale: 0.68,
   },
   /** Dev Top: top büyür ve ağırlaşır (kaleciyi iter); süre sonunda küçülür. */
   giant: {
-    speedMultiplier: 1.05,
+    speedMultiplier: 1.12,
     elevationScale: 0.7,
     duration: 2.4,
     endsOnBounce: false,
@@ -345,7 +345,7 @@ export const SUPER_SHOTS = {
     radiusPx: 150,
     /** Rakibin topun gidiş yönündeki hızı bu ivmeyle `maxPushSpeed × yakınlık`a çıkarılır. */
     pushAccel: 12000,
-    maxPushSpeed: 520,
+    maxPushSpeed: 400,
     airborneFactor: 0.4,
   },
   /**
@@ -371,9 +371,9 @@ export const SUPER_SHOTS = {
   magnet: {
     speedMultiplier: 1.12,
     elevationScale: 0.6,
-    duration: 1.4,
+    duration: 1.6,
     endsOnBounce: true,
-    steerAccel: 1300,
+    steerAccel: 1800,
   },
   /** Serap: top üçe bölünür; ikisi yanılsamadır, oyunculara değince ya da süre dolunca söner. */
   mirage: {
@@ -393,8 +393,8 @@ export const SUPER_SHOTS = {
     endsOnBounce: false,
     /** Sabit yükselme açısı (rad, negatif = yere doğru). */
     elevation: -0.2,
-    jumpLockSeconds: 1,
-    groundRestitution: 0.85,
+    jumpLockSeconds: 0.8,
+    groundRestitution: 0.78,
     groundFriction: 0.05,
   },
 } as const;
@@ -1061,7 +1061,36 @@ export const TOUCH = {
 export const SETTINGS = {
   /** Maç süresi seçenekleri (sn). */
   matchDurations: [60, 90, 120],
-  defaults: { difficulty: 'medium', matchSeconds: 90, screenShake: true },
+  defaults: {
+    difficulty: 'medium',
+    matchSeconds: 90,
+    screenShake: true,
+    replays: true,
+    colorblind: false,
+    effects: 'high',
+  },
+  /** Efekt yoğunluğu seçenekleri (Faz 7, erişilebilirlik). */
+  effectLevels: ['low', 'medium', 'high'],
+} as const;
+
+/**
+ * Erişilebilirlik (Faz 7). Efekt yoğunluğu: parçacık sayısı, ekran parlamaları (ışığa duyarlılık)
+ * ve gol yakınlaşması ölçeklenir. Renk körü modu: oyuncu kimlik renkleri renk körlüğünün her
+ * türünde ayırt edilen Okabe–Ito çiftine döner (turuncu ↔ mavi), oyuncuların altına kimlik halkası
+ * ve etiketlere şekil (▲ / ●) eklenir — renk tek ipucu olmaz.
+ */
+export const ACCESSIBILITY = {
+  effects: {
+    low: { particles: 0.3, flashes: 0, zoom: 0 },
+    medium: { particles: 0.65, flashes: 0.5, zoom: 0.5 },
+    high: { particles: 1, flashes: 1, zoom: 1 },
+  },
+  /** Okabe–Ito: turuncu (#E69F00) ve gök mavisi (#56B4E9). */
+  colorblindPlayerColors: ['#e69f00', '#56b4e9'],
+  /** Kafa üstü etiketlerinde renk körü modunda kimlik şekilleri. */
+  colorblindMarks: ['▲', '●'],
+  /** Oyuncunun ayağının altındaki kimlik halkası (elips). */
+  ring: { widthRatio: 1.3, heightPx: 14, lineWidthPx: 4, alpha: 0.9 },
 } as const;
 
 /** İlerleme kaydı (Faz 6): istatistik sayaçlarının üst sınırı (bozuk/şişkin veriye karşı). */
@@ -1110,6 +1139,38 @@ export const DEV = {
   unlockAllValue: 'all',
   /** `?touch=1` → dokunmatik butonlar masaüstünde de görünür (test). */
   touchParam: 'touch',
+} as const;
+
+/**
+ * Gol tekrarı (Faz 7): son `bufferSeconds` saniye halka tamponda (her `keyframeSteps` adımda bir
+ * tam durum + her adımın girdileri). Golden sonra kutlama bitince tekrar oynatılır: golden en
+ * çok `leadSeconds` önce başlar (santradan önceye gitmez), golden `afterSeconds` sonra biter.
+ * Tampon, golden önceki 4 sn'yi kutlama süresince (~1,3 sn simülasyon) de tutacak kadar uzun.
+ */
+export const REPLAY = {
+  bufferSeconds: 6,
+  keyframeSteps: 15,
+  leadSeconds: 4,
+  /** Golden önce en az bu kadar görüntü yoksa tekrar oynatılmaz (sn). */
+  minLeadSeconds: 1,
+  afterSeconds: 0.9,
+  /** Oynatma hızı (ağır çekim) ve golün çevresinde daha da yavaş. */
+  speed: 0.55,
+  goalSpeed: 0.3,
+  goalSlowSeconds: 0.6,
+  /** Tekrar kamerası: topu ortalayan yakın plan, hafif eğik. */
+  zoom: 1.45,
+  followRate: 6,
+  /** Kamera odağı top ile zeminin biraz üstü arasında (oyuncular da kadrajda kalsın). */
+  groundBias: 0.45,
+  groundLiftPx: 150,
+  tiltRad: -0.018,
+  /** Sinema şeritleri (px) ve "TEKRAR" etiketi. */
+  letterboxPx: 40,
+  letterboxAlpha: 0.85,
+  badge: { x: 32, y: 128, fontSizePx: 24, dotRadius: 9, blinkHz: 1.5 },
+  skip: { x: 1150, y: 676, width: 176, height: 40, fontSizePx: 18 },
+  fadeMs: 200,
 } as const;
 
 /** Kalıcı kayıt (localStorage) anahtarları. */
@@ -1194,14 +1255,14 @@ export const MENU = {
   stats: { marginPx: 14, fontSizePx: 15, padX: 16, height: 30, alpha: 0.9 },
   /** Ayarlar alt menüsü (9 öğe): büyük başlık gizlenir, sıkışık buton listesi. */
   settings: {
-    titleY: 58,
-    titleFontSizePx: 40,
-    top: 128,
-    spacingPx: 52,
-    fontSizePx: 21,
+    titleY: 54,
+    titleFontSizePx: 38,
+    top: 112,
+    spacingPx: 45,
+    fontSizePx: 19,
     strokePx: 4,
-    buttonWidth: 620,
-    buttonHeight: 44,
+    buttonWidth: 640,
+    buttonHeight: 39,
   },
   navHint: { yRatio: 0.935, fontSizePx: 16, alpha: 0.85 },
   footer: {

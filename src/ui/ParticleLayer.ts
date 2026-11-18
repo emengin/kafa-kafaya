@@ -43,6 +43,8 @@ export class ParticleLayer {
   private readonly lastFrame: [Uint8Array, Uint8Array];
   private readonly lastTint: [Uint32Array, Uint32Array];
   private countScale = 1;
+  /** Efekt yoğunluğu (erişilebilirlik ayarı) çarpanı; kaliteyle birlikte uygulanır. */
+  private intensity = 1;
 
   constructor(
     scene: Phaser.Scene,
@@ -80,11 +82,16 @@ export class ParticleLayer {
     this.countScale = PARTICLES.countScale[level];
   }
 
+  /** Efekt yoğunluğu (0–1): parçacık sayıları ölçeklenir. */
+  setIntensity(intensity: number): void {
+    this.intensity = intensity;
+  }
+
   /** Bir ön ayarla parçacık patlaması. */
   burst(name: ParticlePresetName, x: number, y: number, opts?: BurstOptions): void {
     const p: ParticlePresetDef = PARTICLE_PRESETS[name];
     const pool = this.pools[p.additive ? 1 : 0];
-    const scale = (opts?.countScale ?? 1) * this.countScale;
+    const scale = (opts?.countScale ?? 1) * this.countScale * this.intensity;
     const n = Math.max(1, Math.round(range(p.count[0], p.count[1]) * scale));
     const angle = opts?.angle ?? p.angle;
     const speedScale = opts?.speedScale ?? 1;

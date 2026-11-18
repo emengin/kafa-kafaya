@@ -10,7 +10,6 @@ import {
   BRACKET,
   CONTROLS,
   DISPLAY,
-  HUD,
   MENU,
   OVERLAY,
   SELECT,
@@ -33,6 +32,7 @@ import { format, t, upper } from '../i18n';
 import { KeyTracker } from '../input/KeyboardInput';
 import { getSettings } from '../save/gameSettings';
 import { CharacterRig } from '../ui/CharacterRig';
+import { playerColor, playerColorHex } from '../ui/identity';
 import { StadiumView } from '../ui/StadiumView';
 import { TextMenu, type TextMenuItem } from '../ui/TextMenu';
 import { sessionQuality, type QualityLevel } from '../fx/feel';
@@ -302,7 +302,7 @@ export class TournamentScene extends Phaser.Scene {
     const dim = out !== null && out <= r ? BRACKET.eliminatedAlpha : 1;
     const isPlayer = slot === PLAYER_SLOT;
     if (isPlayer) {
-      const color = Phaser.Display.Color.HexStringToColor(HUD.playerColors[0]).color;
+      const color = playerColor(0);
       const frame = this.add.graphics();
       frame.lineStyle(PLAYER_FRAME, color, 1);
       frame.strokeRoundedRect(x - b.width / 2, y - b.height / 2, b.width, b.height, b.radius);
@@ -319,7 +319,7 @@ export class TournamentScene extends Phaser.Scene {
           name,
           textStyle(
             BRACKET.nameFontSizePx,
-            isPlayer ? HUD.playerColors[0] : hex(def.palette.accent),
+            isPlayer ? playerColorHex(0) : hex(def.palette.accent),
             TEXT_STROKE,
           ),
         )

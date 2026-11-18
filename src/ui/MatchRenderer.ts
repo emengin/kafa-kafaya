@@ -3,6 +3,7 @@ import { css, hex, makeCanvasTexture, roundRectPath } from '../art/canvas';
 import { BALLOON_ART, FX_KEYS } from '../art/fxArt';
 import { STAGE_KEYS } from '../art/stadiumArt';
 import {
+  ACCESSIBILITY,
   ANIM,
   BALL,
   CHARACTER_ART,
@@ -28,10 +29,12 @@ import { BallView } from './BallView';
 import { CharacterRig } from './CharacterRig';
 import { GoalView } from './GoalView';
 import { ICON_RADIUS, iconKey } from './icons';
+import { playerColor } from './identity';
 import { ParticleLayer, SpritePool } from './ParticleLayer';
 import type { RenderFrame } from './renderFrame';
 import { StadiumView } from './StadiumView';
 import { SuperFx } from './SuperFx';
+import { LiteGraphics } from './LiteGraphics';
 
 /** Sık kullanılan renk. */
 const GOLD = 0xffd23f;
@@ -154,7 +157,7 @@ export class MatchRenderer {
       .image(0, 0, FX_KEYS.balloon)
       .setOrigin(0.5, BALLOON_ART.originY)
       .setVisible(false);
-    this.balloonG = add.graphics();
+    this.balloonG = new LiteGraphics(scene);
     l.balloon.add([this.balloonG, this.balloonImg]);
     this.balloonIcon = add.image(0, 0, iconKey('speed')).setTint(ICON_COLOR).setVisible(false);
     l.balloon.add(this.balloonIcon);
@@ -172,7 +175,7 @@ export class MatchRenderer {
     this.flashes = new SpritePool(scene, l.flashes, FX_KEYS.flash, FLASH_POOL, true);
     this.rings = new SpritePool(scene, l.flashes, FX_KEYS.ring, RING_POOL, true);
     this.superFx = new SuperFx(scene, l.trail, this.particles, this.rings, this.ball);
-    this.fxG = add.graphics();
+    this.fxG = new LiteGraphics(scene);
     l.trail.add(this.fxG);
 
     this.vignette = add.image(0, 0, STAGE_KEYS.vignette).setOrigin(0).setDepth(VIGNETTE_DEPTH);
@@ -195,8 +198,8 @@ export class MatchRenderer {
       .setOrigin(0.5, 0.5);
     const w = Math.ceil(text.width + t.padX * 2);
     const h = Math.ceil(text.height + t.padY * 2);
-    const color = Phaser.Display.Color.HexStringToColor(HUD.playerColors[i]).color;
-    const key = `tag-${i}-${label}`;
+    const color = playerColor(i);
+    const key = `tag-${i}-${label}-${color}`;
     const pad = t.arrowPx + 2;
     makeCanvasTexture(this.scene, key, w + pad * 2, h + pad * 2, (ctx) => {
       ctx.translate(pad, pad);
@@ -225,6 +228,42 @@ export class MatchRenderer {
 
   /** false → ekran sarsıntısı kapalı (Ayarlar; hareket hassasiyeti). Gol zoom'u etkilenmez. */
   shakeEnabled = true;
+  /** Efekt yoğunluğu: gol yakınlaşması ve vuruş flaşları bu oranla (Faz 7, erişilebilirlik). */
+  private zoomScale = 1;
+  private flashScale = 1;
+  /** Renk körü modunda oyuncuların altındaki kimlik halkaları (kapalıysa null). */
+  private idRings: [Phaser.GameObjects.Image, Phaser.GameObjects.Image] | null = null;
+
+  /**
+   * Erişilebilirlik ayarları: efekt yoğunluğu (parçacıklar, flaşlar, gol yakınlaşması) ve renk
+   * körü modu (oyuncunun ayağının altında kimlik renginde halka).
+   */
+  setAccessibility(
+    effects: { particles: number; flashes: number; zoom: number },
+    colorblind: boolean,
+  ): void {
+    this.particles.setIntensity(effects.particles);
+    this.flashScale = effects.flashes;
+    this.zoomScale = effects.zoom;
+    if (colorblind && !this.idRings) {
+      const r = ACCESSIBILITY.ring;
+      const key = 'identity-ring';
+      makeCanvasTexture(this.scene, key, RING_TEX, RING_TEX / RING_ASPECT, (ctx, w, h) => {
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = r.lineWidthPx * RING_TEX_SCALE;
+        ctx.beginPath();
+        ctx.ellipse(w / 2, h / 2, w / 2 - ctx.lineWidth, h / 2 - ctx.lineWidth, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+      const make = (i: PlayerIndex): Phaser.GameObjects.Image =>
+        this.scene.add
+          .image(0, this.sim.pitch.groundY, key)
+          .setTint(playerColor(i))
+          .setAlpha(r.alpha);
+      this.idRings = [make(0), make(1)];
+      this.layers.shadows.add(this.idRings);
+    }
+  }
 
   /** Kafa üstü etiketleri (P1/P2/CPU) göster/gizle (menü demo maçında gizli). */
   setTagsVisible(visible: boolean): void {
@@ -235,6 +274,7 @@ export class MatchRenderer {
   setPlayerVisible(index: PlayerIndex, visible: boolean): void {
     this.rigs[index].setVisible(visible);
     this.tags[index].box.setVisible(visible);
+    this.idRings?.[index].setVisible(visible);
   }
 
   setQuality(level: QualityLevel): void {
@@ -325,7 +365,7 @@ export class MatchRenderer {
     const z = this.camera.zoom;
     const ox = this.camera.offsetX + this.shake.offsetX;
     const oy = this.camera.offsetY + this.shake.offsetY;
-    const th = this.shake.angle;
+    const th = this.shake.angle + this.camera.tilt;
     const cx = DISPLAY.width / 2;
     const cy = DISPLAY.height / 2;
     const cos = Math.cos(th);
@@ -375,6 +415,13 @@ export class MatchRenderer {
     );
     const tag = this.tags[p.index];
     tag.box.setPosition(pose.x, pose.y - p.headRadius - CHARACTER_ART.tag.gapPx - HEAD_TAG_LIFT);
+    const ring = this.idRings?.[p.index];
+    if (ring) {
+      const w = p.headRadius * 2 * ACCESSIBILITY.ring.widthRatio;
+      ring
+        .setPosition(pose.x, this.sim.pitch.groundY)
+        .setDisplaySize(w, ACCESSIBILITY.ring.heightPx);
+    }
 
     // Koşu tozu: yerde hızlı koşarken adım başına bir bulutçuk.
     if (p.grounded && Math.abs(p.vx) > p.maxSpeed * RUN_DUST_SPEED && !p.frozen) {
@@ -484,6 +531,7 @@ export class MatchRenderer {
       scaleFrom: j.minScale,
       scaleTo: j.minScale + (j.maxScale - j.minScale) * u,
       rotation: Math.random() * Math.PI,
+      alpha: this.flashScale,
     });
     this.particles.burst('kickSpark', b.x, b.y, {
       angle: Math.atan2(b.vy, b.vx),
@@ -508,6 +556,7 @@ export class MatchRenderer {
       life: JUICE.flash.durationMs / MS,
       scaleFrom: JUICE.flash.minScale,
       scaleTo: JUICE.flash.minScale + u,
+      alpha: this.flashScale,
     });
     if (speed >= JUICE.hitStop.hardHitSpeed) this.shake.add(JUICE.shake.hardHit * u);
   }
@@ -536,6 +585,7 @@ export class MatchRenderer {
         life: JUICE.flash.durationMs / MS,
         scaleFrom: JUICE.flash.minScale,
         scaleTo: JUICE.flash.maxScale * u,
+        alpha: this.flashScale,
       });
       this.shake.add(JUICE.shake.post * u);
       const goal = x < DISPLAY.width / 2 ? 0 : 1;
@@ -602,7 +652,7 @@ export class MatchRenderer {
     const mouthY = this.sim.pitch.groundY - goal.mouthHeight / 2;
     const fx = goal.lineX + (DISPLAY.width / 2 - goal.lineX) * z.focusTowardCenter;
     const fy = mouthY + (DISPLAY.height / 2 - mouthY) * z.focusTowardCenter;
-    this.camera.punchIn(z.goal, fx, fy, z.holdSeconds);
+    this.camera.punchIn(1 + (z.goal - 1) * this.zoomScale, fx, fy, z.holdSeconds);
     const scorerDef = this.characters[scorer];
     const colors = [scorerDef.palette.body, scorerDef.palette.accent, GOLD, WHITE];
     this.particles.burst(
@@ -863,3 +913,7 @@ const FLOAT_POP = 1.5;
 const FLOAT_POP_MS = 160;
 const CROWD_FLASH_RATE = 6;
 const LOW_SHAKE = 0.6;
+/** Kimlik halkası dokusu (genişlik px, en-boy oranı, çizgi kalınlığı ölçeği). */
+const RING_TEX = 128;
+const RING_ASPECT = 4;
+const RING_TEX_SCALE = 2;
