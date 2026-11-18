@@ -1,135 +1,181 @@
 # Kafa Kafaya
 
-Tarayıcıda oynanan, 2D yandan görünümlü, 1v1 bir kafa topu oyunu. Büyük kafalı özgün
-karakterler, süper şutlar, güçlendiriciler ve gol tekrarı.
+[![CI ve GitHub Pages](https://github.com/emengin/kafa-kafaya/actions/workflows/deploy.yml/badge.svg)](https://github.com/emengin/kafa-kafaya/actions/workflows/deploy.yml)
+[![Sürüm](https://img.shields.io/github/v/release/emengin/kafa-kafaya?label=s%C3%BCr%C3%BCm)](https://github.com/emengin/kafa-kafaya/releases)
+[![Lisans: MIT](https://img.shields.io/badge/lisans-MIT-blue.svg)](LICENSE)
 
-**Canlı sürüm:** https://emengin.github.io/kafa-kafaya/
+Tarayıcıda oynanan, 2D yandan görünümlü, 1v1 bir **kafa topu** oyunu: büyük kafalı 10 özgün
+karakter, her birine özel süper şutlar, süzülen güçlendirici balonları, gol tekrarları ve turnuva.
+Kurulum gerekmez; masaüstünde, telefonda ve gamepad'le oynanır, çevrimdışı da çalışır.
 
-> Durum: **Faz 6 — Modlar, menüler ve platform desteği.** Arka planında canlı AI vs AI maçı
-> oynanan ana menüden **Hızlı Maç** (CPU), **2 Oyuncu**, **Turnuva** (8 kişilik eleme, giderek
-> zorlaşan rakipler, kupa ekranı ve yeni karakter kilidi), **Antrenman** (süresiz, rakipsiz/kukla,
-> top sıfırlama), **Ayarlar** (zorluk, 60/90/120 sn, ses düzeyleri, TR/EN, ekran sarsıntısı, kontrol
-> şeması) ve **Nasıl Oynanır**. Karakter seçiminde istatistik çubukları, gerçek simülasyondan süper
-> şut önizlemesi ve kilitli karakterler. Telefonda dokunmatik butonlar (çoklu dokunuş), dikey ekran
-> uyarısı ve tam ekran; 2 gamepad'e kadar destek; ilerleme ve istatistikler `localStorage`'da;
-> PWA olarak çevrimdışı oynanır ve ana ekrana eklenebilir. Ayrıntılar, ölçümler ve denge tablosu
-> için [docs/PROGRESS.md](docs/PROGRESS.md).
+_A browser-based 2D one-on-one head soccer game with 10 original characters, unique super shots,
+power-ups, instant goal replays and a knockout tournament. Plays on desktop, mobile and gamepad,
+works offline (PWA). UI in Turkish and English._
 
-## Teknoloji
+### ▶ [Hemen oyna — emengin.github.io/kafa-kafaya](https://emengin.github.io/kafa-kafaya/)
 
-- TypeScript (strict) + Vite + Phaser 3 (yalnızca render, sahne, input, ses)
-- Kendi deterministik fizik modülü (`src/physics`, sabit 60 Hz adım)
-- Harici görsel/ses dosyası yok: grafikler kodla (Canvas 2D) dokuya çizilir, sesler Web Audio
-  ile sentezlenir (efektler, kalabalık, prosedürel müzik)
-- Nesne havuzlu parçacıklar, uyarlamalı görsel kalite (düşük güçlü cihazda 60 FPS hedefi)
-- Klavye, dokunmatik (çoklu dokunuş) ve Gamepad API — hepsi aynı "sanal tuş" girdi yolundan
-- PWA: derleme sırasında üretilen manifest, kodla çizilen simgeler ve çevrimdışı service worker
-- Vitest, ESLint, Prettier, GitHub Actions → GitHub Pages
+|                                                     |                                                 |
+| --------------------------------------------------- | ----------------------------------------------- |
+| ![Ana menü](docs/screenshots/menu.jpg)              | ![Maç](docs/screenshots/match.jpg)              |
+| **Ana menü** — arkada canlı AI vs AI maçı           | **Maç** — canlı yüz ifadeleri, güç barları      |
+| ![Karakter seçimi](docs/screenshots/select.jpg)     | ![Gol tekrarı](docs/screenshots/replay.jpg)     |
+| **Karakter seçimi** — istatistikler, süper önizleme | **Gol tekrarı** — ağır çekim, yakın plan kamera |
+| ![Turnuva](docs/screenshots/tournament.jpg)         | ![Mobil](docs/screenshots/mobile.jpg)           |
+| **Turnuva** — 8 kişilik eleme ağacı                 | **Mobil** — yarı saydam dokunmatik butonlar     |
 
-## Geliştirme
+## Özellikler
+
+- **Sıkı oynanış:** kendi deterministik fizik motoru (sabit 60 Hz), ivmeli hareket, coyote time,
+  değişken zıplama, açıya duyarlı şut ve kafa vuruşu; altın gol uzatması.
+- **10 özgün karakter**, her birinin istatistikleri ve **kendi süper şutu**: Ateş Topu, Buz,
+  Zikzak, Işınlanma, Dev Top, Kasırga, Gökkuşağı, Mıknatıs, Serap, Sarsıntı.
+- **6 güçlendirici:** Büyük Kafa, Rakibi Küçült, Hız, Rakip Kalesini Büyüt, Rakibi Dondur, Çift
+  Zıplama.
+- **Yapay zekâ** (Kolay / Orta / Zor): topun yolunu gerçek fizikle ileri simüle eder, yalnızca
+  ekranda görüneni bilir, insanla aynı kurallarla oynar.
+- **Modlar:** Hızlı Maç, 2 Oyuncu (aynı cihaz), Turnuva (giderek zorlaşan rakipler, kupa, yeni
+  karakter kilidi), Antrenman (süresiz, top sıfırlama).
+- **Gol tekrarı:** golden sonra son saniyeler deterministik olarak yeniden oynatılır — ağır çekim,
+  topu izleyen kamera, "Atla".
+- **Görsel ve ses:** tüm grafikler kodla çizilir, tüm sesler Web Audio ile sentezlenir (harici
+  görsel/ses dosyası yok); parçacıklar, hit-stop, sarsıntı, prosedürel müzik ve kalabalık.
+- **Platformlar:** klavye, **dokunmatik** (çoklu dokunuş) ve **Gamepad API** (2 kol); yatay ekran
+  uyarısı, tam ekran; **PWA** (ana ekrana eklenebilir, çevrimdışı).
+- **Erişilebilirlik:** renk körü modu (Okabe–Ito renkleri + kimlik halkası + ▲/● şekilleri), efekt
+  yoğunluğu (parçacıklar, ekran parlamaları, yakınlaşma), ekran sarsıntısı aç/kapa, TR/EN.
+- **Kayıt:** ayarlar, açılan karakterler ve istatistikler tarayıcıda saklanır; bozuk kayıt güvenli
+  varsayılana döner.
+
+## Kontroller
+
+| Eylem    | Oyuncu 1 (klavye) | Oyuncu 2 (klavye) | Gamepad (1. kol P1, 2. kol P2) | Dokunmatik (P1) |
+| -------- | ----------------- | ----------------- | ------------------------------ | --------------- |
+| Hareket  | A / D             | ← / →             | Sol çubuk / d-pad              | ◀ ▶             |
+| Zıpla    | W                 | ↑                 | A                              | ZIPLA           |
+| Şut      | Space             | Enter             | X / B                          | ŞUT             |
+| Süper    | Sol Shift         | Sağ Shift         | RB / RT                        | SÜPER           |
+| Duraklat | Esc / P           | Esc / P           | Start                          | II (sol üst)    |
+
+- **Süper:** güç barı (isimlerin altında) dolunca Süper'e bas; bir sonraki şut ya da kafa
+  karakterin süper şutu olur. Süper topa şut ya da kafayla **aktif** vurmak her zaman temiz bir
+  karşılıktır.
+- **Tek kişilik modlar** (Hızlı Maç, turnuva, antrenman): iki tuş takımı, iki kol ve dokunmatik
+  birlikte Oyuncu 1'i yönetir.
+- **Antrenman:** R topu sıfırla · F süper barını doldur · T kukla rakip (gamepad: Y · LB · Back).
+- **Gol tekrarı:** Enter / Space / A ya da "Atla" ile geçilir; Ayarlar'dan kapatılabilir.
+- **Menüler:** ↑/↓ + Enter, fare, dokunmatik ya da gamepad (A onay, B geri); ←/→ değer değiştirir.
+  F1 debug katmanını açar.
+- **Ses:** tarayıcılar sesi ilk tuş/tıklama/dokunuşa kadar başlatmaz.
+
+## Kurulum ve geliştirme
 
 Node.js 20+ gerekir.
 
 ```bash
+git clone https://github.com/emengin/kafa-kafaya.git
+cd kafa-kafaya
 npm install
-npm run dev       # geliştirme sunucusu (http://localhost:5173)
-npm run build     # tip denetimi + üretim derlemesi (dist/)
-npm run preview   # derlenmiş sürümü yerelde sun
-npm run lint      # ESLint + Prettier denetimi
-npm run format    # Prettier ile biçimlendir
-npm test          # Vitest birim testleri
-npm run simulate  # AI vs AI headless 100 maç: skor dağılımı, süperler, sıkışma raporu
+npm run dev          # geliştirme sunucusu (http://localhost:5173)
 ```
 
-`npm run simulate -- --p1 hard --p2 easy` farklı zorlukları, `--matrix` tüm zorluk eşleşmelerini,
-`--c1 kor --c2 kaya` karakterleri, `--characters` 45 karakter eşleşmesinin iki tarafta da
-oynandığı denge taramasını (`--jobs N` ile paralel, `--difficulty` ile seviye), `--seed N`
-tohumu, `--matches N` maç sayısını, `--json dosya.json` JSON çıktısını seçer. Örnek:
-`npm run simulate -- --characters --matches 40 --jobs 10`.
+| Komut                 | Ne yapar                                                                 |
+| --------------------- | ------------------------------------------------------------------------ |
+| `npm run build`       | Tip denetimi + üretim derlemesi (`dist/`, PWA dosyaları dahil)           |
+| `npm run preview`     | Derlenmiş sürümü yerelde sun (`/kafa-kafaya/` altında)                   |
+| `npm test`            | Vitest birim testleri                                                    |
+| `npm run test:e2e`    | Playwright duman testi (önce `npm run build`)                            |
+| `npm run screenshots` | README ekran görüntülerini yeniden al (`docs/screenshots/`)              |
+| `npm run lint`        | ESLint (tip denetimli, sihirli sayı yasağı) + Prettier denetimi          |
+| `npm run format`      | Prettier ile biçimlendir                                                 |
+| `npm run simulate`    | AI vs AI headless maçlar: skor dağılımı, süperler, sıkışma raporu, denge |
 
-Geliştirme kısayolları (URL parametreleri):
+`npm run simulate -- --characters --matches 40 --jobs 10` 45 karakter eşleşmesini iki tarafta da
+oynatır; `--matrix` zorluk eşleşmelerini, `--p1 hard --p2 easy` belirli seviyeleri, `--c1 kor --c2
+kaya` karakterleri, `--seed N` tohumu seçer.
 
-- `?scene=match&debug=1&duration=10` — menüyü atlayıp doğrudan 10 sn'lik 2 oyunculu maça girer
-  ve debug katmanını açık başlatır.
-- `?cpu=easy|medium|hard` — doğrudan CPU'ya karşı maç; `?cpu1=…` ile P1 de yapay zekâ olur
-  (AI vs AI izleme); `?seed=N` yapay zekânın ve güçlendiricilerin tohumunu sabitler.
-- `?c1=kor&c2=kaya` — karakterler (seçim ekranını atlayan kısayollarla birlikte).
-  Karakter kimlikleri: `kor ayaz simsek sis kaya bora yay demir pamuk toprak`.
-- `?quality=low|medium|high` — görsel kaliteyi sabitler (varsayılan: uyarlamalı; kare süresi uzun
-  süre bütçeyi aşarsa efektler azaltılır).
-- `?debug=1` iken `window.__KAFA_GAME__` (oyun) ve `window.__KAFA_AUDIO__` (ses sistemi) tarayıcı
-  testleri için açılır.
-- `?unlock=all` — tüm karakterler açık görünür (kayda yazılmaz); `?touch=1` — dokunmatik butonlar
-  masaüstünde de görünür.
+**Geliştirme kısayolları (URL parametreleri):** `?debug=1` (debug katmanı, `window.__KAFA_GAME__`),
+`?cpu=easy|medium|hard` (doğrudan CPU maçı), `?cpu1=…` (AI vs AI), `?c1=kor&c2=kaya` (karakterler),
+`?seed=N`, `?duration=N`, `?quality=low|medium|high`, `?unlock=all`, `?touch=1`.
+Karakter kimlikleri: `kor ayaz simsek sis kaya bora yay demir pamuk toprak`.
 
-## Kontroller
+## Mimari
 
-| Eylem   | Oyuncu 1  | Oyuncu 2  |
-| ------- | --------- | --------- |
-| Hareket | A / D     | ← / →     |
-| Zıpla   | W         | ↑         |
-| Şut     | Space     | Enter     |
-| Süper   | Sol Shift | Sağ Shift |
+```mermaid
+flowchart LR
+  subgraph Girdi
+    K[Klavye] --> T[KeyTracker]
+    G[Gamepad API] -->|sanal tuşlar| T
+    D[Dokunmatik] -->|sanal tuşlar| T
+  end
+  T --> I[InputState]
+  A[Yapay zekâ] --> I
+  R[Tekrar kaydedicisi] -.-> I
+  I --> S[GameSim — deterministik, 60 Hz]
+  S -->|olaylar| V[MatchRenderer + HUD]
+  S -->|olaylar| AU[Web Audio: efekt, kalabalık, müzik]
+  S -->|durum kopyası| A
+```
 
-| Eylem    | Gamepad (1. kol P1, 2. kol P2) | Dokunmatik (P1)             |
-| -------- | ------------------------------ | --------------------------- |
-| Hareket  | Sol çubuk / d-pad              | ◀ ▶ (sol alt)               |
-| Zıpla    | A                              | ZIPLA                       |
-| Şut      | X / B                          | ŞUT                         |
-| Süper    | RB / RT                        | SÜPER (bar doluyken parlar) |
-| Duraklat | Start                          | II (sol üst)                |
-
-Tek insanlı modlarda (Hızlı Maç, turnuva, antrenman) iki tuş takımı, iki kol ve dokunmatik birlikte
-P1'i yönetir. **Antrenman:** R topu sıfırla · F süper barını doldur · T kukla rakip (gamepad: Y ·
-LB · Back; dokunmatikte sol üstte iki buton).
-
-**Süper:** güç barı (isimlerin altında) dolunca Süper'e bas — bir sonraki şut ya da kafa karakterin
-süper şutu olur (Ateş Topu, Buz, Zikzak, Işınlanma, Dev Top, Kasırga, Gökkuşağı, Mıknatıs, Serap,
-Sarsıntı). Süper topa **şut ya da kafayla aktif vurmak** her zaman temiz bir karşılıktır.
-**Güçlendiriciler:** 12–18 sn'de bir sahanın üst yarısında balon belirir; topla patlatınca topa son
-dokunan kazanır (Büyük Kafa, Rakibi Küçült, Hız, Rakip Kalesini Büyüt, Rakibi Dondur, Çift Zıplama).
-
-**Karakter seçimi:** P1 A/D/W/S + Space (ya da 1. kol), P2 oklar + Enter (ya da 2. kol), aynı anda;
-fare/dokunmatikle karta dokun. Kilitli karakterler turnuva kazanılarak sırayla açılır.
-
-**Menüler:** ↑/↓ + Enter, fare, dokunmatik ya da gamepad (d-pad, A onay, B geri); ←/→ değer/sayfa
-değiştirir; Esc/Backspace geri. **Esc / P / Start:** duraklat · **F1:** debug katmanı.
-
-**Mobil:** telefonu yatay tut (dikeyde uyarı çıkar ve maç duraklar); sağ üstteki düğmeyle tam ekran.
-Tarayıcı menüsünden "Ana ekrana ekle" ile uygulama gibi açılır ve çevrimdışı çalışır.
-
-**Ses:** Ayarlar'dan (ya da duraklatma menüsündeki Ses Ayarları'ndan) Ana ses / Efektler / Müzik.
-Tarayıcılar sesi ilk etkileşime kadar başlatmaz: ilk tuş, tıklama ya da dokunuşla ses ve müzik açılır
-(gamepad düğmesi çoğu tarayıcıda etkileşim sayılmaz).
-
-## Klasör yapısı
+- **Simülasyon Phaser'dan bağımsız ve deterministiktir** (`src/game`, `src/physics`): aynı başlangıç
+  durumu + aynı girdi dizisi → birebir aynı maç. Gol tekrarı bunun üzerine kurulu: son saniyelerin
+  anahtar kareleri ve girdileri halka tamponda tutulur, gol yeniden oynatılır.
+- **Oyuncular yalnızca `InputState` görür:** klavye, gamepad, dokunmatik, yapay zekâ ve tekrar aynı
+  arayüzü üretir; gamepad ve dokunmatik "sanal tuş" olarak klavyeyle aynı yoldan okunur.
+- **Yapay zekâ hile yapmaz:** ekrandaki bilginin bir kopyasını gecikmeli algılar, topun yolunu
+  simülasyonun kendi koduyla tahmin eder.
+- **Phaser yalnızca çizim, sahne ve girdi** için; tüm dokular Canvas 2D ile kodla, tüm sesler Web
+  Audio ile üretilir. Her karede çizilen şekiller çöp üretmeyen `LiteGraphics` ile; üretim
+  derlemesinde yalnızca kullanılan modülleri içeren özel bir Phaser derlemesi.
+- **Tüm ayar ve denge değerleri** `src/config/gameConfig.ts` içinde; kodda sihirli sayı yasağı lint
+  ile zorlanır. **Tüm metinler** `src/i18n` içinde (TR/EN).
 
 ```
 src/
-  config/     gameConfig.ts — tüm denge/ayar değerleri (kodda sihirli sayı yok)
-  physics/    Phaser'dan bağımsız deterministik fizik ve sabit adımlı döngü
-  game/       entities, rules, ai, characters, superEffects, powerups — oyun mantığı
-  input/      InputState soyutlaması; klavye, sanal tuşlar (gamepad, dokunmatik), çoklu kod eşlemesi
-  scenes/     Phaser sahneleri (Boot → Preload → Menu → Select → Match / Tournament → Trophy)
-  save/       localStorage kaydı: oyun ayarları, açılan karakterler + istatistikler (alan alan doğrulama)
-  platform/   dokunmatik algılama, tam ekran düğmesi + dikey ekran uyarısı, service worker kaydı
-  ui/         maç çizimi (stadyum, karakter düzeneği, top, ağ, süper efektleri, parçacıklar), HUD, menüler
-  art/        kodla üretilen dokular: karakter görünüşleri ve yüz, stadyum, efektler, arayüz panelleri
-  fx/         saf görsel mantık: parçacık havuzu, ağ dalgası, squash & stretch, yüz ifadeleri,
-              hit-stop, sarsıntı, kamera zoom'u, uyarlamalı kalite
-  audio/      Web Audio: motor ve veri yolları, efektler, kalabalık, prosedürel müzik, ses ayarları
+  config/     gameConfig.ts — tüm denge/ayar değerleri
+  physics/    deterministik fizik ve sabit adımlı döngü
+  game/       GameSim, kurallar, yapay zekâ, karakterler, süperler, güçlendiriciler, turnuva, tekrar
+  input/      InputState, klavye, sanal tuşlar (gamepad, dokunmatik)
+  scenes/     Boot → Preload → Menu → Select → Match / Tournament → Trophy
+  ui/         maç çizimi, HUD, menüler, dokunmatik butonlar, tekrar kaplaması
+  art/        kodla üretilen dokular (karakterler, stadyum, efektler, arayüz, kupa)
+  fx/         parçacık havuzu, ağ dalgası, animasyon, hit-stop, sarsıntı, kamera, kalite
+  audio/      Web Audio motoru, efektler, kalabalık, prosedürel müzik
+  save/       localStorage kaydı (alan alan doğrulama)
+  platform/   dokunmatik algılama, tam ekran, dikey ekran uyarısı, PWA kaydı
   i18n/       TR/EN metinler
-scripts/      simulate.ts (AI vs AI simülasyonu), run-ts.js (TS betik çalıştırıcı),
-              pwa/ (Vite eklentisi: manifest, kodla çizilen PNG simgeler, service worker)
-docs/         GAME_DESIGN.md, PROGRESS.md
+scripts/      simulate.ts, pwa/ (manifest, simgeler, service worker), phaser/ (özel derleme)
+e2e/          Playwright duman testi ve ekran görüntüleri
+docs/         GAME_DESIGN.md (tasarım), PROGRESS.md (faz günlüğü, ölçümler)
 ```
+
+Ayrıntılı tasarım: [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md) · geliştirme günlüğü, ölçümler ve
+denge tabloları: [docs/PROGRESS.md](docs/PROGRESS.md) · sürüm notları: [CHANGELOG.md](CHANGELOG.md).
+
+## Katkı rehberi
+
+Katkılar memnuniyetle karşılanır. Bir değişiklik göndermeden önce:
+
+1. **`npm run lint`, `npm test` ve `npm run build && npm run test:e2e` yeşil olmalı** (CI aynı
+   adımları çalıştırır).
+2. **Sihirli sayı yok:** yeni bir değer `src/config/gameConfig.ts`'e (ya da dosya sonunda adlandırılmış
+   bir sabite) girer; lint bunu zorlar.
+3. **Metinler `src/i18n/strings.ts`'te**, iki dilde birden; anahtar eşitliği testle denetlenir.
+4. **Determinizmi bozma:** simülasyon kodunda `Math.random`, gerçek zaman ya da Phaser kullanılmaz;
+   rastgelelik tohumlu `SeededRandom`'dan gelir. Fizik/yapay zekâ değişikliklerinde determinizm ve
+   tekrar testleri geçmeli; denge etkisini `npm run simulate -- --characters` ile ölç.
+5. **Harici varlık yok:** görseller Canvas 2D ile kodla, sesler Web Audio ile üretilir.
+6. **Testler:** saf mantık için Vitest testi ekle; sahne akışını etkileyen değişikliklerde duman
+   testini çalıştır.
+7. **Commit mesajları** kısa ve açıklayıcı (`feat:`, `fix:`, `docs:`, `test:`, `perf:` …), değişikliğin
+   nedenini anlatan bir gövdeyle.
+
+Hata bildirimi ve öneriler için [Issues](https://github.com/emengin/kafa-kafaya/issues).
 
 ## Yayın
 
-`main` dalına her push'ta GitHub Actions lint + test + build çalıştırır ve `dist/`
-klasörünü GitHub Pages'e yayınlar. `vite.config.ts` içindeki `base` yolu depo adından
-(`GITHUB_REPOSITORY`) otomatik türetilir.
+`main` dalına her push'ta GitHub Actions lint + birim test + derleme + Playwright duman testi
+çalıştırır ve `dist/` klasörünü GitHub Pages'e yayınlar. `v*` etiketi GitHub Release'i oluşturur.
 
 ## Lisans
 
-[MIT](LICENSE)
+[MIT](LICENSE) — tüm karakterler, görseller ve sesler özgündür.

@@ -1,23 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
+import './game';
 
 /**
  * Duman testi (Faz 7): oyun açılıyor, menüden Hızlı Maç başlıyor, maç 10 sn boyunca hatasız
  * çalışıyor (simülasyon ilerliyor, konsolda hata yok). `?debug=1` yalnızca oyun nesnesini test
  * için `window.__KAFA_GAME__` olarak açar; oyun akışı gerçek klavye girdisiyle yürütülür.
  */
-interface GameHandle {
-  loop: { frame: number };
-  scene: {
-    isActive(key: string): boolean;
-    getScene(key: string): { sim?: { tick: number; match: { phase: string } } };
-  };
-}
-
-declare global {
-  interface Window {
-    __KAFA_GAME__?: GameHandle;
-  }
-}
 
 function collectErrors(page: Page): string[] {
   const errors: string[] = [];

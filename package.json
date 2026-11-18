@@ -17,6 +17,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "screenshots": "playwright test -c playwright.screenshots.config.ts",
     "simulate": "node scripts/run-ts.js scripts/simulate.ts"
   },
   "dependencies": {

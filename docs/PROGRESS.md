@@ -10,8 +10,8 @@
 | 3   | Yapay zekâ rakip                           | ✅ Tamamlandı |
 | 4   | Karakterler, süper şutlar, güçlendiriciler | ✅ Tamamlandı |
 | 5   | Görsel kalite ve ses ("juice")             | ✅ Tamamlandı |
-| 6   | Modlar, menüler ve platform desteği        | ✅ Tamamlandı |
-| 7   | Cila, performans, test ve v1.0.0           | 🔄 Sürüyor    |
+| 6   | Playwright duman testi                     | **TAM**       | `e2e/smoke.spec.ts`: oyun açılıyor, menüden Hızlı Maç başlıyor, maç 10 sn hatasız çalışıyor; CI'da derlemeden sonra çalışır.                          |
+| 7   | README                                     | **TAM**       | Tanıtım, canlı oyna bağlantısı, Playwright ile otomatik alınan 6 ekran görüntüsü (`npm run screenshots`), kontroller, kurulum, mimari, katkı rehberi. |
 
 **Canlı sürüm:** https://emengin.github.io/kafa-kafaya/
 
