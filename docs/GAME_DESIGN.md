@@ -58,12 +58,21 @@ gerçek kişi, kulüp, marka veya logo kullanılmaz.
 - Klavye eşlemesi `KeyboardEvent.code` ile yapılır (sol/sağ Shift ayrımı ve klavye
   düzeninden bağımsızlık için).
 - Arayüz: **Esc / P** duraklat, **F1** debug katmanı.
-  Menülerde ↑/↓ (veya W/S) + Enter/Space ya da fare; ses ayarlarında ←/→ (veya A/D) düzeyi
-  değiştirir; alt menüden Esc/Backspace ile geri. Duraklatma menüsü: Devam · Ses Ayarları ·
-  Yeniden Başlat · Ana Menü.
-- CPU'ya karşı modda tek oyuncu (P1) iki tuş takımından herhangi birini kullanabilir.
-- **Gamepad:** sol çubuk/d-pad hareket, A zıpla, X/B şut, RB/RT süper.
-- **Mobil:** yatay ekran, solda ←/→, sağda Zıpla / Şut / Süper dokunmatik butonları.
+  Menülerde ↑/↓ (veya W/S) + Enter/Space ya da fare/dokunmatik; ayarlanabilir öğelerde ←/→ (veya
+  A/D) değeri değiştirir; alt menüden Esc/Backspace ile geri. Duraklatma menüsü: Devam · Ses
+  Ayarları · Yeniden Başlat · Ana Menü (turnuvada yeniden başlatma yok; antrenmanda "Kukla rakip").
+- Tek insanlı modlarda (Hızlı Maç, turnuva, antrenman) P1 iki tuş takımını, iki kolu ve dokunmatiği
+  birlikte kullanabilir.
+- **Gamepad (Gamepad API, en fazla 2 kol):** bağlanma sırasıyla 1. kol P1, 2. kol P2. Sol
+  çubuk/d-pad hareket, A zıpla, X/B şut, RB/RT süper, Start duraklat. Menülerde d-pad/çubuk gezinir,
+  A/Start onaylar, B geri, LB/RB sayfa/değer değiştirir. Kol çıkarılınca maç duraklar.
+- **Mobil:** dokunmatik algılanınca yarı saydam butonlar — solda ◀ ▶, sağda Zıpla / Şut / Süper
+  (bar doluyken altın renkte nabız atar), sol üstte duraklat; çoklu dokunuş ve parmak kaydırma.
+  Dikey ekranda "telefonu yan çevir" uyarısı (maç duraklar); tam ekran düğmesi (sağ üst).
+- **Antrenman kısayolları:** R topu sıfırla, F süper barını doldur, T kukla rakip (gamepad: Y · LB ·
+  Back; dokunmatik: sol üstte iki buton).
+- Gamepad ve dokunmatik butonlar "sanal tuş" olarak klavyeyle aynı girdi yolundan okunur
+  (`src/input/virtualKeys.ts`); oyuncu yine yalnızca `InputState` görür.
 
 ## 5. Maç kuralları
 
@@ -201,24 +210,52 @@ karakterin toplamı **14**. Puan → fizik değeri (`CHARACTER_STATS`; 3 puan = 
 - Doğrulama: `npm run simulate` (AI vs AI headless maçlar, skor dağılımı ve sıkışma raporu),
   `--characters` (karakter denge taraması).
 
-## 10. Oyun modları
+## 10. Menüler ve oyun modları
 
-- **Hızlı Maç:** oyuncu vs CPU, karakter ve zorluk seçimi. (Faz 4: "CPU'ya Karşı" → zorluk →
-  karakter seçimi; CPU kalan karakterlerden rastgele birini alır. 2 Oyuncu → iki imleçli seçim.)
-- **2 Oyuncu:** aynı klavyede iki kişi.
-- **Turnuva:** 8 kişilik eleme (çeyrek final → yarı final → final), rakipler giderek zorlaşır.
-- **Antrenman:** süresiz, rakipsiz veya pasif rakipli; topu sıfırlama ve süper barını
-  doldurma kısayolları.
+- **Ana menü:** arka planda canlı AI vs AI demo maçı (gerçek simülasyon, süresiz, efekt sesi yok);
+  Hızlı Maç · 2 Oyuncu · Turnuva (süren turnuva varsa "Turnuvaya Devam") · Antrenman · Ayarlar ·
+  Nasıl Oynanır. Sol altta istatistikler (maç · galibiyet · gol · kupa).
+- **Ayarlar:** zorluk (Kolay/Orta/Zor), maç süresi (60/90/120 sn), Ana ses / Efektler / Müzik, ekran
+  sarsıntısı (aç/kapa; gol zoom'u kalır), dil (TR/EN), kontrol şeması.
+- **Nasıl Oynanır:** 4 sayfa — maç kuralları ve modlar, güç barı ve 10 süper, güçlendiriciler,
+  kontrol tablosu (klavye P1/P2, gamepad, dokunmatik).
+- **Karakter seçimi:** 5×2 kart; panelde istatistik çubukları, süper açıklaması ve **süper şut
+  önizlemesi** (karakterin süperli şutu gerçek simülasyonda bir kez oynatılıp kaydedilir, küçük
+  sahada döngüde izletilir). Kilitli kartlar karartılmış ve seçilemez. 2 oyuncuda iki imleç aynı
+  anda.
+- **Hızlı Maç:** oyuncu vs CPU; zorluk ve süre ayarlardan; CPU kalan açık karakterlerden birini alır.
+- **2 Oyuncu:** aynı cihazda iki kişi (klavye ve/veya iki gamepad).
+- **Turnuva:** 8 kişilik eleme (çeyrek final → yarı final → final). Rakipler giderek zorlaşır:
+  ayarlardaki zorluğun sırasına tur kayması eklenir (Kolay → Kolay, Kolay, Orta; Orta → Kolay, Orta,
+  Zor; Zor → Orta, Zor, Zor). Sıradaki kilitli karakter "patron" olarak ağacın öbür yarısına konur ve
+  finale kadar hep kazanır. Oyuncunun maçı oynanır, diğer maçların sonucu tohumla üretilir. Beraberlik
+  altın golle çözülür; turnuva maçında yeniden başlatma yoktur. Kaybedince elenir; finali kazanınca
+  kupa ekranı ve sıradaki karakterin kilidi açılır. İlerleme her maçtan sonra kaydedilir.
+- **Antrenman:** süresiz, AI yok, başlangıçta rakipsiz (P2 simülasyonda yok sayılır: topa ve P1'e
+  değmez), istenirse pasif "kukla" rakip; topu sıfırlama ve süper barını doldurma kısayolları.
+  İstatistiğe girmez.
 
-## 11. Platform ve kayıt
+## 11. Karakter kilitleri
 
-- Masaüstü ve mobil tarayıcılar (mobilde yatay ekran, dokunmatik butonlar).
-- Gamepad desteği (Gamepad API).
-- Türkçe / İngilizce dil seçeneği.
-- `localStorage` ile kayıt: dil, ses seviyesi, tercih edilen karakter, turnuva ilerlemesi,
-  istatistikler.
+- Baştan açık: Kor, Ayaz, Şimşek, Kaya, Bora, Yay. Her turnuva şampiyonluğu sıradakini açar:
+  Demir → Sis → Pamuk → Toprak (`STARTER_CHARACTERS`, `UNLOCK_ORDER`). Kilitli karakterler AI
+  rakibi olarak (turnuvada, menü demosunda) görülebilir.
 
-## 12. Ses ve görsel stil
+## 12. Platform ve kayıt
+
+- Masaüstü ve mobil tarayıcılar; mantıksal 1280×720 FIT ölçekleme (telefon döndürülünce ölçek
+  yeniden hesaplanır).
+- Gamepad API (en fazla 2 kol), dokunmatik (çoklu dokunuş), Türkçe / İngilizce (tüm metinler
+  `src/i18n`'den; sahne dışı DOM metinleri dahil).
+- **PWA:** derleme sırasında üretilen `manifest.webmanifest`, kodla çizilen PNG simgeler ve service
+  worker; tüm derleme dosyaları önbelleğe alınır, oyun ilk açılıştan sonra çevrimdışı çalışır ve ana
+  ekrana eklenebilir (tam ekran, yatay).
+- `localStorage` kaydı, anahtar başına bağımsız ve alan alan doğrulanır (bozuk veri → güvenli
+  varsayılan): dil, ses düzeyleri, tercih edilen karakterler, oyun ayarları (`settings`), açılan
+  karakterler + istatistikler (`progress`: maç, galibiyet, mağlubiyet, gol, yenen gol, kupa) ve süren
+  turnuva (`tournament`; tutarsızsa atılır).
+
+## 13. Ses ve görsel stil
 
 Ayrıntılar ve ölçümler PROGRESS.md Faz 5'te; tüm değerler `gameConfig.ts` (`STADIUM`,
 `CHARACTER_ART`, `ANIM`, `JUICE`, `NET`, `PARTICLES`, `PARTICLE_PRESETS`, `BALL_FX`, `SUPER_FX`,

@@ -5,13 +5,15 @@ karakterler, süper şutlar, güçlendiriciler ve gol tekrarı.
 
 **Canlı sürüm:** https://emengin.github.io/kafa-kafaya/
 
-> Durum: **Faz 5 — Görsel kalite ve ses.** Menüden **CPU'ya Karşı** (Kolay / Orta / Zor) ya da
-> **2 Oyuncu** → **karakter seçimi** (10 özgün karakter, her birinin kendi süper şutu) → maç: 90
-> sn, gol + ağır çekim, santra, altın gol, duraklatma, maç sonu, güç barı, 10 süper şut tipi ve
-> süzülen güçlendirici balonları. Kodla çizilmiş karakterler (canlı yüz ifadeleri, göz kırpma, topu
-> izleyen gözler), animasyonlu stadyum ve kalabalık, parçacık efektleri, hit-stop/sarsıntı/zoom,
-> Web Audio ile sentezlenen efektler, kalabalık ve prosedürel müzik (Ana / Efekt / Müzik ses
-> ayarları). Ayrıntılar, ölçümler ve denge tablosu için [docs/PROGRESS.md](docs/PROGRESS.md).
+> Durum: **Faz 6 — Modlar, menüler ve platform desteği.** Arka planında canlı AI vs AI maçı
+> oynanan ana menüden **Hızlı Maç** (CPU), **2 Oyuncu**, **Turnuva** (8 kişilik eleme, giderek
+> zorlaşan rakipler, kupa ekranı ve yeni karakter kilidi), **Antrenman** (süresiz, rakipsiz/kukla,
+> top sıfırlama), **Ayarlar** (zorluk, 60/90/120 sn, ses düzeyleri, TR/EN, ekran sarsıntısı, kontrol
+> şeması) ve **Nasıl Oynanır**. Karakter seçiminde istatistik çubukları, gerçek simülasyondan süper
+> şut önizlemesi ve kilitli karakterler. Telefonda dokunmatik butonlar (çoklu dokunuş), dikey ekran
+> uyarısı ve tam ekran; 2 gamepad'e kadar destek; ilerleme ve istatistikler `localStorage`'da;
+> PWA olarak çevrimdışı oynanır ve ana ekrana eklenebilir. Ayrıntılar, ölçümler ve denge tablosu
+> için [docs/PROGRESS.md](docs/PROGRESS.md).
 
 ## Teknoloji
 
@@ -20,6 +22,8 @@ karakterler, süper şutlar, güçlendiriciler ve gol tekrarı.
 - Harici görsel/ses dosyası yok: grafikler kodla (Canvas 2D) dokuya çizilir, sesler Web Audio
   ile sentezlenir (efektler, kalabalık, prosedürel müzik)
 - Nesne havuzlu parçacıklar, uyarlamalı görsel kalite (düşük güçlü cihazda 60 FPS hedefi)
+- Klavye, dokunmatik (çoklu dokunuş) ve Gamepad API — hepsi aynı "sanal tuş" girdi yolundan
+- PWA: derleme sırasında üretilen manifest, kodla çizilen simgeler ve çevrimdışı service worker
 - Vitest, ESLint, Prettier, GitHub Actions → GitHub Pages
 
 ## Geliştirme
@@ -55,6 +59,8 @@ Geliştirme kısayolları (URL parametreleri):
   süre bütçeyi aşarsa efektler azaltılır).
 - `?debug=1` iken `window.__KAFA_GAME__` (oyun) ve `window.__KAFA_AUDIO__` (ses sistemi) tarayıcı
   testleri için açılır.
+- `?unlock=all` — tüm karakterler açık görünür (kayda yazılmaz); `?touch=1` — dokunmatik butonlar
+  masaüstünde de görünür.
 
 ## Kontroller
 
@@ -65,26 +71,36 @@ Geliştirme kısayolları (URL parametreleri):
 | Şut     | Space     | Enter     |
 | Süper   | Sol Shift | Sağ Shift |
 
-CPU'ya karşı modda tek oyuncu iki tuş takımından birini (ya da ikisini) kullanabilir.
-**Süper:** güç barı (isimlerin altında) dolunca Shift'e bas — bir sonraki şut ya da kafa
-karakterin süper şutu olur (Ateş Topu, Buz, Zikzak, Işınlanma, Dev Top, Kasırga, Gökkuşağı,
-Mıknatıs, Serap, Sarsıntı). Süper topa **şut ya da kafayla aktif vurmak** her zaman temiz bir
-karşılıktır. **Güçlendiriciler:** 12–18 sn'de bir sahanın üst yarısında balon belirir; topla
-patlatınca topa son dokunan kazanır (Büyük Kafa, Rakibi Küçült, Hız, Rakip Kalesini Büyüt,
-Rakibi Dondur, Çift Zıplama). Etkin olanlar skor çubuğunun altında ikon + geri sayım halkasıyla
-görünür.
+| Eylem    | Gamepad (1. kol P1, 2. kol P2) | Dokunmatik (P1)             |
+| -------- | ------------------------------ | --------------------------- |
+| Hareket  | Sol çubuk / d-pad              | ◀ ▶ (sol alt)               |
+| Zıpla    | A                              | ZIPLA                       |
+| Şut      | X / B                          | ŞUT                         |
+| Süper    | RB / RT                        | SÜPER (bar doluyken parlar) |
+| Duraklat | Start                          | II (sol üst)                |
 
-**Karakter seçimi:** P1 A/D/W/S + Space, P2 oklar + Enter (aynı anda); CPU'ya karşı ok
-tuşları ya da A/D/W/S + Enter/Space; fare de çalışır; Esc hazırı geri alır / ana menüye döner.
+Tek insanlı modlarda (Hızlı Maç, turnuva, antrenman) iki tuş takımı, iki kol ve dokunmatik birlikte
+P1'i yönetir. **Antrenman:** R topu sıfırla · F süper barını doldur · T kukla rakip (gamepad: Y ·
+LB · Back; dokunmatikte sol üstte iki buton).
 
-**Esc / P:** duraklat (Devam · Ses Ayarları · Yeniden Başlat · Ana Menü) · **F1:** debug katmanı
-(collider'lar, hız vektörleri, FPS, kare süresi, görsel kalite, parçacık sayısı, fizik adım süresi,
-maç durumu, AI'ın tahmin ettiği yörünge). Menülerde ↑/↓ + Enter ya da fare; alt menüden Esc ile
-geri.
+**Süper:** güç barı (isimlerin altında) dolunca Süper'e bas — bir sonraki şut ya da kafa karakterin
+süper şutu olur (Ateş Topu, Buz, Zikzak, Işınlanma, Dev Top, Kasırga, Gökkuşağı, Mıknatıs, Serap,
+Sarsıntı). Süper topa **şut ya da kafayla aktif vurmak** her zaman temiz bir karşılıktır.
+**Güçlendiriciler:** 12–18 sn'de bir sahanın üst yarısında balon belirir; topla patlatınca topa son
+dokunan kazanır (Büyük Kafa, Rakibi Küçült, Hız, Rakip Kalesini Büyüt, Rakibi Dondur, Çift Zıplama).
 
-**Ses:** ana menüdeki ya da duraklatma menüsündeki **Ses Ayarları**'ndan Ana ses / Efektler / Müzik
-(←/→ ile %10 adım; Enter ya da tıklama ile artır). Ayarlar kaydedilir. Tarayıcılar sesi ilk
-etkileşime kadar başlatmaz: ilk tuş ya da tıklamayla ses ve müzik açılır.
+**Karakter seçimi:** P1 A/D/W/S + Space (ya da 1. kol), P2 oklar + Enter (ya da 2. kol), aynı anda;
+fare/dokunmatikle karta dokun. Kilitli karakterler turnuva kazanılarak sırayla açılır.
+
+**Menüler:** ↑/↓ + Enter, fare, dokunmatik ya da gamepad (d-pad, A onay, B geri); ←/→ değer/sayfa
+değiştirir; Esc/Backspace geri. **Esc / P / Start:** duraklat · **F1:** debug katmanı.
+
+**Mobil:** telefonu yatay tut (dikeyde uyarı çıkar ve maç duraklar); sağ üstteki düğmeyle tam ekran.
+Tarayıcı menüsünden "Ana ekrana ekle" ile uygulama gibi açılır ve çevrimdışı çalışır.
+
+**Ses:** Ayarlar'dan (ya da duraklatma menüsündeki Ses Ayarları'ndan) Ana ses / Efektler / Müzik.
+Tarayıcılar sesi ilk etkileşime kadar başlatmaz: ilk tuş, tıklama ya da dokunuşla ses ve müzik açılır
+(gamepad düğmesi çoğu tarayıcıda etkileşim sayılmaz).
 
 ## Klasör yapısı
 
@@ -93,15 +109,18 @@ src/
   config/     gameConfig.ts — tüm denge/ayar değerleri (kodda sihirli sayı yok)
   physics/    Phaser'dan bağımsız deterministik fizik ve sabit adımlı döngü
   game/       entities, rules, ai, characters, superEffects, powerups — oyun mantığı
-  input/      InputState soyutlaması (klavye, dokunmatik, gamepad, AI)
-  scenes/     Phaser sahneleri (Boot → Preload → Menu → Select → Match)
+  input/      InputState soyutlaması; klavye, sanal tuşlar (gamepad, dokunmatik), çoklu kod eşlemesi
+  scenes/     Phaser sahneleri (Boot → Preload → Menu → Select → Match / Tournament → Trophy)
+  save/       localStorage kaydı: oyun ayarları, açılan karakterler + istatistikler (alan alan doğrulama)
+  platform/   dokunmatik algılama, tam ekran düğmesi + dikey ekran uyarısı, service worker kaydı
   ui/         maç çizimi (stadyum, karakter düzeneği, top, ağ, süper efektleri, parçacıklar), HUD, menüler
   art/        kodla üretilen dokular: karakter görünüşleri ve yüz, stadyum, efektler, arayüz panelleri
   fx/         saf görsel mantık: parçacık havuzu, ağ dalgası, squash & stretch, yüz ifadeleri,
               hit-stop, sarsıntı, kamera zoom'u, uyarlamalı kalite
   audio/      Web Audio: motor ve veri yolları, efektler, kalabalık, prosedürel müzik, ses ayarları
   i18n/       TR/EN metinler
-scripts/      simulate.ts (AI vs AI simülasyonu), run-ts.js (TS betik çalıştırıcı)
+scripts/      simulate.ts (AI vs AI simülasyonu), run-ts.js (TS betik çalıştırıcı),
+              pwa/ (Vite eklentisi: manifest, kodla çizilen PNG simgeler, service worker)
 docs/         GAME_DESIGN.md, PROGRESS.md
 ```
 

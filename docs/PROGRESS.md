@@ -10,8 +10,8 @@
 | 3   | Yapay zekâ rakip                           | ✅ Tamamlandı |
 | 4   | Karakterler, süper şutlar, güçlendiriciler | ✅ Tamamlandı |
 | 5   | Görsel kalite ve ses ("juice")             | ✅ Tamamlandı |
-| 6   | —                                          | ⏭️ Sıradaki   |
-| 7   | —                                          | Bekliyor      |
+| 6   | Modlar, menüler ve platform desteği        | ✅ Tamamlandı |
+| 7   | —                                          | ⏭️ Sıradaki   |
 
 **Canlı sürüm:** https://emengin.github.io/kafa-kafaya/
 
@@ -1073,4 +1073,269 @@ Hepsi `src/config/gameConfig.ts` içinde; gerçek oyuncu ve gerçek cihazlarla d
 
 ### Sıradaki faz
 
-**Faz 6** — talimat bekleniyor.
+**Faz 6** — tamamlandı (aşağıda).
+
+> Faz 5 notu (Faz 6'da çözüldü): karakter seçim ekranı ve menüler dokunmatik ve gamepad ile
+> kullanılabiliyor.
+
+---
+
+## Faz 6 — Modlar, menüler ve platform desteği (2026-11-18)
+
+**Bitti kriteri:**
+
+- **Tüm modlar baştan sona oynanabiliyor** ✅ — üretim derlemesi headless Chrome'da gerçek klavye
+  olaylarıyla uçtan uca oynatıldı: ana menü → ayarlar → yardım → Hızlı Maç (maç sonu, istatistik) →
+  2 Oyuncu → antrenman → turnuva (3 maç → şampiyonluk → kupa ekranı → kilit açıldı) → yeni turnuva
+  (menüden "Turnuvaya Devam" → elenme) → bozuk kayıtla açılış. **36/36 denetim**, konsolda hata yok.
+- **Telefonda ve gamepad ile sorunsuz** ✅ (benzetimle) — dokunmatik: Chrome'un dokunma benzetimiyle
+  844×390 telefon ekranında çoklu dokunuş, parmak kaydırma, süper/duraklat butonları, kaplamaya
+  dokunma, dikey ekran uyarısı + otomatik duraklatma, antrenman butonları; gamepad: sayfaya
+  enjekte edilen sahte Gamepad API ile 2 kol (menü gezinme, iki imleç, iki oyuncunun hareketi/şutu/
+  zıplaması, Start, kol çıkarılınca duraklama). **24/24 denetim.** PWA: kurulabilirlik ve sunucu
+  tamamen kapatıldıktan sonra çevrimdışı açılış + maç, **8/8 denetim**. Gerçek bir telefonda ve gerçek
+  bir gamepad'le denenmedi (bkz. bilinen sorunlar).
+
+### Tamamlananlar
+
+**Menüler**
+
+- **Ana menü (`MenuScene`, `ui/DemoMatch.ts`):** arka planda canlı **AI vs AI demo maçı** — gerçek
+  GameSim + iki Zor yapay zekâ + maç çizimi (gol, süper, balon, konfeti, kalabalık hepsi gerçek),
+  süresiz, efekt sesi yok (yalnızca demo maçın atak tehlikesini izleyen kalabalık uğultusu). Hafif
+  koyu perdenin üstünde altın başlık ve altı buton: **Hızlı Maç · 2 Oyuncu · Turnuva** (süren turnuva
+  varsa **Turnuvaya Devam**) **· Antrenman · Ayarlar · Nasıl Oynanır**. Sol altta istatistik hapı.
+- **Ayarlar** (aynı sahnede, demo maçın üstünde): Zorluk · Maç süresi (60/90/120 sn) · Ana ses ·
+  Efektler · Müzik · Ekran sarsıntısı · Dil (TR/EN) · Kontrol Şeması · Geri. ←/→ ya da Enter/tıklama
+  değiştirir; her değişiklik hemen kaydedilir. Dil değişince menü ayarlar açık yeniden kurulur; sahne
+  dışı DOM metinleri (dikey ekran uyarısı, tam ekran düğmesi) dil dinleyicisiyle güncellenir.
+- **Nasıl Oynanır (`ui/HelpPanel.ts`):** 4 sayfa — maç kuralları ve modlar (maç süresi ayardan),
+  güç barı + 10 süperin adı/karakteri/kısa açıklaması (süper renginde), 6 güçlendirici (ikonlu,
+  süreler yapılandırmadan, dile göre ondalık biçim), kontrol tablosu (klavye P1/P2, gamepad,
+  dokunmatik; bağlı kol sayısı). ←/→ (LB/RB) sayfa, Esc/B/Enter ya da "Geri" kapatır; oklar ve Geri
+  dokunmatik/fareyle de çalışır. Ayarlar → Kontrol Şeması doğrudan son sayfayı açar.
+- **Karakter seçimi:** daha sıkı yerleşim (5×2 kart + iki büyük panel). Yeni:
+  - **Süper şut önizlemesi (`ui/SuperPreview.ts`):** karakterin süperli şutu (dolu bar → Süper →
+    ayağın önündeki topa durarak şut) **gerçek GameSim'de** rakipsiz, balonsuz, sabit tohumla bir kez
+    oynatılıp kaydedilir ve panelde küçük sahada döngüde izletilir: süper renginde iz, Işınlanmanın
+    kaybolması, Serap yanılsamaları, Dev Top büyümesi oyundakinin aynısı. Karakter başına ~110 adım,
+    önbellekli. P2 panelinde ayna.
+  - **Kilitli karakterler:** karartılmış kart + kodla çizilmiş kilit + "KİLİTLİ"; onaylanınca "olmaz"
+    sesi ve kilidin sarsılması. Panelde "Turnuva kazanarak aç".
+  - **Modlar:** Hızlı Maç (P2 paneli "CPU · zorluk"; CPU kalan açık karakterlerden seçer), 2 Oyuncu
+    (iki imleç aynı anda — klavye ve/veya iki kol), antrenman (P2 "KUKLA"), turnuva (P2 paneli
+    **ödül**: sıradaki kilitli karakter, tur zorluklarıyla; hepsi açıksa "KUPA").
+  - Sol üstte **Geri** butonu (dokunmatik/fare), gamepad gezinme (1. kol P1, 2. kol P2; tek insanlı
+    modlarda iki kol da P1).
+
+**Modlar**
+
+- **Turnuva (`game/tournament.ts`, `TournamentScene`, `TrophyScene`):** saf ve deterministik eleme
+  mantığı (aynı tohum → aynı kura ve sonuçlar), düz veri olarak kaydedilir.
+  - Kura: slot 0 oyuncu, 7 rakip tohumla karıştırılır; **sıradaki kilitli karakter slot 7'de
+    "patron"** — kendi maçlarını hep kazanır, oyuncu onunla finalde karşılaşır.
+  - **Giderek zorlaşan AI:** ayarlardaki zorluğun sırasına tur kayması (−1, 0, +1): Orta → Kolay, Orta,
+    Zor; Zor → Orta, Zor, Zor; Kolay → Kolay, Kolay, Orta.
+  - Oyuncunun maçı sahnede oynanır (90 sn ya da ayardaki süre, beraberlikte altın gol); aynı turun
+    diğer maçlarının sonucu tohumla üretilir (kazanan 2–7 gol, kaybeden daha az).
+  - **Eleme ağacı ekranı:** 8 kutu iki yanda, yarı final ve final ortaya doğru, ortada kupa; kutularda
+    canlı portre, isim, skor; kazananların yolu altın, elenenler soluk, oyuncunun kutuları kendi
+    renginde çerçeveli; yeni sonuçlar belirerek gelir. Maça Başla / Ana Menü (ilerleme kayıtlı) /
+    Turnuvadan Çekil. Kaybedince damga gibi "ELENDİN" + Yeni Turnuva.
+  - **Kupa ekranı:** kodla çizilmiş altın kupa (SVG yolları → `Path2D`), sevinçle zıplayan şampiyon,
+    "YENİ KARAKTER AÇILDI!" kartı (açılan karakter canlı), konfeti yağmuru, havai fişek, tezahürat
+    eden kalabalık, korna. Yeni Turnuva / Ana Menü.
+  - Maç sonucu ve turnuva ilerlemesi **maç biter bitmez** kaydedilir (sonuç ekranında sayfa kapansa
+    da kaybolmaz); turnuva maçında yeniden başlatma yok, sonuç ekranında yalnızca "Devam".
+- **Antrenman:** süresiz (saatte "ANTRENMAN"), AI yok, başlangıçta **rakipsiz** — GameSim'e
+  `solo` kipi: P2 girdisi yok sayılır, topa, P1'e, yanılsamalara ve Kasırga'ya değmez, çizilmez.
+  **T** (Back / duraklatma menüsü) pasif **kukla rakibi** getirir/kaldırır. **R** (Y / dokunmatik)
+  topu santranın üstüne sıfırlar (süper etkisi ve yanılsamalar silinir), **F** (LB / dokunmatik)
+  süper barını doldurur. İstatistiğe girmez.
+- **Hızlı Maç / 2 Oyuncu:** zorluk ve maç süresi ayarlardan. Eski "CPU'ya Karşı → zorluk" alt menüsü
+  kaldırıldı (zorluk Ayarlar'da; eski kayıt anahtarından geçiş yapılır).
+
+**Platform**
+
+- **Sanal tuşlar (`input/virtualKeys.ts`):** gamepad ve dokunmatik butonlar klavye olayı biçiminde
+  ayrı bir veri yoluna "keydown/keyup" yollar; her `KeyTracker` hem `window`'u hem bu yolu dinler.
+  Menüler, seçim ekranı, duraklatma ve oyun girdisi hiç değişmeden üç kaynağı da okur (latch,
+  `releaseAll`, kenar tetikleme aynen). Tuş eşlemesi artık eylem başına birden çok kod alır (X/B şut,
+  RB/RT süper).
+- **Gamepad (`input/Gamepads.ts`):** her karenin başında (`PRE_STEP`) `navigator.getGamepads()`
+  yoklanır; standart düzen; yönler d-pad VEYA sol çubuk (histerezisli ölü bölge: 0,5'te basılı,
+  0,35'in altında bırakılmış — titreşim yok); analog tetikler eşikle. **En fazla 2 kol**, bağlanma
+  sırasıyla slot 1 → P1, slot 2 → P2; çıkarılan kolun basılı düğmeleri bırakılır, diğer kolun slotu
+  değişmez; maç sırasında kol çıkarsa maç duraklar ve "Gamepad bağlantısı koptu" yazar.
+- **Dokunmatik (`ui/TouchControls.ts`, `input/touchLayout.ts`):** dokunmatik algılanınca (kaba
+  işaretçi ya da ilk dokunuş; maç sırasında algılansa da butonlar belirir) yarı saydam daire butonlar:
+  sol ◀ ▶, sağ Zıpla / Şut / Süper (bar doluyken altın renkte nabız), sol üst duraklat (antrenmanda
+  topu sıfırla ve barı doldur). Girdi Phaser işaretçilerinden değil **tuvalin ham dokunma
+  olaylarından**: her olayda tüm etkin parmaklar yeniden değerlendirilir, her parmak tolerans içindeki
+  en yakın butonu basar → çoklu dokunuş, parmak kaydırma ve kaybolan `touchend`'e dayanıklılık.
+  Duraklatma/maç sonu kaplamasında butonlar gizlenir; kaplama butonları dokunmayla çalışır. Kontrol
+  ipucu hapı dokunmatikte gösterilmez.
+- **Dikey ekran:** dokunmatik cihazda dikey yönde tam ekran "Oynamak için telefonu yan çevir" uyarısı
+  (dönen telefon simgesi, CSS) ve maç kendiliğinden duraklar; dikeyde devam edilemez.
+- **Tam ekran düğmesi** (sağ üst, DOM): Fullscreen API (+ webkit), ardından yatay yön kilidi denenir;
+  desteklenmiyorsa gizli; masaüstünde maç sırasında gizlenir.
+- **Döndürme düzeltmesi:** Phaser'ın ölçek yöneticisi telefon döndürülünce bir adım geride
+  kalabiliyordu (yatay → dikey → yatay sonrası tuval dikey boyutta kalıyordu; tarayıcıda ölçüldü).
+  Boyut/yön değişiminden 120 ve 600 ms sonra ölçek yeniden hesaplanıyor.
+- **Otomatik duraklatma:** sekme gizlenince, dikey ekranda ve gamepad kopunca.
+- **PWA (`scripts/pwa`, `platform/pwa.ts`):** bağımlılıksız Vite eklentisi, yalnızca üretim
+  derlemesinde: **kodla çizilen PNG simgeler** (192, 512, maskable 512, iOS 180 — top + altın halka;
+  kendi PNG kodlayıcımız, 4×4 alt örnekli kenar yumuşatma), `manifest.webmanifest` (tam ekran, yatay,
+  tema renkleri) ve **service worker**: kurulumda derlemedeki tüm dosyalar sürüme özel önbelleğe
+  alınır (sürüm = dosya listesinin özeti), eski önbellekler silinir; sayfa gezintisi önce ağdan (güncel
+  sürüm), ağ yoksa önbellekteki `index.html`; diğer dosyalar önce önbellekten. `index.html`'e manifest
+  ve iOS etiketleri eklenir. Geliştirme sunucusunda kayıt yok.
+
+**Kayıt (`src/save`)**
+
+- Üç bağımsız JSON anahtarı, **alan alan doğrulama** (bozuk alan → güvenli varsayılan; diğer alanlar
+  korunur; JSON ayrıştırılamaz ya da depo hata verirse tümüyle varsayılan; oyun asla düşmez):
+  - `settings`: zorluk, maç süresi (yalnızca 60/90/120), ekran sarsıntısı. Eski `aiDifficulty`
+    anahtarından geçiş.
+  - `progress`: açılan karakterler (bilinmeyen kimlikler atılır, başlangıç karakterleri hep açık,
+    sıra kanonik) ve istatistikler (maç, galibiyet, mağlubiyet, gol, yenen gol, kupa; negatif olmayan
+    tam sayı, üst sınırlı).
+  - `tournament`: süren turnuva; herhangi bir tutarsızlıkta (8 farklı karakter, geçerli zorluklar,
+    ağaçla uyumlu eşleşmeler, berabere skor yok, süren turda oynanmış maç yok) **tümüyle atılır**.
+  - Dil, ses düzeyleri ve tercih edilen karakterler Faz 0–5'teki kendi anahtarlarında (zaten
+    doğrulanıyor).
+- **İstatistik tanımı:** tamamlanan maçlar (CPU, turnuva, 2 oyuncu); galibiyet/mağlubiyet ve yenen gol
+  CPU'ya karşı (turnuva dahil); gol insanların attığı goller (2 oyuncuda ikisinin toplamı). Antrenman,
+  yarıda bırakılan maç ve AI vs AI sayılmaz.
+- **Karakter kilitleri:** 6 karakter baştan açık (Kor, Ayaz, Şimşek, Kaya, Bora, Yay); her turnuva
+  şampiyonluğu sıradakini açar: Demir → Sis → Pamuk → Toprak.
+
+**i18n:** tüm yeni metinler (menüler, ayarlar, yardım sayfaları, turnuva, kupa, dokunmatik buton
+etiketleri, platform uyarıları, kafa üstü P1/P2/CPU etiketleri) `src/i18n/strings.ts`'te TR/EN;
+`formatDecimal` (1,8 / 1.8) ve dil değişikliği dinleyicisi. `<html lang>` dile göre.
+
+**Testler: 264 → 311.** Yeni: kayıt (bozuk JSON, hata fırlatan depo, alan alan doğrulama, sayaç
+sınırları, eski zorluk anahtarı, kaydet/yükle, istatistik kuralları, kilit sırası); turnuva (kura,
+ödülün slot 7'de ve finalde rakip olması, tur zorlukları, kazanma/elenme/şampiyonluk, beraberlik
+savunması, tohum determinizmi, AI skor aralığı, kaydet/yükle, 12 türlü bozuk kaydın reddi); gamepad
+(standart düzen, d-pad, çubuk histerezisi, analog tetik, bozuk eksen, slot atama, 3. kolun yok
+sayılması, kol çıkarılınca düğmelerin bırakılması ve slotun korunması); sanal tuşlar ve çoklu kod
+eşlemesi (latch, detach); dokunmatik isabet (çoklu dokunuş, tolerans, en yakın buton, butonların
+çakışmaması); antrenman (süresiz kurallar, rakipsizde topun ve P1'in P2'nin içinden geçmesi, kukla,
+top sıfırlama, bar doldurma); süper önizlemesi (10 karakterin hepsinde süper gerçekten atılıyor,
+Işınlanma görünmez, Serap yanılsama üretiyor); PWA (PNG imza/IHDR/CRC/sıkıştırılmış veri, bilinen
+CRC, simgenin saydam köşeleri ve beyaz top, service worker dosya listesi ve sürümü); maç kurulumu
+(yeni modlar ve süre); i18n (ondalık biçim, dil dinleyicisi). `npm run simulate`: 0 sıkışma
+(GameSim değişikliği maç modlarında davranışı değiştirmiyor; determinizm testleri aynen geçiyor).
+
+### Tarayıcıda doğrulama
+
+Üretim derlemesi (`vite preview`), headless Chrome 157 + DevTools protokolü (betikler depoda değil).
+
+- **Uçtan uca akış: 36/36** — demo maçın ilerlemesi (tick), 6 menü öğesi; Ayarlar: zorluk Zor,
+  süre 120, sarsıntı kapalı → `localStorage`; dil İngilizce → menü ayarlar açık yeniden kuruldu,
+  DOM uyarı metni İngilizce → tekrar Türkçe; Kontrol Şeması sayfası; Nasıl Oynanır 4 sayfa; seçimde
+  4 kilitli kart, kilitliye onay reddedildi, önizleme kaydı (114 kare); Hızlı Maç kurulumu (CPU, Zor,
+  120 sn, sarsıntı kapalı, CPU açık karakter); maç sonu → istatistik (1 maç, 1 galibiyet, 3–1) ve
+  menüdeki hap; 2 Oyuncu (iki imleç, AI yok, P2 oklarla yürüyor, duraklatma menüsü); antrenman
+  (süresiz, AI yok, rakipsiz, "ANTRENMAN", R/F/T, duraklatma menüsünde kukla seçeneği, istatistiğe
+  girmiyor); turnuva (ödül paneli DEMİR, 8 kişilik kayıt, Zor → Orta/Zor/Zor, P2 ağaçtaki rakip, sonuç
+  ekranında yalnızca Devam, final rakibi Demir, 3 galibiyet → kupa ekranı, Demir açıldı, kupa 1,
+  turnuva kaydı kapandı); ikinci turnuva: Ana Menü → "Turnuvaya Devam" → kayıp → ELENDİN, kayıt
+  silindi; bozuk `progress`/`settings`/`tournament`/`language` ile açılış sağlam; konsolda hata yok.
+- **Dokunmatik + gamepad: 24/24** — telefon (844×390, DPR 2, dokunma benzetimi): dokunmatik
+  algılandı, butonlar var ve ipucu gizli; iki parmak sağ + zıpla aynı anda; parmak sağdan sola
+  kaydırma; parmaklar kalkınca durma; süper butonu; duraklat butonu ve kaplamadaki "Devam"a dokunma;
+  dikeyde uyarı + otomatik duraklatma, yatayda uyarı kalkıyor; tam ekran düğmesi görünür; menüde ve
+  seçimde dokunarak antrenmana giriş; dokunmatik "barı doldur" ve "topu sıfırla". Sahte Gamepad API
+  (2 kol, farklı indekslerle): d-pad menü, A onay, iki kol iki imleç, iki oyuncunun çubukla yürümesi,
+  X şut, A zıplama, Start duraklat/sürdür, kol çıkarılınca duraklama + neden satırı.
+- **PWA: 8/8** — service worker sayfayı yönetiyor; önbellekte tüm derleme dosyaları; manifest
+  hatasız; `Page.getInstallabilityErrors` boş (ana ekrana eklenebilir); **yerel sunucu süreci
+  kapatıldıktan sonra** oyun açıldı ve Hızlı Maç oynandı.
+- Doğrulama sırasında bulunan ve düzeltilen hatalar: (1) Phaser ölçeğinin döndürmeden sonra eski
+  boyutta kalması (yukarıda); (2) service worker önbellek eşleşmesinin `Vary: Origin` başlığı
+  yüzünden modül betiğini bulamaması — `vite preview` bu başlığı gönderiyor, çevrimdışı açılış boş
+  sayfada kalıyordu; eşleşmede `ignoreVary`; (3) görsel: antrenman saat yazısının taşması, ağaçta
+  isimle skorun çakışması, kupa ekranında bilgi yazısının kartın altında kalması, yardım panelinde
+  başlığın ilk satıra binmesi.
+
+### Tasarım kararları
+
+1. **Tek girdi yolu:** gamepad ve dokunmatik, klavyeyle aynı `KeyTracker`a sanal tuş olarak düşer.
+   Böylece menülerin, seçim ekranının ve maçın girdi kodu tek; oyuncu yine yalnızca `InputState`
+   görür (tekrar sistemi etkilenmez). Bedeli: sanal kodlar `CONTROLS` tablolarına eklenmeli.
+2. **Dokunmatik ham dokunma olaylarıyla:** Phaser işaretçileri parmak kaydırmada butonlar arası
+   geçişi ve aynı anda 3 parmağı güvenilir izlemiyor; her olayda tüm parmaklardan durum yeniden
+   hesaplanıyor (kaybolan `touchend` bir sonraki olayda kendiliğinden düzelir).
+3. **Gamepad slotları bağlanma sırasıyla ve kalıcı:** 1. kol çıkarılınca 2. kol P1 olmaz (iki
+   oyunculu maçta taraf değişmesin); maç duraklar.
+4. **Zorluk Ayarlar'da:** Hızlı Maç bir adım kısaldı; turnuva tur zorluklarını buradan türetir.
+5. **Kayıt üç ayrı anahtar + alan alan doğrulama:** bozuk bir turnuva kaydı istatistikleri ya da
+   kilitleri silmez. Turnuva kaydı onarılmaz, atılır (yarım ve tutarsız bir ağaç oynatılmaz).
+6. **Patron = ödül karakteri:** turnuvanın amacı görünür (seçimde ödül paneli, ağaçta finalde kilitli
+   karakter). Kilitli karakterler AI olarak görülebilir; Hızlı Maç'ta CPU yalnızca açıklardan seçer.
+7. **Turnuva maçında yeniden başlatma yok** ve sonuç maç biter bitmez kaydedilir: kaybedilen maç
+   silinemez. (Duraklatıp ana menüye çıkmak hâlâ mümkün; o maç sonra yeniden oynanır — bkz. bilinen
+   sorunlar.)
+8. **Antrenman için GameSim'e `solo` kipi:** P2 sahadan "kaldırılamaz" (sınırlar yarı düzlem); bunun
+   yerine çarpışmalardan çıkarılır. Varsayılan kapalı, maç modlarında davranış değişmez (determinizm
+   testleri aynen geçiyor). Top sıfırlama/bar doldurma `step` dışı müdahaledir; antrenman tekrar
+   gerektirmez.
+9. **Süper önizlemesi gerçek simülasyondan:** ayrı bir yaklaşık animasyon yerine oyunun kendi kodu;
+   önizleme hiçbir zaman oyundan farklı davranmaz (testli: 10 süperin hepsi atılıyor).
+10. **PWA bağımlılıksız ve kodla:** "harici dosya yok" ilkesine uygun olarak simgeler de derleme
+    sırasında kodla çiziliyor; `vite-plugin-pwa`/Workbox eklenmedi (küçük, okunur bir SW yeterli).
+    Sayfa gezintisi ağ öncelikli: çevrimiçiyken her açılışta güncel sürüm.
+11. **Menü demosu sessiz:** efekt sesleri menüde yorucu olurdu; yalnızca kalabalık uğultusu demo
+    maçın tehlikesini izler. Demo süresiz (saat ve maç sonu yok), karakterler rastgele.
+12. **Yardım ve ayarlar menü sahnesinde:** demo maç arkada kesintisiz sürer; ayrı sahneye geçişte
+    demo her seferinde baştan başlardı.
+
+### Ayarlanması gerektiğini düşündüğüm değerler
+
+Hepsi `src/config/gameConfig.ts` (kilit sırası `src/game/characters.ts`) içinde; gerçek telefon ve
+gerçek oyuncularla denenmeli:
+
+| Değer                                 | Şu an                      | Neden                                                                       | Öneri             |
+| ------------------------------------- | -------------------------- | --------------------------------------------------------------------------- | ----------------- |
+| `TOUCH.buttons` (konum/yarıçap)       | r 50–68 px (mantıksal)     | 844×390 telefonda ~27–37 CSS px yarıçap; büyük başparmakla küçük gelebilir. | +10–15%           |
+| `TOUCH.alpha` / `pressedAlpha`        | 0,30 / 0,62                | Parlak sahnede butonlar zor seçilebilir.                                    | 0,35–0,4          |
+| `TOUCH.hitSlackPx`                    | 16                         | Komşu butonlar (← →) arasında yanlış basış.                                 | 12–20             |
+| `GAMEPAD.stickPress` / `stickRelease` | 0,5 / 0,35                 | Eski kollarda ölü bölge kayması; hassas oyuncu için geç tepki.              | 0,4 / 0,25        |
+| `TOURNAMENT.difficultyOffsets`        | −1, 0, +1                  | Orta ayarında final Zor: ortalama oyuncu için finali "duvar" yapabilir.     | oyun testine göre |
+| `STARTER_CHARACTERS` / `UNLOCK_ORDER` | 6 açık, 4 kilitli          | Kilit sırası denge tablosuna bakılmadan seçildi (Demir %47 en zayıflardan). | oyun testine göre |
+| `MENU.demo.dimAlpha` / `difficulty`   | 0,4 / Zor                  | Demo maç menü butonlarını okunaksız yapabilir ya da çok "boş" görünebilir.  | 0,35–0,5          |
+| `SELECT.preview.region` / boyut       | 1100×600 px → 204×114 kutu | Top 4 px; telefonda önizleme küçük kalıyor.                                 | kutu 240×130      |
+
+### Bilinen sorunlar / sınırlamalar
+
+- **Gerçek cihazda denenmedi:** dokunmatik Chrome'un dokunma benzetimiyle, gamepad sayfaya enjekte
+  edilen sahte `navigator.getGamepads` ile doğrulandı. Gerçek telefonlarda (özellikle iOS Safari) ve
+  gerçek kollarda davranış farklı olabilir: standart olmayan düğme düzenine (`mapping !== 'standard'`)
+  sahip kollarda düğmeler farklı yerlere düşebilir.
+- **iPhone Safari:** Fullscreen API öğeler için yok → tam ekran düğmesi gizli; yön kilidi yok. Tam
+  ekran deneyimi için "Ana Ekrana Ekle" (PWA, `display: fullscreen` iOS'ta standalone olur).
+- **Yalnızca gamepad ile ses:** tarayıcılar gamepad düğmesini kullanıcı etkileşimi saymaz; ses ilk
+  tuş/tıklama/dokunuşa kadar başlamaz.
+- **Telefonda okunurluk:** 1280×720 mantıksal ekran 844×390'a ~0,54 ölçekleniyor; 15–16 px'lik
+  açıklama yazıları (~8 CSS px) telefonda küçük. Mobil için ayrı bir yazı ölçeği ileride
+  değerlendirilmeli.
+- **2 Oyuncu tek telefonda dokunmatikle oynanamaz:** dokunmatik butonlar P1'i yönetir; P2 için klavye
+  ya da gamepad gerekir.
+- **Turnuva maçından duraklatıp ana menüye çıkmak** maçı saymaz; o maç sonra yeniden oynanır
+  (kaybetmek üzereyken çıkılabilir). Bilinçli olarak yumuşak bırakıldı.
+- Sahnede oynanmayan turnuva maçları gerçek simülasyon değil, tohumlu rastgele skor (görsel).
+- **Menü demosu bir maç kadar iş yapar** ve uyarlamalı kalite yöneticisi menüde çalışmaz (oturumda
+  öğrenilen kademeyi kullanır); çok zayıf cihazda menü maçtan önce yavaş açılabilir.
+- Debug katmanı (F1) rakipsiz antrenmanda P2'nin collider'larını çizmeye devam ediyor (geliştirici
+  aracı).
+- Service worker güncellemesi: yeni sürüm yüklendikten sonra açık bir sekme eski JS'le çalışmaya devam
+  eder; bir sonraki açılışta yeni sürüm gelir (sayfa gezintisi ağ öncelikli).
+- Faz 5'ten süren: gerçek düşük güçlü cihazda ölçüm yok, eşleşme bazında karşı karakterler,
+  tarayıcılar arası determinizm, `npm audit` uyarısı, kaleye park etme, debug metin kutusunun HUD'a
+  binmesi.
+
+### Sıradaki faz
+
+**Faz 7** — talimat bekleniyor.
