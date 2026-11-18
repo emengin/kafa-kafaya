@@ -1351,7 +1351,7 @@ Faz 7 kullanım limitine takıldı; ara kayıttan sonra maddeler tek tek denetle
 | #   | Madde                     | Durum     | Not                                                                                                                                                                      |
 | --- | ------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 1   | Gol tekrarı               | **TAM**   | Halka tampon (anahtar kare + girdiler), deterministik tekrar, ağır çekim, izleyen kamera, "Atla", Ayarlar'dan kapatılabilir; birim + tarayıcı testleri yeşil.            |
-| 2   | Denge turu                | **KISMİ** | 4 tur karakter taraması yapıldı (%47–58 → %47–57, en dengesiz eşleşme %80 → %71); zorluk matrisi henüz yeniden ölçülmedi.                                                |
+| 2   | Denge turu                | **TAM**   | 4 tur karakter taraması yapıldı (%47–58 → %47–57, en dengesiz eşleşme %80 → %71); zorluk matrisi yeniden ölçüldü (sıralama korunuyor, 0 sıkışma).                        |
 | 3   | Performans                | **KISMİ** | Profil çıkarıldı, karede ayırma ~52 → ~16 MB/sn, özel Phaser derlemesi + kod bölme (gzip 423 → 277 kB); son düşük güçlü cihaz (6× CPU) ölçümü ve belgeleme eksik.        |
 | 4   | Hata avı                  | **TAM**   | İki gol, kutlama/tekrar sırasında duraklatma, sekme gizlenince süre, dev kare, yeniden boyutlanma, hızlı tuş: testlerle denetlendi; menüde çift panel hatası düzeltildi. |
 | 5   | Erişilebilirlik           | **TAM**   | Renk körü modu (Okabe–Ito renkleri + kimlik halkası + ▲/● şekilleri), efekt yoğunluğu (parçacık, ekran parlaması, gol yakınlaşması).                                     |
@@ -1361,3 +1361,43 @@ Faz 7 kullanım limitine takıldı; ara kayıttan sonra maddeler tek tek denetle
 
 Eksikler sırayla tamamlanıyor (her madde sonunda derleme + test + commit); v1.0.0 etiketi ve
 GitHub Release en son, her şey yeşilken.
+
+### Denge turu (madde 2 — TAM)
+
+Komut: `npm run simulate -- --characters --matches 40 --jobs 11` (Orta vs Orta, her eşleşme iki
+tarafta 40'ar = 80 maç, toplam **3600 maç** her tur, tohum 1, gerçek kurallar + güçlendiriciler).
+
+| Tur | Değişiklik                                                                                                                                                      | Kazanma aralığı | En dengesiz eşleşme | Bulgu                                                               |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | ------------------- | ------------------------------------------------------------------- |
+| v0  | Faz 6 değerleri                                                                                                                                                 | %47–58          | Toprak–Şimşek %80   | Ayaz en üstte; Toprak–Şimşek, Bora–Toprak, Kaya–Sis %74+            |
+| v1  | Buz etkisi 1,0 → 0,8 sn; Işınlanma çıkış hızı ×0,65 → ×0,72; Kasırga itme 520 → 460; Mıknatıs 1300 → 1500; Sarsıntı kilit 1 → 0,8 sn, zemin sekmesi 0,85 → 0,78 | %46–57          | Bora–Toprak %71     | Uç eşleşmeler düzeldi; Sis Kor'a karşı fazla güçlendi               |
+| v2  | Buz hızı ×0,85; Işınlanma ×0,68; Kasırga 400; Dev Top hızı ×1,05 → ×1,12                                                                                        | %44–58          | Bora–Demir %71      | Kor–Sis düzeldi; Ayaz değişmedi, Demir düştü                        |
+| v3  | Ayaz 3/4/3/4 → 3/4/4/3; Mıknatıs 1800, 1,6 sn                                                                                                                   | %46–58          | Ayaz–Yay %73        | Ayaz yine %58: üstünlük istatistiklerden değil **donmadan** geliyor |
+| v4  | Ayaz istatistikleri geri; **Buz donması 1,5 → 1,1 sn**; Buz hızı ×0,9                                                                                           | **%47–57**      | Bora–Toprak %71     | Kabul edildi                                                        |
+
+Not: Buz'un süperle gol payı yalnızca %5–6; asıl etki donan rakibe karşı atılan **normal** şutlar
+(istatistikte süper golü sayılmıyor). Bu yüzden v3'teki istatistik değişikliği işe yaramadı, donma
+süresi ise yaradı.
+
+**Son karakter tablosu (v4):**
+
+| Karakter | Süper     | Hız/Zıp/Şut/Kafa | Kazanma | Gol (at–ye) / maç | Süperle gol % |
+| -------- | --------- | ---------------- | ------- | ----------------- | ------------- |
+| Ayaz     | Buz       | 3/4/3/4          | 57%     | 6,95–6,31         | 5%            |
+| Pamuk    | Serap     | 4/4/2/4          | 52%     | 6,46–6,35         | 7%            |
+| Şimşek   | Zikzak    | 5/3/4/2          | 51%     | 6,79–6,82         | 6%            |
+| Bora     | Kasırga   | 4/4/3/3          | 50%     | 6,75–6,55         | 7%            |
+| Kor      | Ateş Topu | 3/3/5/3          | 50%     | 6,62–6,67         | 7%            |
+| Sis      | Işınlanma | 4/5/2/3          | 49%     | 6,44–6,54         | 9%            |
+| Kaya     | Dev Top   | 2/3/4/5          | 49%     | 6,68–6,81         | 6%            |
+| Demir    | Mıknatıs  | 3/3/4/4          | 47%     | 6,40–6,75         | 8%            |
+| Yay      | Gökkuşağı | 3/5/3/3          | 47%     | 6,00–6,20         | 9%            |
+| Toprak   | Sarsıntı  | 2/4/5/3          | 47%     | 6,95–7,04         | 6%            |
+
+Hiçbir karakter %60'ı geçmiyor; 80 maçlık eşleşmelerde ±~5,6 puan istatistik hatası var. Belirgin
+karşı karakterler kaldı: Bora–Toprak %71, Ayaz–Pamuk %69, Toprak–Şimşek %69 (v0'da %80).
+
+**Zorluk matrisi** (`npm run simulate -- --matrix --matches 50`, 450 maç, nötr oyuncular): Faz 4 ile
+birebir aynı — nötr oyuncunun süperi (Ateş Topu) ve fizik değişmedi. Kolay–Orta %20/%80, Orta–Zor
+%28/%72, Kolay–Zor %10/%90; sıralama korunuyor, **0 sıkışma**. Karakter taramalarında 3600 maçta
+3–4 sıkışma olayı (Faz 4'teki gibi).

@@ -109,15 +109,15 @@ gerçek kişi, kulüp, marka veya logo kullanılmaz.
 | Süper         | Etki                                                                                                       | Karşı oyun                                                                    |
 | ------------- | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | **Ateş Topu** | ×1,5 hız, düz açı, 0,8 sn yerçekimsiz dümdüz gider; gövdeyle karşılayanı geri savurur.                     | Yolu düz ve tahmin edilebilir: önüne geç, şut ya da kafayla vur.              |
-| **Buz**       | Havadan doğrudan değdiği rakibi **1,5 sn** dondurur; ilk sekmede söner.                                    | Şut/kafa, üstünden atla ya da sekmesini bekle. Donma sonrası 1 sn bağışıklık. |
+| **Buz**       | Havadan doğrudan değdiği rakibi **1,1 sn** dondurur; ilk sekmede söner.                                    | Şut/kafa, üstünden atla ya da sekmesini bekle. Donma sonrası 1 sn bağışıklık. |
 | **Zikzak**    | Yerçekimsiz, dikeyde dalgalanır (y = −55·(1 − cos 2π·2,4t)).                                               | Daha yavaş (×1,15); dalganın dibinde karşıla, sahaya değince söner.           |
 | **Işınlanma** | 0,12 sn sonra görünmez olur (oyuncuların içinden geçer), kale çizgisinden 250 px önde ×0,65 hızla belirir. | Kale çizgisine yakın dur: top yavaşlayarak ve önünde belirir.                 |
 | **Dev Top**   | Top 1,8 kat büyür, 3 kat ağırlaşır (kaleciyi iter); 2,4 sn.                                                | Büyük top kaleye tam girmekte zorlanır; erken kes, kafayla karşıla.           |
 | **Kasırga**   | 150 px içindeki rakibi topun gidiş yönünde iter (havadayken %40).                                          | Zıpla ya da topa aktif vur (etki biter).                                      |
 | **Gökkuşağı** | Tavana yakın (y≈70) yayla, hava direnci kapalı, rakip kalenin 180 px önüne dik iner; sekince söner.        | Yavaş ve uzun: geri dön, düştüğü yerde karşıla.                               |
-| **Mıknatıs**  | 1,4 sn boyunca rakip kalenin ortasına doğru 1300 px/sn² çekilir.                                           | Çekim zayıf; kalenin önünde dur.                                              |
+| **Mıknatıs**  | 1,6 sn boyunca rakip kalenin ortasına doğru 1800 px/sn² çekilir.                                           | Çekim zayıf; kalenin önünde dur.                                              |
 | **Serap**     | Top üç yöne bölünür (±0,26 rad); gerçek olan tohumla seçilir, ikisi 0,75 sn'de / değince söner.            | Yanılsamalar oyunculara değince ve kaleye yaklaşınca söner; gol olmazlar.     |
-| **Sarsıntı**  | Rakip 1 sn zıplayamaz; top −0,2 rad alçak açıyla gider, zeminde 0,85 sekmeyle sekerek ilerler.             | Top alçak: gövdeyle kes, şutla vur.                                           |
+| **Sarsıntı**  | Rakip 0,8 sn zıplayamaz; top −0,2 rad alçak açıyla gider, zeminde 0,78 sekmeyle sekerek ilerler.           | Top alçak: gövdeyle kes, şutla vur.                                           |
 
 ## 7. Karakterler (10 özgün karakter)
 

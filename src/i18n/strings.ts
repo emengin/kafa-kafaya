@@ -96,7 +96,7 @@ export const tr = {
   'superDesc.fire':
     'Dümdüz ve çok hızlı; gövdeyle karşılayanı geri savurur. Karşı: şut ya da kafayla vur.',
   'superDesc.ice':
-    'Havadan değdiği rakibi 1,5 sn dondurur. Karşı: şut/kafayla vur, atla ya da sekmesini bekle.',
+    'Havadan değdiği rakibi 1,1 sn dondurur. Karşı: şut/kafayla vur, atla ya da sekmesini bekle.',
   'superDesc.zigzag':
     'Dalgalanarak ilerler, tahmini zor. Karşı: daha yavaş; dalganın dibinde karşıla.',
   'superDesc.teleport':
@@ -108,7 +108,7 @@ export const tr = {
     'Tavana yakın yayla kaleye dik iner. Karşı: yavaş; geri dön, kafayla karşıla.',
   'superDesc.magnet': 'Uçarken rakip kaleye doğru çekilir. Karşı: çekim zayıf; önünde dur.',
   'superDesc.mirage': 'Top üçe bölünür; ikisi sahte ve söner. Karşı: sahteler değince söner.',
-  'superDesc.quake': 'Rakip 1 sn zıplayamaz, top sekerek gider. Karşı: alçak top; gövdeyle kes.',
+  'superDesc.quake': 'Rakip 0,8 sn zıplayamaz, top sekerek gider. Karşı: alçak top; gövdeyle kes.',
   'powerUp.bigHead': 'Büyük Kafa',
   'powerUp.shrinkOpponent': 'Rakibi Küçült',
   'powerUp.speed': 'Hız',
@@ -323,7 +323,7 @@ export const en: Record<StringKey, string> = {
   'superDesc.fire':
     'Dead straight and very fast; knocks back a body block. Counter: kick or head it.',
   'superDesc.ice':
-    'Freezes an opponent it hits on the fly for 1.5 s. Counter: kick/head it, jump, or let it bounce.',
+    'Freezes an opponent it hits on the fly for 1.1 s. Counter: kick/head it, jump, or let it bounce.',
   'superDesc.zigzag':
     'Waves as it flies, hard to read. Counter: slower; meet it at the bottom of a wave.',
   'superDesc.teleport':
@@ -338,7 +338,7 @@ export const en: Record<StringKey, string> = {
     "Curves toward the opponent's goal. Counter: the pull is weak; stand in front.",
   'superDesc.mirage': 'Ball splits in three; two are fake and fade. Counter: fakes pop on contact.',
   'superDesc.quake':
-    'Opponent cannot jump for 1 s; ball skips low. Counter: low ball; block with body.',
+    'Opponent cannot jump for 0.8 s; ball skips low. Counter: low ball; block with body.',
   'powerUp.bigHead': 'Big Head',
   'powerUp.shrinkOpponent': 'Shrink Opponent',
   'powerUp.speed': 'Speed',

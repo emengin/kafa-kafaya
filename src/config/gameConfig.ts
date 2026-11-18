@@ -1159,10 +1159,10 @@ export const REPLAY = {
   goalSpeed: 0.3,
   goalSlowSeconds: 0.6,
   /** Tekrar kamerası: topu ortalayan yakın plan, hafif eğik. */
-  zoom: 1.45,
+  zoom: 1.3,
   followRate: 6,
   /** Kamera odağı top ile zeminin biraz üstü arasında (oyuncular da kadrajda kalsın). */
-  groundBias: 0.45,
+  groundBias: 0.6,
   groundLiftPx: 150,
   tiltRad: -0.018,
   /** Sinema şeritleri (px) ve "TEKRAR" etiketi. */
