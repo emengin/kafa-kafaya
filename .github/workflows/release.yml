@@ -1,0 +1,35 @@
+name: GitHub Release
+
+# `v*` etiketi itildiğinde sürüm notunu CHANGELOG.md'den çıkarıp GitHub Release oluşturur.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Sürümü yayınla
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Sürüm notunu CHANGELOG'dan çıkar
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="$version" '
+            index($0, "## [" v "]") == 1 { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > notes.md
+          test -s notes.md
+
+      - name: Release oluştur
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "Kafa Kafaya $GITHUB_REF_NAME" \
+            --notes-file notes.md \
+            --verify-tag

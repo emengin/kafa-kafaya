@@ -1,4 +1,5 @@
 /// <reference types="vitest/config" />
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vite';
 import { PLATFORM } from './src/config/gameConfig.ts';
 import { customPhaser } from './scripts/phaser/plugin.ts';
@@ -14,9 +15,17 @@ const repoName = process.env.GITHUB_REPOSITORY?.split('/')[1] ?? DEFAULT_REPO_NA
 /** Özel Phaser derlemesi ~700 kB; Vite'ın 500 kB uyarısını anlamlı bir sınıra çekiyoruz. */
 const CHUNK_SIZE_WARNING_KB = 800;
 
+/** Sürüm numarası package.json'dan; menü altbilgisinde gösterilir. */
+const { version } = JSON.parse(
+  readFileSync(new URL('./package.json', import.meta.url), 'utf-8'),
+) as {
+  version: string;
+};
+
 // `vite preview` da command === 'serve' ile çalışır; derlenmiş dosyalar depo alt yolunu
 // beklediği için önizlemede de aynı base kullanılmalı (yoksa varlıklar 404 verir).
 export default defineConfig(({ command, isPreview }) => ({
+  define: { __APP_VERSION__: JSON.stringify(version) },
   base: command === 'build' || isPreview === true ? `/${repoName}/` : '/',
   plugins: [
     // Özel Phaser derlemesi: yalnızca oyunun kullandığı modüller (yalnızca üretim derlemesi).

@@ -424,7 +424,7 @@ export class MenuScene extends Phaser.Scene {
       .text(
         width - MENU.footer.marginPx,
         height - MENU.footer.marginPx,
-        t('menu.footer'),
+        format('menu.footer', { version: __APP_VERSION__ }),
         textStyle(MENU.footer.fontSizePx, '#ffffff', 2),
       )
       .setOrigin(1, 1)

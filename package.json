@@ -1,7 +1,7 @@
 {
   "name": "kafa-kafaya",
   "private": true,
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Kafa Kafaya — tarayıcıda oynanan 2D, 1v1 kafa topu oyunu.",
   "license": "MIT",
   "type": "module",
