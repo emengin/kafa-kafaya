@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   build:
-    name: Lint + Test + Build
+    name: Lint + Test + Build + Duman testi
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -33,6 +33,12 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+
+      - name: Playwright tarayıcısı
+        run: npx playwright install --with-deps chromium
+
+      - name: Duman testi (Playwright)
+        run: npm run test:e2e
 
       - name: Pages yapılandırması
         if: github.event_name != 'pull_request'
