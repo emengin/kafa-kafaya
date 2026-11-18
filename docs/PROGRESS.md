@@ -11,7 +11,7 @@
 | 4   | Karakterler, süper şutlar, güçlendiriciler | ✅ Tamamlandı |
 | 5   | Görsel kalite ve ses ("juice")             | ✅ Tamamlandı |
 | 6   | Modlar, menüler ve platform desteği        | ✅ Tamamlandı |
-| 7   | —                                          | ⏭️ Sıradaki   |
+| 7   | Cila, performans, test ve v1.0.0           | 🔄 Sürüyor    |
 
 **Canlı sürüm:** https://emengin.github.io/kafa-kafaya/
 
@@ -1338,4 +1338,26 @@ gerçek oyuncularla denenmeli:
 
 ### Sıradaki faz
 
-**Faz 7** — talimat bekleniyor.
+**Faz 7** — sürüyor (aşağıda).
+
+---
+
+## Faz 7 — Cila, performans, test ve v1.0.0 (2026-11-19)
+
+### Denetim (ara kayıt sonrası, `9a456fa`)
+
+Faz 7 kullanım limitine takıldı; ara kayıttan sonra maddeler tek tek denetlendi:
+
+| #   | Madde                     | Durum     | Not                                                                                                                                                                      |
+| --- | ------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Gol tekrarı               | **TAM**   | Halka tampon (anahtar kare + girdiler), deterministik tekrar, ağır çekim, izleyen kamera, "Atla", Ayarlar'dan kapatılabilir; birim + tarayıcı testleri yeşil.            |
+| 2   | Denge turu                | **KISMİ** | 4 tur karakter taraması yapıldı (%47–58 → %47–57, en dengesiz eşleşme %80 → %71); zorluk matrisi henüz yeniden ölçülmedi.                                                |
+| 3   | Performans                | **KISMİ** | Profil çıkarıldı, karede ayırma ~52 → ~16 MB/sn, özel Phaser derlemesi + kod bölme (gzip 423 → 277 kB); son düşük güçlü cihaz (6× CPU) ölçümü ve belgeleme eksik.        |
+| 4   | Hata avı                  | **TAM**   | İki gol, kutlama/tekrar sırasında duraklatma, sekme gizlenince süre, dev kare, yeniden boyutlanma, hızlı tuş: testlerle denetlendi; menüde çift panel hatası düzeltildi. |
+| 5   | Erişilebilirlik           | **TAM**   | Renk körü modu (Okabe–Ito renkleri + kimlik halkası + ▲/● şekilleri), efekt yoğunluğu (parçacık, ekran parlaması, gol yakınlaşması).                                     |
+| 6   | Playwright duman testi    | **YOK**   |                                                                                                                                                                          |
+| 7   | README                    | **YOK**   |                                                                                                                                                                          |
+| 8   | CHANGELOG + v1.0.0 sürümü | **YOK**   |                                                                                                                                                                          |
+
+Eksikler sırayla tamamlanıyor (her madde sonunda derleme + test + commit); v1.0.0 etiketi ve
+GitHub Release en son, her şey yeşilken.
