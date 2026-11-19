@@ -145,11 +145,11 @@ src/
   i18n/       TR/EN metinler
 scripts/      simulate.ts, pwa/ (manifest, simgeler, service worker), phaser/ (özel derleme)
 e2e/          Playwright duman testi ve ekran görüntüleri
-docs/         GAME_DESIGN.md (tasarım), PROGRESS.md (faz günlüğü, ölçümler)
+docs/         GAME_DESIGN.md, ROADMAP_MOBILE.md, PROGRESS.md (durum), archive/ (faz günlükleri)
 ```
 
 Ayrıntılı tasarım: [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md) · geliştirme günlüğü, ölçümler ve
-denge tabloları: [docs/PROGRESS.md](docs/PROGRESS.md) · sürüm notları: [CHANGELOG.md](CHANGELOG.md).
+denge tabloları: [docs/archive/PROGRESS_WEB.md](docs/archive/PROGRESS_WEB.md) · sürüm notları: [CHANGELOG.md](CHANGELOG.md).
 
 ## Katkı rehberi
 

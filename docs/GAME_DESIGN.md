@@ -157,8 +157,8 @@ karakterin toplamı **14**. Puan → fizik değeri (`CHARACTER_STATS`; 3 puan = 
 | 9   | **Pamuk**  | Bulut, pembe          | 4   | 4    | 2   | 4    | **Serap**     |
 | 10  | **Toprak** | Deprem, kahverengi    | 2   | 4    | 5   | 3    | **Sarsıntı**  |
 
-> Denge: AI vs AI simülasyonuyla (`npm run simulate -- --characters`); güncel tablo PROGRESS.md
-> Faz 4'te.
+> Denge: AI vs AI simülasyonuyla (`npm run simulate -- --characters`); güncel tablo
+> [archive/PROGRESS_WEB.md](archive/PROGRESS_WEB.md) Faz 7 "Denge turu" bölümünde.
 
 ## 8. Güçlendiriciler
 
@@ -192,7 +192,7 @@ karakterin toplamı **14**. Puan → fizik değeri (`CHARACTER_STATS`; 3 puan = 
   zamanlaması ve şut değerlendirmesi, süper) → **sıkışma önleme** (itişme, direk/kafa üstünde
   kalma, topu kafada taşıma, donup kalma).
 - Tüm rastgelelik tohumlanabilir (aynı tohum → aynı kararlar).
-- Zorluk seviyeleri (`gameConfig.ts` → `AI_PROFILES`; tam tablo PROGRESS.md Faz 3'te):
+- Zorluk seviyeleri (`gameConfig.ts` → `AI_PROFILES`; tam tablo [archive/PROGRESS_WEB.md](archive/PROGRESS_WEB.md) Faz 3'te):
 
 | Seviye | Reaksiyon | Tahmin hatası | Karar aralığı | Agresiflik | Süper kullanımı |
 | ------ | --------- | ------------- | ------------- | ---------- | --------------- |
@@ -270,7 +270,7 @@ karakterin toplamı **14**. Puan → fizik değeri (`CHARACTER_STATS`; 3 puan = 
 
 ## 13. Ses ve görsel stil
 
-Ayrıntılar ve ölçümler PROGRESS.md Faz 5'te; tüm değerler `gameConfig.ts` (`STADIUM`,
+Ayrıntılar ve ölçümler [archive/PROGRESS_WEB.md](archive/PROGRESS_WEB.md) Faz 5'te; tüm değerler `gameConfig.ts` (`STADIUM`,
 `CHARACTER_ART`, `ANIM`, `JUICE`, `NET`, `PARTICLES`, `PARTICLE_PRESETS`, `BALL_FX`, `SUPER_FX`,
 `UI_THEME`, `AUDIO`, `CROWD`, `MUSIC`, `QUALITY`).
 

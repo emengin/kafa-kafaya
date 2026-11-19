@@ -3,7 +3,7 @@
 Bu projedeki önemli değişiklikler bu dosyada belgelenir. Biçim
 [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) temellidir, sürümler
 [Anlamsal Sürümleme](https://semver.org/lang/tr/)'ye uyar. Ayrıntılı geliştirme günlüğü, ölçümler ve
-denge tabloları: [docs/PROGRESS.md](docs/PROGRESS.md).
+denge tabloları: [docs/archive/PROGRESS_WEB.md](docs/archive/PROGRESS_WEB.md).
 
 ## [1.0.0] — 2026-11-19
 
