@@ -1,12 +1,12 @@
 # Veri Haritası (Data Map)
 
 > **Durum:** iskelet (Faz 0.3, 2026-11-20). Her yeni veri toplama noktası eklendiği fazda buraya
-> yazılır; son hâli Faz 10.1'de. Hukuki sebep sütunu taslaktır — **AVUKAT ONAYI BEKLİYOR**
-> (Faz 10.5).
+> yazılır; satın alma ve reklamdan önce Faz 8.1'de toplu gözden geçirilir, son kontrolü Faz 10.2'de.
+> Hukuki sebep sütunu taslaktır — **AVUKAT ONAYI BEKLİYOR** (Faz 10.3).
 >
 > Kural (ROADMAP_MOBILE.md § Gizlilik): bu tabloda olmayan veri toplanmaz; rıza gerektiren hiçbir
 > SDK rıza alınmadan başlatılmaz. Google Play "Veri güvenliği" formu ve Apple "App Privacy"
-> etiketleri bu dosyadan üretilir (Faz 10.6) ve onlarla birebir aynı olmalıdır.
+> etiketleri bu dosyadan üretilir (Faz 10.4) ve onlarla birebir aynı olmalıdır.
 
 ## Sütunlar
 
@@ -36,12 +36,14 @@ tarayıcının `localStorage`'ında, cihazda kalır (`kafa-kafaya.` önekli anah
 
 ## Mobil sürüm
 
-Faz eklendikçe doldurulur. Beklenen satırlar (yol haritasından): misafir hesap / cihaz kimliği (5.2),
-Google Play Games / Game Center kimliği (5.2, 12.2), bulut kaydı (5.2), cüzdan ve işlem defteri
-(5.3), sunucu kayıtları ve IP (5.5), maç girdi kayıtları ve beceri puanı (9.x), arkadaş listesi
-(9.6), satın alma makbuzları — RevenueCat (8.1–8.2), reklam kimliği — AdMob (8.5–8.6), analiz ve
-çökme verileri — Firebase (11.3; Crashlytics tarihi açık soru), bildirim jetonu (11.2), yaş beyanı
-ve rıza kayıtları (10.1–10.2), destek ve KVKK başvuruları (10.3, 11.5).
+Faz eklendikçe doldurulur. Beklenen satırlar (yol haritasından): analiz ve çökme verileri —
+Firebase Analytics + Crashlytics (2.8), geçici rıza kaydı (2.8), misafir hesap / cihaz kimliği (5.2),
+oyuncu adı ve ad raporları (5.2, 11.4), Google Play Games / Game Center kimliği (5.2, 12.2), bulut
+kaydı (5.2), cüzdan, işlem defteri ve çevrimdışı ödül kuyruğu (5.3), sunucu kayıtları ve IP (5.5),
+yaş beyanı ve rıza kayıtları (8.1–8.2), satın alma makbuzları — RevenueCat (8.3–8.4), reklam kimliği
+— AdMob (8.7–8.8), maç girdi kayıtları, checksum uyuşmazlık logları ve beceri puanı (9.x), arkadaş
+listesi (9.6), destek ve KVKK başvuruları (10.1, 11.5), bildirim jetonu (11.2), A/B deney ataması
+(11.3).
 
 | Veri | Kaynak | Amaç | Hukuki sebep (taslak) | Rıza | Aktarıldığı yer | Saklama süresi | Faz |
 | ---- | ------ | ---- | --------------------- | ---- | --------------- | -------------- | --- |
@@ -50,7 +52,9 @@ ve rıza kayıtları (10.1–10.2), destek ve KVKK başvuruları (10.3, 11.5).
 ## Yurt dışı aktarımlar
 
 Her yurt dışı alıcı için: alıcı, ülke, aktarılan veri, dayanak (standart sözleşme), imza tarihi,
-Kurul'a bildirim tarihi (imzadan sonra 5 iş günü). Faz 10.5'te avukatla doldurulur.
+Kurul'a bildirim tarihi (imzadan sonra 5 iş günü). İlk yurt dışı alıcı Firebase'dir (Faz 2.8);
+satırı o fazda açılır, sunucu yurt dışındaysa Faz 5.5'te o da eklenir. Avukatla Faz 10.3'te
+tamamlanır.
 
 | Alıcı | Ülke | Veri | Dayanak | İmza tarihi | Bildirim tarihi |
 | ----- | ---- | ---- | ------- | ----------- | --------------- |

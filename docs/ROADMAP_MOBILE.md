@@ -15,9 +15,16 @@ Her fazın başında bir etiket var:
 | **[SEN]**    | Sen yaparsın: yapay zekâ araçları, çizim/ses programları, hesap işlemleri.                                                |
 | **[PRO]**    | Yapay zekâyla değiştirilmemesi gereken profesyonel işler (avukat, mali müşavir).                                          |
 
-Model ayarı: **(Y)** = Yüksek, **(EY)** = Ekstra yüksek.
+Model ayarı: **(Y)** = Yüksek, **(EY)** = Ekstra yüksek, **(EY, gerekirse Fable)** = Ekstra yüksekle başlanır; faz takılırsa Fable modeliyle sürdürülür.
 
 Bazı bölümler paralel yürür: Claude Code sunucu veya meta oyun fazlarındayken sen Bölüm 7'deki içerik üretimine devam edebilirsin.
+
+**Bağımlılıklar:**
+
+- Bölüm 2'nin fazları, senin yürüttüğün Bölüm 1 ile paralel ilerleyebilir.
+- Faz 3.4, Faz 1.4 (sanat rehberi) ve 1.6 (arayüz tasarım sistemi) bitmeden başlamaz.
+- Faz 2.9 (his ve denge), Faz 2.7'den (determinizm) sonra yapılır; içerik dengesi (7.6) bu ayarın üstüne kurulur.
+- Bölüm 8'deki satın alma ve reklam fazları (8.3–8.8), veri haritası ve rıza yönetimi (8.1–8.2) bitmeden başlamaz.
 
 ---
 
@@ -40,18 +47,31 @@ Bazı bölümler paralel yürür: Claude Code sunucu veya meta oyun fazlarınday
 
 ### Teknik kararlar
 
-- TypeScript + Phaser kod tabanı korunur; Capacitor ile Android ve iOS'a paketlenir. Önce Android, sonra iOS.
-- Fizik deterministik kalır (online PvP'de rollback netcode için şart). Determinizmi bozan her değişiklik testle engellenir.
-- Sunucu: Nakama (kendi barındırma, tercihen Türkiye'deki bir veri merkezinde). Hesaplar, cüzdan, envanter, eşleştirme, liderlik tabloları sunucudadır. Ekonomi işlemleri sunucu taraflı doğrulanır; istemciye asla güvenilmez.
+- TypeScript + Phaser kod tabanı korunur; Faz 2.0'da Phaser 4'e geçilir. Capacitor ile Android ve iOS'a paketlenir. Önce Android, sonra iOS.
+- **Determinizm** (online PvP'de rollback netcode için şart; uygulama Faz 2.7):
+  - Fizik simülasyonu yalnızca `+`, `-`, `*`, `/`, `Math.sqrt`, `Math.abs/min/max/floor/round` ve tam sayı işlemlerini kullanır. `sin`, `cos`, `atan2`, `exp`, `pow` (ve aynı işi yapan `**` operatörü) için kendi deterministik fonksiyonlarımız yazılır.
+  - Simülasyonda `Math.random` yok; tohumlu PRNG var.
+  - Simülasyon adımı asla değişmez. Hit-stop ve ağır çekim yalnızca sunum katmanında uygulanır; gol sonrası duraklama deterministik bir oyun durumudur. Online ve çevrimdışı mod aynı mimariyi kullanır.
+  - CI'da aynı tekrar kaydı Chromium, WebKit ve Node'da çalıştırılır ve her karenin durum özeti (checksum) karşılaştırılır. Determinizmi bozan her değişiklik testle engellenir.
+- **Maç doğrulama:** Sunucu ilk sürümde maçı yeniden simüle etmez. İstemciler periyodik checksum ve maç sonucu gönderir; uyuşmazlıkta maç geçersiz sayılır ve loglanır. Sunucu taraflı yeniden simülasyon ileride opsiyonel (Faz 13.2).
+- Sunucu: Nakama. Lansman tek Türkiye bölgesiyle yapılır; eşleştirmede gecikme dikkate alınır. Kendi barındırma mı yönetilen hizmet mi kararı Faz 5.5'te verilir (KVKK yurt dışı aktarım etkisi dahil). Hesaplar, cüzdan, envanter, eşleştirme, liderlik tabloları sunucudadır. Ekonomi işlemleri sunucu taraflı doğrulanır; istemciye asla güvenilmez.
+- Uzaktan ayar ve A/B testi: tek kaynak Nakama (Faz 5.4, 11.3). Nakama gelene kadar yerel config dosyası (`src/config/gameConfig.ts`) kullanılır.
 - Satın alma: RevenueCat; makbuzlar sunucuda doğrulanır.
 - Reklam: AdMob (ileride aracılık platformu). Ödüllü reklam + sınırlı geçiş reklamı. Banner yok.
-- Analiz ve çökme: Firebase Analytics + Crashlytics, uzaktan ayar.
+- Analiz ve çökme: Firebase yalnızca Analytics + Crashlytics için kullanılır (Faz 2.8). Rıza yoksa veri gönderilmez.
+- Metin: çevrilen metinler canvas tabanlı metinle (web/sistem fontları) çizilir; bitmap font yalnızca skor, sayaç gibi stilize sayı ve başlıklarda kullanılır.
 - Web sürümü çalışmaya devam eder (tanıtım ve demo amaçlı).
 
 ### Para kazanma ilkeleri
 
-- Kazanmak için para ödenmez: online maçlarda istatistikler eşittir. Satılanlar görünüş, kolaylık ve gösteriştir.
-- İki para birimi: Altın (oynayarak kazanılır), Elmas (satın alınır, az miktarda oynayarak da kazanılır).
+- **Güç satılmaz, çeşitlilik satılır.** Karakterler birbirinin yan seçeneğidir:
+  - Tüm karakterlerin toplam istatistik bütçesi eşittir.
+  - AI-vs-AI denge simülasyonunda ve ileride online veride her karakterin kazanma oranı %45–55 bandındadır.
+  - Her karakter oynayarak makul sürede açılabilir (süre hedefi Faz 1.1'de belirlenir); satın almak sadece beklememek içindir.
+  - Seviye veya yükseltmeyle güç artışı yoktur.
+- Karakterler dışında satılanlar görünüş, kolaylık ve gösteriştir.
+- İki para birimi: Altın (oynayarak kazanılır), Elmas (satın alınır, az miktarda oynayarak da kazanılır; tek oyunculu moddan asla gelmez).
+- Tek oyunculu ödüller sadece Altın + XP'dir ve günlük üst sınırlıdır; sunucu makullük kontrolü yapar (maç süresi, skor aralığı, sıklık sınırı). Çevrimdışı oyun tam oynanabilir; ödüller kuyrukta tutulur ve bağlanınca aynı sınırlarla doğrulanır.
 - Rastgele ödüllü kutu YOK. Doğrudan satış, günlük dönen mağaza ve Sezon Kartı kullanılır.
 - Geçiş reklamı sadece maç sonunda, ilk 5 maçta hiç yok, sıklık sınırı uzaktan ayardan. Maç içinde reklam asla yok.
 - Manipülatif arayüz yok: sahte geri sayım, gizli fiyat, yanıltıcı buton yok.
@@ -59,8 +79,9 @@ Bazı bölümler paralel yürür: Claude Code sunucu veya meta oyun fazlarınday
 ### Gizlilik ve yasal ilkeler
 
 - Tasarımdan itibaren gizlilik: her veri toplama noktası docs/DATA_MAP.md'de listelenir (veri, amaç, hukuki sebep, aktarıldığı yer ve ülke, saklama süresi).
-- Rıza gerektiren hiçbir SDK rıza alınmadan başlatılmaz.
+- Rıza gerektiren hiçbir SDK rıza alınmadan başlatılmaz (Faz 2.8'de geçici rıza ekranı, Faz 8.2'de tam rıza yönetimi).
 - Serbest yazılı sohbet yok; sadece hazır mesajlar ve emojiler.
+- Oyuncu adları: otomatik üretilen varsayılan ad; TR/EN küfür filtresi (harf hilelerine karşı normalizasyonla), ayrılmış adlar, raporlama, ad değiştirme (Faz 5.2, 11.4).
 - 18 yaş altı için harcama limiti ve ebeveyn onayı seçeneği bulunur.
 - Hukuki metinler taslaktır ve "AVUKAT ONAYI BEKLİYOR" ibaresi taşır.
 
@@ -129,7 +150,7 @@ Bu hattın ekstra faydası: elle yeniden çizim, görsele insan emeği katar. Sa
 
 - Mali müşavirle görüş: şahıs mı limited mi, vergi yükümlülükleri, mağaza ödemelerinin alınması.
 - TÜRKPATENT'te "Kafa Kafaya" ismini araştır; müsaitse marka tescil başvurusu yap. Alan adını al.
-- Avukatla bir tanışma görüşmesi: KVKK, tüketici hukuku, 2026 çocuk ve oyun platformu düzenlemesinin projeyi kapsayıp kapsamadığı. Asıl inceleme Faz 10.5'te.
+- Avukatla bir tanışma görüşmesi: KVKK, tüketici hukuku, 2026 çocuk ve oyun platformu düzenlemesinin projeyi kapsayıp kapsamadığı. Asıl inceleme Faz 10.3'te.
 
 ### Faz 0.3 — Proje yapısı ve dokümanlar [CC] (Y)
 
@@ -140,23 +161,31 @@ Bu hattın ekstra faydası: elle yeniden çizim, görsele insan emeği katar. Sa
 
 Bitti kriteri: Dokümanlar repoda, PROGRESS.md'de faz listesi var, web sürümü yayında.
 
+### Faz 0.4 — Kararlar ve yol haritası revizyonu [CC] (Y)
+
+1. Faz 0.3'te listelenen risklerin kararlarını GAME_DESIGN_MOBILE.md § Kararlar'a işle; kararı verilmeyenleri orada listele.
+2. Yol haritasını kararlara göre güncelle: yeni fazlar, sıra değişiklikleri, ilke değişiklikleri.
+3. PROGRESS.md'deki faz listesini yeni sıraya göre güncelle; kalan çelişki ve riskleri "Sonraki fazlar için notlar"a yaz.
+
+Bitti kriteri: Açık sorular karara bağlandı ya da açıkça listelendi; dokümanlar birbiriyle çelişmiyor ve Prettier'dan geçiyor.
+
 ---
 
 ## Bölüm 1 — Tasarım ve sanat yönü
 
 ### Faz 1.1 — Mobil oyun tasarım dokümanı [CC] (EY)
 
-GAME_DESIGN_MOBILE.md'yi doldur:
+GAME_DESIGN_MOBILE.md'yi doldur (§ Kararlar bağlayıcıdır):
 
 1. Çekirdek döngü ve meta döngü (maç → ödül → ilerleme → kozmetik → tekrar).
-2. Ekonomi: Altın ve Elmas'ın kaynakları ve harcama yerleri, günlük kazanç hedefleri.
+2. Ekonomi: Altın ve Elmas'ın kaynakları ve harcama yerleri, günlük kazanç hedefleri, tek oyunculu ödüllerin günlük üst sınırları.
 3. Sezon Kartı yapısı (ücretsiz ve premium yol, 6–8 haftalık temalı sezonlar).
 4. Kozmetik kategorileri: karakter skinleri, formalar, ayakkabılar, aksesuarlar, top skinleri, top izleri, gol patlama efektleri, gol kutlamaları, profil çerçeveleri, isim plakaları, maç öncesi giriş animasyonu, stadyum özelleştirmeleri.
 5. Ürün kataloğu: reklamsız paket, başlangıç paketi, kurucu paketi, elmas paketleri, Sezon Kartı, VIP Kulüp aboneliği.
 6. Reklam yerleşimleri: ödüllü reklamlar ve geçiş reklamı kuralları.
 7. Modlar: online sıralamalı, arkadaşla özel oda, tek oyunculu turnuva/kariyer, antrenman, etkinlik modları.
 8. İlk kullanıcı deneyimi (ilk 10 dakika), elde tutma özellikleri (günlük görevler, giriş ödülleri, başarımlar, etkinlikler).
-9. Kazanmak için para ödenmemesi ilkesi ve bunun teknik uygulanışı.
+9. "Güç satılmaz, çeşitlilik satılır" ilkesi ve teknik uygulanışı; karakter kadrosu (mevcut 10 karakter + 2 yeni karakterin istatistikleri ve süper şutları) ve her karakterin oynayarak açılma süresi hedefi.
 
 Bitti kriteri: Doküman çelişkisiz; ekonomi tablosu sayısal hedeflerle dolu.
 
@@ -202,7 +231,7 @@ Markdown formatında yaz; docs/ART_BIBLE.md olarak kaydedeceğim.
 
 ### Faz 1.6 — Arayüz tasarım sistemi [SEN + SOHBET]
 
-- Figma'da: renkler, tipografi (Google Fonts gibi ticari kullanıma açık lisanslı fontlar; Türkçe karakterleri ğ, ü, ş, ı, İ, ö, ç mutlaka kontrol et), boşluk ölçeği, köşe yarıçapları, gölgeler, animasyon süreleri.
+- Figma'da: renkler, tipografi (Google Fonts gibi ticari kullanıma açık lisanslı fontlar; Türkçe karakterleri ğ, ü, ş, ı, İ, ö, ç mutlaka kontrol et; font lansmanın 10 dilini kapsamalı: Latin genişletilmiş, ör. Lehçe ą ł ż, Almanca ß, Portekizce ã, ve Kiril), boşluk ölçeği, köşe yarıçapları, gölgeler, animasyon süreleri.
 - 10 temel bileşen: birincil/ikincil buton, panel, sekme, kart, pop-up, bildirim, para göstergesi, ilerleme çubuğu, rozet.
 - Token değerleri için Claude sohbetinden yardım al: ART_BIBLE'ı yükle, "bu rehbere göre arayüz tasarım token'larını tokens.json formatında öner" de.
 - tokens.json'u repoya `design/tokens.json` olarak koy.
@@ -210,6 +239,20 @@ Markdown formatında yaz; docs/ART_BIBLE.md olarak kaydedeceğim.
 ---
 
 ## Bölüm 2 — Mobil temel [CC]
+
+Bu bölümün fazları Bölüm 1 ile paralel ilerleyebilir.
+
+### Faz 2.0 — Phaser 4'e geçiş (EY, gerekirse Fable)
+
+Faz 2.1'den önce yapılır; mobil çalışmanın tamamı Phaser 4 üzerinde başlar.
+
+1. Phaser 3.90 → Phaser 4; kırılan API'lerin listesi ve düzeltilmesi.
+2. LiteGraphics'in ve kendi köşe tamponu çizicisinin Phaser 4'ün render node mimarisine taşınması.
+3. Özel Phaser paketinin (`scripts/phaser`) Phaser 4'e göre yeniden yapılandırılması.
+4. Tüm testlerin (birim, determinizm, Playwright duman testi) ve web yayınının geçmesi.
+5. Determinizm karşılaştırması: aynı girdi dizisi eski ve yeni sürümde aynı simülasyon durumunu üretir. Performans karşılaştırması: kare süresi, açılış süresi ve paket boyutu (gzip) eski sürümle yan yana, PROGRESS.md'de.
+
+Bitti kriteri: Web sürümü Phaser 4'te eskisiyle aynı davranıyor.
 
 ### Faz 2.1 — Capacitor ve Android derleme (Y)
 
@@ -243,9 +286,11 @@ Bitti kriteri: Kontroller rahat; iki parmakla aynı anda hareket + şut sorunsuz
 2. Nesne havuzları, texture atlas, kare başına bellek ayırmayı sıfırlama, WebView ayarları.
 3. Isınma ve pil tüketimi kontrolü (15 dakikalık oturumda FPS düşüşü olmamalı).
 4. Kare süresi grafiği gösteren geliştirici katmanı.
-5. Sonuçları QUALITY_BAR.md'ye işle.
+5. Rollback maliyeti ölçümü: durum kaydı + 8 karelik yeniden simülasyon (online PvP'nin kare bütçesi).
+6. Final görseller olmadığı için ölçümler hedef boyutta sentetik bir stres sahnesiyle yapılır; ölçümler Faz 4.6 ve 12.3'te tekrarlanır.
+7. Sonuçları QUALITY_BAR.md'ye işle.
 
-Bitti kriteri: Test cihazında 15 dakika boyunca sabit 60 FPS.
+Bitti kriteri: Test cihazında 15 dakika boyunca sabit 60 FPS; durum kaydı + 8 karelik yeniden simülasyon test cihazında ≤ 4 ms.
 
 ### Faz 2.5 — Uygulama yaşam döngüsü (Y)
 
@@ -263,6 +308,40 @@ Bitti kriteri: Kesinti senaryolarının hepsi test edildi ve PROGRESS.md'de list
 3. docs/OPS.md'ye imza anahtarının (keystore) yedeklenmesi ve Play App Signing hakkında uyarı ve adımlar. İmza anahtarını kaybetmek, uygulamayı güncelleyememek demektir.
 
 Bitti kriteri: Her etiketlenen sürümde imzalı AAB otomatik oluşuyor.
+
+### Faz 2.7 — Determinizm sertleştirme (EY, gerekirse Fable)
+
+Amaç: aynı girdi dizisi Android (V8), iOS (JavaScriptCore) ve Node'da her karede bit düzeyinde aynı durumu üretir. Online PvP (Bölüm 9) ve tekrarlar buna dayanır.
+
+1. Simülasyonu etkileyen tüm kodun (src/physics ve oyun durumunu değiştiren her yer) denetimi: yalnızca `+`, `-`, `*`, `/`, `Math.sqrt`, `Math.abs/min/max/floor/round` ve tam sayı işlemleri.
+2. `sin`, `cos`, `atan2`, `exp`, `pow` için yalnızca izinli işlemlerle yazılmış kendi deterministik fonksiyonlarımız ve doğruluk testleri.
+3. `Math.random` yerine tohumlu PRNG; PRNG durumu `saveState`/`loadState`'e dahil.
+4. Lint kuralı: simülasyon kodunda yasaklı `Math` fonksiyonları, `**` operatörü ve `Math.random` derlemeyi kırar.
+5. Zaman efektlerinin sunum katmanına taşınması: simülasyon adımı hiç değişmez; hit-stop ve ağır çekim yalnızca çizimde; gol sonrası duraklama kare sayısıyla ilerleyen deterministik bir oyun durumu. Çevrimdışı mod da bu mimariyi kullanır.
+6. Durum özeti (checksum): simülasyon durumunun kanonik serileştirmesinden; Faz 9.2 (desync tespiti) ve 9.3 (periyodik checksum) bunu kullanır.
+7. Çapraz motor testi: kayıtlı tekrarlar (tüm karakterler ve süperler, gol, gol sonrası duraklama) CI'da Chromium, WebKit ve Node'da çalıştırılır; her karenin checksum'ı karşılaştırılır, tek fark CI'ı kırar. Test cihazında Android WebView'da da bir kez çalıştırılır.
+
+Bitti kriteri: Çapraz motor testi CI'da yeşil; lint kuralı etkin; mevcut determinizm testleri geçiyor. Fizik hissi ve denge bu fazdan sonra yeniden ayarlanır (Faz 2.9).
+
+### Faz 2.8 — Gözlemlenebilirlik temeli (Y)
+
+1. Firebase Crashlytics + Analytics. Firebase yalnızca bunlar için kullanılır; uzaktan ayar ve A/B testi Nakama'dadır (Faz 5.4, 11.3).
+2. Geçici rıza ekranı: analiz ve çökme raporu için onay, ayarlardan geri alınabilir. Rıza yoksa veri gönderilmez: SDK'lar otomatik toplama kapalı başlatılır, rıza gelince açılır. Bu ekranın yerini Faz 8.2'deki tam rıza yönetimi alır.
+3. Yakalanmamış JS hataları ve WebView çizici süreç kaybı Crashlytics'e raporlanır (QUALITY_BAR K4); sürüm ve cihaz etiketleri.
+4. Temel analiz olayları (oturum, maç başı/sonu, hata) ve tek bir olay sözlüğü dosyası; Faz 6.8 ve 11.3 bu altyapıyı ve sözlüğü kullanır.
+5. DATA_MAP.md'ye Firebase satırları ve yurt dışı aktarım kaydı.
+
+Bitti kriteri: Rıza verilince test çökmesi ve bir analiz olayı Firebase konsolunda görünüyor; rıza yokken hiçbir istek gitmediği ağ kaydıyla doğrulandı.
+
+### Faz 2.9 — His ve denge yeniden ayarı (Y)
+
+Faz 2.7'den sonra yapılır.
+
+1. 2.7 öncesi ve sonrası aynı girdilerle karşılaştırma (top yörüngesi, zıplama yüksekliği, şut ve süper hızları); his değiştiyse ayar değerleriyle geri getirilir.
+2. Karakter dengesi: toplam istatistik bütçesinin eşitliği testle zorlanır; AI-vs-AI simülasyonunda her karakterin kazanma oranı %45–55 bandına çekilir (web v1.0.0'da Ayaz %57).
+3. Denge raporu (kazanma oranları ve eşleşme tablosu) PROGRESS.md'de.
+
+Bitti kriteri: Tüm karakterler %45–55 bandında; determinizm ve çapraz motor testleri yeşil.
 
 ---
 
@@ -296,9 +375,11 @@ Bitti kriteri: Placeholder kozmetiklerle bir karakter tamamen giydirilip önizle
 
 ### Faz 3.4 — Tasarım sistemi ve bileşen kütüphanesi (Y)
 
+Ön koşul: Faz 1.4 ve 1.6 bitmiş olmalı.
+
 1. design/tokens.json'u içe aktaran tasarım sistemi katmanı.
 2. Faz 1.6'daki 10 bileşenin kod karşılıkları; tüm durumları (normal, basılı, devre dışı, yükleniyor).
-3. Türkçe karakterleri içeren font atlasları, metin boyutunun dile göre uyumu.
+3. Metin çizimi: çevrilen metinler canvas tabanlı metinle (Faz 1.6'da seçilen web fontu, gerekirse sistem fontu); bitmap font yalnızca skor, sayaç gibi stilize sayı ve başlıklarda (gerekirse özel Phaser paketine eklenir). Türkçe, Latin genişletilmiş ve Kiril karakter kapsaması; metin boyutunun dile göre uyumu.
 4. Tüm bileşenleri gösteren vitrin sahnesi.
 
 Bitti kriteri: Vitrin sahnesi Figma tasarımıyla yan yana konunca aynı görünüyor.
@@ -314,7 +395,7 @@ Bitti kriteri: Tüm ekranlar arası geçiş akıcı ve tutarlı.
 ### Faz 3.6 — Görsel efekt ve "juice" kütüphanesi (Y)
 
 1. Parçacık hazır ayarları, shader'lar (parlama, şok dalgası, vuruş flaşı).
-2. Ekran sarsıntısı profilleri, hit-stop, ağır çekim, kamera yönetmeni (gol anı, tehlikeli atak).
+2. Ekran sarsıntısı profilleri, hit-stop, ağır çekim, kamera yönetmeni (gol anı, tehlikeli atak). Hit-stop ve ağır çekim yalnızca sunum katmanındadır; simülasyon adımına dokunmaz (Faz 2.7).
 3. Efekt bütçesi kuralı ve ayarlarda "azaltılmış efekt" seçeneği.
 4. Titreşim desen kütüphanesi (vuruş, direk, gol, buton).
 
@@ -341,7 +422,7 @@ Bitti kriteri: Placeholder seslerle sistem tam çalışıyor; final sesler sadec
 
 ### Faz 4.2 — Karakter #1 ve #2 [SEN + yapay zekâ araçları]
 
-- ART_BIBLE'daki tüm katmanlar ve ifade varyantları.
+- Mevcut 10 karakterden ikisinin yeniden çizimi; ART_BIBLE'daki tüm katmanlar ve ifade varyantları.
 - Görsel üretim hattından geçir, ASSET_LOG'a kaydet.
 
 ### Faz 4.3 — Arayüz görselleri [SEN]
@@ -369,6 +450,7 @@ Bitti kriteri: Akış baştan sona final görsellerle oynanıyor.
 1. Her ekranı QUALITY_BAR.md ve ART_BIBLE.md'ye göre denetle; sapmaları listele.
 2. Sapmaları düzelt.
 3. Ekran görüntülerini docs/screenshots'a kaydet.
+4. Faz 2.4'teki performans ve rollback ölçümlerini final görsellerle tekrarla; QUALITY_BAR'a işle.
 
 Bitti kriteri: Sapma listesi kapandı.
 
@@ -396,22 +478,25 @@ Bitti kriteri: İstemci yerel sunucuya bağlanıyor; sağlık kontrolü çalış
 1. Misafir hesap (cihaz kimliği ile).
 2. Google Play Games ile hesap bağlama (Game Center Faz 12.2'de).
 3. Bulut kaydı, cihaz değişiminde hesap kurtarma, çakışma çözümü.
-4. DATA_MAP.md güncellemesi.
+4. Oyuncu adı: otomatik üretilen varsayılan ad; TR/EN küfür filtresi (harf hilelerine karşı normalizasyonla: büyük/küçük harf, rakam-harf benzerliği, araya konan işaretler, Türkçe karakter eşlemesi); ayrılmış adlar; raporlama; ad değiştirme. Filtre sunucuda uygulanır.
+5. DATA_MAP.md güncellemesi.
 
-Bitti kriteri: Hesap başka cihazda aynen geri yükleniyor.
+Bitti kriteri: Hesap başka cihazda aynen geri yükleniyor; ad filtresi harf hilesi içeren test listesini yakalıyor.
 
 ### Faz 5.3 — Cüzdan ve envanter (EY)
 
 1. Sunucu taraflı Altın/Elmas cüzdanı ve envanter.
 2. Tekrar güvenli (idempotent) işlemler ve değiştirilemez işlem defteri.
 3. İstemci asla bakiye belirleyemez; tüm değişiklikler sunucu RPC'leri ile.
-4. Hile testleri: istemcide değer değiştirmenin işe yaramadığını kanıtlayan testler.
+4. Tek oyunculu ödül RPC'si: sadece Altın + XP, günlük üst sınır; makullük kontrolü (maç süresi, skor aralığı, sıklık sınırı). Elmas bu yoldan asla verilmez.
+5. Çevrimdışı ödül kuyruğu: çevrimdışı maçların ödülleri cihazda kuyrukta tutulur, bağlanınca aynı sınırlarla doğrulanır; reddedilenler loglanır.
+6. Hile testleri: istemcide değer değiştirmenin işe yaramadığını kanıtlayan testler.
 
-Bitti kriteri: Hile testleri geçiyor.
+Bitti kriteri: Hile testleri geçiyor (sınırları aşan tek oyunculu ödüller ve sahte kuyruk kayıtları dahil).
 
 ### Faz 5.4 — Uzaktan ayar, sürüm kontrolü, bakım modu (Y)
 
-1. Ekonomi ve oyun değerlerinin sunucudan gelmesi.
+1. Ekonomi ve oyun değerlerinin sunucudan gelmesi; uzaktan ayarın tek kaynağı Nakama. O zamana kadar kullanılan yerel config dosyasının yerini alır; çevrimdışı oyun için son bilinen değerler cihazda saklanır.
 2. Minimum sürüm kontrolü ve zorunlu güncelleme ekranı.
 3. Bakım modu ve bakım mesajı.
 
@@ -419,12 +504,13 @@ Bitti kriteri: Sunucudan bir değer değiştirilince oyun yeniden derlenmeden et
 
 ### Faz 5.5 — Canlı sunucu (EY)
 
-1. VPS'e kurulum (tercihen Türkiye'de veri merkezi), TLS, güvenlik duvarı.
-2. Otomatik yedekleme ve geri yükleme testi.
-3. İzleme ve uyarılar, DATA_MAP'e uygun log saklama süreleri.
-4. docs/OPS.md: kurulum, güncelleme, yedekten dönme, olay müdahale adımları.
+1. Barındırma kararı: kendi barındırma (VPS, tercihen Türkiye'de veri merkezi) mı, yönetilen hizmet mi. Ölçütler: maliyet, bakım yükü, yedekleme ve izleme kolaylığı, KVKK yurt dışı aktarım etkisi (sunucu yurt dışındaysa standart sözleşme ve Kurul'a bildirim gerekir). Karar ve gerekçe OPS.md'ye ve DATA_MAP'e. Lansman tek Türkiye bölgesiyle.
+2. Seçilen ortama kurulum, TLS, güvenlik duvarı.
+3. Otomatik yedekleme ve geri yükleme testi.
+4. İzleme ve uyarılar, DATA_MAP'e uygun log saklama süreleri.
+5. docs/OPS.md: kurulum, güncelleme, yedekten dönme, olay müdahale adımları.
 
-Bitti kriteri: Yedekten geri yükleme gerçekten denendi ve çalıştı.
+Bitti kriteri: Barındırma kararı yazılı; yedekten geri yükleme gerçekten denendi ve çalıştı.
 
 ---
 
@@ -432,7 +518,7 @@ Bitti kriteri: Yedekten geri yükleme gerçekten denendi ve çalıştı.
 
 ### Faz 6.1 — İlerleme altyapısı (Y)
 
-XP ve seviye sistemi, ödül tabloları, ödül teslim ekranı ve animasyonları (sunucu taraflı).
+XP ve seviye sistemi (seviye güç vermez), ödül tabloları, ödül teslim ekranı ve animasyonları (sunucu taraflı).
 
 ### Faz 6.2 — Günlük görevler, başarımlar, giriş ödülleri (Y)
 
@@ -452,7 +538,7 @@ Günlük dönen vitrin, Altın/Elmas fiyatları, satın almadan önce önizleme,
 
 ### Faz 6.6 — Karakter koleksiyonu ve tek oyunculu mod (Y)
 
-Karakter açma sistemi (oynayarak açılabilir, satın almak sadece beklememek için); web'deki turnuva modunun mobil ilerlemeye bağlanması.
+Karakter açma sistemi: her karakter oynayarak makul sürede açılır (hedef süre Faz 1.1'de), satın almak sadece beklememek için; karakterler yan seçenektir, yükseltme yoktur. Web'deki turnuva modunun mobil ilerlemeye bağlanması; tek oyunculu ödüller Faz 5.3'teki sınırlarla.
 
 ### Faz 6.7 — Kendi stadyumun (Y)
 
@@ -462,7 +548,7 @@ Tribün rengi, ışıklar, saha deseni, tezahürat seçimi; online maçta ev sah
 
 1. Eğitim maçı (oynayarak öğretme, uzun metin yok).
 2. Özelliklerin adım adım açılması (her şeyi ilk dakikada gösterme).
-3. İlk 10 dakika akışı ve her adım için analiz olayları.
+3. İlk 10 dakika akışı ve her adım için analiz olayları (Faz 2.8 altyapısı ve olay sözlüğü).
 
 Bitti kriteri: Oyunu hiç görmemiş biri yardımsız ilk 3 maçı tamamlıyor.
 
@@ -478,7 +564,7 @@ Her parti bittiğinde Faz 7.6 çalıştırılır.
 
 ### Faz 7.1 — Karakterler 3–12
 
-3'erli partiler halinde. Her karakter: tüm katmanlar, ifadeler, kendine özel süper şutun görsel kimliği.
+Mevcut 10 karakterin kalan 8'inin yeniden çizimi (ilk ikisi Faz 4.2'de) + 2 yeni karakter. 3'erli partiler halinde. Her karakter: tüm katmanlar, ifadeler, kendine özel süper şutun görsel kimliği. Yeni karakterlerin istatistikleri ve süper şutları Faz 1.1'de tasarlanır, Faz 7.6'da kodlanır.
 
 ### Faz 7.2 — Stadyumlar 2–4
 
@@ -498,44 +584,57 @@ Menü, 2–3 maç parçası, sezon temaları, zafer/yenilgi kısa müzikleri.
 
 ### Faz 7.6 — İçerik partisi entegrasyonu [CC] (Y)
 
-1. Yeni varlıkları manifest ve veri dosyalarına ekle; ASSET_LOG doğrulaması.
-2. Yeni karakterler için denge simülasyonu (hiçbir karakter %55'ten fazla kazanmasın).
+1. Yeni varlıkları manifest ve veri dosyalarına ekle; ASSET_LOG doğrulaması. Yeni karakterlerin partisinde süper şut mekaniklerini kodla.
+2. Denge simülasyonu: her karakterin kazanma oranı %45–55 bandında; toplam istatistik bütçesi eşit.
 3. Mağaza ve dolap önizlemelerini kontrol et; ART_BIBLE uyum denetimi.
 
 Bitti kriteri: Parti oyunda, denge raporu PROGRESS.md'de.
 
 ---
 
-## Bölüm 8 — Para kazanma [CC]
+## Bölüm 8 — Gizlilik temeli ve para kazanma [CC]
 
-### Faz 8.1 — RevenueCat ve ürün kataloğu (EY)
+Veri haritası ve rıza yönetimi (8.1–8.2), satın alma ve reklam fazlarından önce yapılır.
+
+### Faz 8.1 — Veri haritası ve ilk açılış (Y)
+
+1. DATA_MAP.md'nin güncel hali: o ana kadarki tüm SDK'lar (Firebase) ve sunucu (Nakama) ile bu bölümde eklenecek RevenueCat ve AdMob dahil. Sonraki fazlar eklediği veriyi yazmaya devam eder; son kontrol Faz 10.2'de.
+2. İlk açılışta yaş sorusu ve aydınlatma ekranı (ayarlardan her zaman ulaşılabilir).
+
+### Faz 8.2 — Rıza yönetimi (EY)
+
+1. Kişiselleştirilmiş reklam, analiz ve pazarlama bildirimi için ayrı ayrı, her an geri alınabilir rıza. Faz 2.8'deki geçici rıza ekranının yerini alır.
+2. AB kullanıcıları için Google UMP, iOS için takip izni (ATT).
+3. Rıza yokken ilgili SDK'ların hiç başlatılmaması; bunun testi.
+
+### Faz 8.3 — RevenueCat ve ürün kataloğu (EY)
 
 RevenueCat SDK, Faz 1.1'deki ürün kataloğunun tanımlanması, test ortamında satın alma akışı.
 
-### Faz 8.2 — Sunucu taraflı doğrulama (EY)
+### Faz 8.4 — Sunucu taraflı doğrulama (EY)
 
 Makbuz doğrulama ve webhook'lar, satın alma geri yükleme, iade durumunda içeriğin geri alınması, işlem defterine kayıt.
 
-### Faz 8.3 — Satın alma deneyimi ve yasal bilgilendirme (Y)
+### Faz 8.5 — Satın alma deneyimi ve yasal bilgilendirme (Y)
 
 1. Satın almadan önce ön bilgilendirme ekranı: fiyat TL ve vergiler dahil, Elmas paketinin karşılığı net.
 2. Dijital içerikte cayma hakkı istisnası hakkında bilgilendirme ve kullanıcı onayı.
-3. 18 yaş altı için harcama limiti ve ebeveyn onayı seçeneği.
+3. 18 yaş altı için harcama limiti ve ebeveyn onayı seçeneği (yaş beyanı Faz 8.1'den).
 4. Manipülatif arayüz denetimi (sahte geri sayım, gizli maliyet, yanıltıcı buton yok).
 
-### Faz 8.4 — Teklifler (Y)
+### Faz 8.6 — Teklifler (Y)
 
 Başlangıç paketi (3. maçtan sonra bir kez), kurucu paketi (sadece lansman ayı), reklamsız paket, VIP Kulüp avantajları (reklamsızlık, günlük elmas, aylık özel skin, 2x XP, rozet), elmas paketleri; hepsi uzaktan yönetilebilir.
 
-### Faz 8.5 — Ödüllü reklamlar (Y)
+### Faz 8.7 — Ödüllü reklamlar (Y)
 
 Yerleşimler: maç ödülünü 2 katına çıkarma, günlük bedava ödül, turnuvada elenince bir şans daha, skin'i 1 maçlığına deneme. Günlük sınırlar uzaktan ayardan.
 
-### Faz 8.6 — Geçiş reklamı ve reklam rızası (Y)
+### Faz 8.8 — Geçiş reklamı ve reklam rızası (Y)
 
 1. Geçiş reklamı kuralları (sadece maç sonu, ilk 5 maç yok, sıklık sınırı).
 2. Reklamsız paket ve VIP'te geçiş reklamının kapanması, ödüllü reklamın isteğe bağlı kalması.
-3. Rıza durumuna göre kişiselleştirilmiş veya kişiselleştirilmemiş reklam.
+3. Faz 8.2'deki rıza durumuna göre kişiselleştirilmiş veya kişiselleştirilmemiş reklam.
 
 Bitti kriteri: Tüm reklam kurallarının otomatik testleri var.
 
@@ -549,16 +648,17 @@ Bitti kriteri: Tüm reklam kurallarının otomatik testleri var.
 
 ### Faz 9.2 — Rollback netcode
 
-Giriş gecikmesi + tahmin + geri sarıp yeniden simüle etme; durum özeti (checksum) ile tutarsızlık (desync) tespiti ve raporlama.
+Giriş gecikmesi + tahmin + geri sarıp yeniden simüle etme; durum özeti (checksum, Faz 2.7) ile tutarsızlık (desync) tespiti ve raporlama.
+
 Bitti kriteri: 150 ms gecikme ve %2 paket kaybında maç akıcı; desync testi geçiyor.
 
 ### Faz 9.3 — Sunucuda maç yönetimi
 
-Nakama üzerinden maç kurulumu, giriş aktarımı, maç sonucunun sunucu taraflı doğrulanması ve ödüllerin sunucudan verilmesi.
+Nakama üzerinden maç kurulumu ve giriş aktarımı. İstemciler periyodik checksum ve maç sonucu gönderir; sunucu karşılaştırır, uyuşmazlıkta maç geçersiz sayılır ve loglanır; ödüller sunucudan verilir. Sunucu maçı yeniden simüle etmez (ileride opsiyonel: Faz 13.2).
 
 ### Faz 9.4 — Eşleştirme
 
-Beceri puanı (Glicko veya Elo), bölge/gecikme dikkate alınarak eşleştirme. Oyuncu azken bekleme uzarsa yapay zekâ rakiple oynama önerilir ve bunun yapay zekâ olduğu açıkça belirtilir.
+Beceri puanı (Glicko veya Elo). Lansmanda tek sunucu bölgesi (Türkiye) olduğundan eşleştirmede gecikme dikkate alınır. Oyuncu azken bekleme uzarsa yapay zekâ rakiple oynama önerilir ve bunun yapay zekâ olduğu açıkça belirtilir.
 
 ### Faz 9.5 — Sıralamalı lig
 
@@ -572,36 +672,27 @@ Bağlantı kopması ve yeniden bağlanma, maçtan kaçma cezası, hazır mesajla
 
 ## Bölüm 10 — Gizlilik ve yasal uyum
 
-### Faz 10.1 — Veri haritası ve ilk açılış [CC] (Y)
+Veri haritası, ilk açılış ve rıza yönetimi Bölüm 8'in başına taşındı (Faz 8.1–8.2).
 
-1. DATA_MAP.md'nin tüm SDK'lar ve sunucu dahil son hali.
-2. İlk açılışta yaş sorusu ve aydınlatma ekranı (ayarlardan her zaman ulaşılabilir).
-
-### Faz 10.2 — Rıza yönetimi [CC] (EY)
-
-1. Kişiselleştirilmiş reklam, analiz ve pazarlama bildirimi için ayrı ayrı, her an geri alınabilir rıza.
-2. AB kullanıcıları için Google UMP, iOS için takip izni (ATT).
-3. Rıza yokken ilgili SDK'ların hiç başlatılmaması; bunun testi.
-
-### Faz 10.3 — Gizlilik Merkezi [CC] (EY)
+### Faz 10.1 — Gizlilik Merkezi [CC] (EY)
 
 1. Verilerimi gör ve indir, düzelt, hesabımı ve verilerimi sil (sunucuda gerçekten silinir; yedeklerden silinme politikası OPS.md'de), rızalarım, başvuru formu.
 2. Başvuruların 30 gün içinde yanıtlanması için takip listesi (yönetim panelinde, Faz 11.4).
 3. Google Play için web üzerinden hesap silme sayfası.
 
-### Faz 10.4 — Yasal metin taslakları [CC] (Y)
+### Faz 10.2 — Yasal metin taslakları [CC] (Y)
 
-docs/legal altında, DATA_MAP'e dayanarak ve her birinin başında "AVUKAT ONAYI BEKLİYOR" ibaresiyle: KVKK aydınlatma metni, açık rıza metinleri, gizlilik politikası, kullanım koşulları, ön bilgilendirme formu, iade ve destek politikası.
+Önce DATA_MAP'in son kontrolü (Bölüm 9 dahil tüm veri noktaları). Ardından docs/legal altında, DATA_MAP'e dayanarak ve her birinin başında "AVUKAT ONAYI BEKLİYOR" ibaresiyle: KVKK aydınlatma metni, açık rıza metinleri, gizlilik politikası, kullanım koşulları, ön bilgilendirme formu, iade ve destek politikası.
 
-### Faz 10.5 — Avukat incelemesi [PRO]
+### Faz 10.3 — Avukat incelemesi [PRO]
 
 - Tüm yasal metinlerin ve akışların incelenmesi.
-- Yurt dışına veri aktarımı: Firebase, AdMob, RevenueCat gibi servisler için standart sözleşmeler ve imzadan sonra 5 iş günü içinde Kurul'a bildirim.
+- Yurt dışına veri aktarımı: Firebase, AdMob, RevenueCat gibi servisler (ve Faz 5.5'te yönetilen sunucu hizmeti seçildiyse o) için standart sözleşmeler ve imzadan sonra 5 iş günü içinde Kurul'a bildirim.
 - VERBİS durumu (muhtemelen muaf, ama diğer KVKK yükümlülükleri devam ediyor).
 - 2026 çocuk ve oyun platformu düzenlemesinin projeyi kapsayıp kapsamadığı (yaş derecelendirmesi, ebeveyn kontrolü).
 - Cayma hakkı ve mesafeli sözleşmelerdeki güncel durum.
 
-### Faz 10.6 — Mağaza formları ve yayın [CC] (Y)
+### Faz 10.4 — Mağaza formları ve yayın [CC] (Y)
 
 1. Google Play "Veri güvenliği" formu ve Apple "App Privacy" etiketleri için DATA_MAP'ten çıkarılmış hazır cevap tablosu.
 2. Avukat onaylı gizlilik politikası ve kullanım koşullarının web sayfası olarak yayını (mevcut GitHub Pages altında).
@@ -618,13 +709,13 @@ Sunucudan açılıp kapanan zamanlı modlar (düşük yer çekimi, dev top, buzl
 
 Rızaya bağlı, sıklığı sınırlı bildirimler (günlük ödül, sezon bitişi, etkinlik başlangıcı); sessiz saatler.
 
-### Faz 11.3 — Analiz ve A/B testi [CC] (Y)
+### Faz 11.3 — Gelişmiş huni ve A/B testi [CC] (Y)
 
-Analiz olayları ve huni (kurulum → ilk maç → 3. maç → 1. gün dönüşü → ilk satın alma), A/B test altyapısı, haftalık rapor şablonu.
+Faz 2.8'in Firebase Analytics altyapısı üzerinde huni (kurulum → ilk maç → 3. maç → 1. gün dönüşü → ilk satın alma) ve haftalık rapor şablonu. A/B testi Nakama üzerinden: deney ataması ve değerler Nakama'dan gelir, olaylar deney etiketiyle Firebase Analytics'e gider.
 
 ### Faz 11.4 — Yönetim paneli [CC] (EY)
 
-Kimlik doğrulamalı web paneli: oyuncu arama, envanter düzeltme (işlem defterine kayıtlı), teklif ve etkinlik yönetimi, bakım modu, destek ve KVKK başvuru takibi.
+Kimlik doğrulamalı web paneli: oyuncu arama, envanter düzeltme (işlem defterine kayıtlı), teklif ve etkinlik yönetimi, bakım modu, oyuncu adı moderasyon kuyruğu (raporlanan adlar, zorla ad değiştirme, ayrılmış ad listesi), destek ve KVKK başvuru takibi.
 
 ### Faz 11.5 — Destek ve SSS [CC] (Y)
 
@@ -632,7 +723,7 @@ Oyun içi destek formu, SSS ekranı, satın alma sorunlarında mağaza iade yön
 
 ### Faz 11.6 — Yerelleştirme [CC] (Y)
 
-10 dil; yapay zekâ çevirisi + oyun terimleri sözlüğü (glossary); uzun metinlerde taşma testi; mağaza açıklamaları dahil.
+Lansman dilleri Latin ve Kiril alfabeli 10 dil: TR, EN, DE, FR, ES, PT-BR, IT, PL, RU, ID. Yapay zekâ çevirisi + oyun terimleri sözlüğü (glossary); çevrilen metinler canvas tabanlı metinle çizilir (Faz 3.4); uzun metinlerde taşma testi; mağaza açıklamaları dahil. Çince, Japonca, Korece ve Arapça Faz 13.1'de.
 
 ---
 
@@ -648,7 +739,7 @@ Bulut macOS ile derleme (GitHub Actions macOS veya benzeri), Game Center, ATT, A
 
 ### Faz 12.3 — Kalite güvence turu [CC + SEN] (Y)
 
-Cihaz test matrisi, otomatik duman testleri, regresyon kontrol listesi, performans raporu, QUALITY_BAR'ın tam doğrulaması.
+Cihaz test matrisi, otomatik duman testleri, regresyon kontrol listesi, performans raporu (Faz 2.4'teki rollback ölçümü dahil), gerçek Android ve iOS cihazda çapraz motor checksum testi, QUALITY_BAR'ın tam doğrulaması.
 
 ### Faz 12.4 — Mağaza sayfası [CC + SEN] (Y)
 
@@ -672,6 +763,20 @@ Birkaç ülkede sessiz yayın. Eşikler: ertesi gün dönüş oranı kabaca %35'
 
 ---
 
+## Bölüm 13 — Lansman sonrası
+
+### Faz 13.1 — Yerelleştirme: Çince, Japonca, Korece ve Arapça [CC] (EY)
+
+1. Çince, Japonca, Korece: font kapsaması ve boyutu (sistem fontu ya da sonradan indirilen font), satır kırma kuralları.
+2. Arapça: sağdan sola düzen ve arayüz aynalama, canvas metin yönü, karışık yönlü metin.
+3. Taşma ve okunurluk testleri, mağaza açıklamaları.
+
+### Faz 13.2 — Sunucu taraflı yeniden simülasyon (opsiyonel) [CC] (EY)
+
+Şüpheli maçlarda (checksum uyuşmazlığı, raporlanan maç) girdi kaydının sunucuda yeniden simüle edilmesi; Faz 2.7'deki çapraz motor testinin sunucu çalışma zamanını da kapsayacak şekilde genişletilmesi.
+
+---
+
 ## Ek A — Yayın öncesi yasal kontrol listesi
 
 - [ ] Aydınlatma metni ilk açılışta ve ayarlarda
@@ -682,6 +787,7 @@ Birkaç ülkede sessiz yayın. Eşikler: ertesi gün dönüş oranı kabaca %35'
 - [ ] Ön bilgilendirme, TL ve vergi dahil fiyat, cayma hakkı bilgilendirmesi
 - [ ] Yaş sorusu, 18 yaş altı harcama limiti ve ebeveyn onayı
 - [ ] Serbest yazılı sohbet yok
+- [ ] Oyuncu adı filtresi, ayrılmış adlar ve raporlama çalışıyor
 - [ ] Mağaza yaş derecelendirmesi (IARC) doğru dolduruldu
 - [ ] Veri güvenliği formu ve App Privacy etiketleri DATA_MAP ile birebir aynı
 - [ ] Uygulama içinden ve web'den hesap silme çalışıyor
@@ -698,5 +804,5 @@ Birkaç ülkede sessiz yayın. Eşikler: ertesi gün dönüş oranı kabaca %35'
 | Dikey dilim  | Faz 4.7      | Yabancı test oyuncularından "büyük stüdyo işi" tepkisi |
 | İçerik tamam | Bölüm 7 sonu | Tüm varlıklar ART_BIBLE uyumlu ve lisanslı             |
 | Teknik hazır | Faz 12.3     | QUALITY_BAR'ın tamamı doğrulandı                       |
-| Yasal hazır  | Faz 10.5     | Ek A tamamen işaretli                                  |
+| Yasal hazır  | Faz 10.3     | Ek A tamamen işaretli                                  |
 | Pazar hazır  | Faz 12.6     | Test lansmanı eşikleri tuttu                           |

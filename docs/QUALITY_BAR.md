@@ -19,16 +19,17 @@ Referans cihaz modeli Faz 0.1'de alınınca buraya yazılır: _(henüz yok)_.
 
 ## 1. Performans
 
-| #   | Kriter                      | Hedef                                                                                        | Nasıl ölçülür                                         | Ölçülen |
-| --- | --------------------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ------- |
-| P1  | Maç içi kare hızı           | Referans cihazda **sabit 60 FPS**: karelerin ≥ %99'u ≤ 16,7 ms, p99 ≤ 20 ms                  | Geliştirici katmanı kare süresi grafiği (Faz 2.4)     | —       |
-| P2  | Takılma                     | Oyun akarken 50 ms'yi aşan kare yok (ekran geçişleri hariç)                                  | Aynı; 15 dk kayıt                                     | —       |
-| P3  | Isınma                      | 15 dk kesintisiz maçta son dakikanın ortalama FPS'i ilk dakikadan en çok 2 FPS düşük         | 15 dk AI vs AI ya da oyuncu oturumu                   | —       |
-| P4  | Kalite kademesi             | Referans cihazda uyarlamalı kalite "Orta"nın altına inmez                                    | Kalite yöneticisi günlüğü                             | —       |
-| P5  | Pil                         | 15 dk maç oturumunda referans cihazda ≤ %5 pil                                               | Android pil istatistiği, ekran parlaklığı %50         | —       |
-| P6  | Bellek                      | Toplam uygulama belleği (PSS) ≤ 400 MB; 15 dk'da %10'dan fazla büyüme yok (sızıntı yok)      | `adb shell dumpsys meminfo`                           | —       |
-| P7  | Kare başına ayırma          | Maç içinde kare başına yeni nesne ayırma yok (havuzlar); GC duraklaması kare bütçesini aşmaz | Chrome DevTools uzaktan hata ayıklama, bellek profili | —       |
-| P8  | Yüksek yenileme hızlı ekran | 90/120 Hz'de simülasyon 60 Hz kalır, oynanış hızı değişmez                                   | Determinizm testleri + cihazda gözlem                 | —       |
+| #   | Kriter                      | Hedef                                                                                        | Nasıl ölçülür                                                             | Ölçülen |
+| --- | --------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------- |
+| P1  | Maç içi kare hızı           | Referans cihazda **sabit 60 FPS**: karelerin ≥ %99'u ≤ 16,7 ms, p99 ≤ 20 ms                  | Geliştirici katmanı kare süresi grafiği (Faz 2.4)                         | —       |
+| P2  | Takılma                     | Oyun akarken 50 ms'yi aşan kare yok (ekran geçişleri hariç)                                  | Aynı; 15 dk kayıt                                                         | —       |
+| P3  | Isınma                      | 15 dk kesintisiz maçta son dakikanın ortalama FPS'i ilk dakikadan en çok 2 FPS düşük         | 15 dk AI vs AI ya da oyuncu oturumu                                       | —       |
+| P4  | Kalite kademesi             | Referans cihazda uyarlamalı kalite "Orta"nın altına inmez                                    | Kalite yöneticisi günlüğü                                                 | —       |
+| P5  | Pil                         | 15 dk maç oturumunda referans cihazda ≤ %5 pil                                               | Android pil istatistiği, ekran parlaklığı %50                             | —       |
+| P6  | Bellek                      | Toplam uygulama belleği (PSS) ≤ 400 MB; 15 dk'da %10'dan fazla büyüme yok (sızıntı yok)      | `adb shell dumpsys meminfo`                                               | —       |
+| P7  | Kare başına ayırma          | Maç içinde kare başına yeni nesne ayırma yok (havuzlar); GC duraklaması kare bütçesini aşmaz | Chrome DevTools uzaktan hata ayıklama, bellek profili                     | —       |
+| P8  | Yüksek yenileme hızlı ekran | 90/120 Hz'de simülasyon 60 Hz kalır, oynanış hızı değişmez                                   | Determinizm testleri + cihazda gözlem                                     | —       |
+| P9  | Rollback maliyeti           | Durum kaydı + 8 karelik yeniden simülasyon referans cihazda **≤ 4 ms**                       | Geliştirici katmanı; 2.4'te sentetik stres sahnesi, 4.6 ve 12.3'te tekrar | —       |
 
 ## 2. Açılış ve ekran geçişleri
 
@@ -45,13 +46,14 @@ Referans cihaz modeli Faz 0.1'de alınınca buraya yazılır: _(henüz yok)_.
 
 ## 3. Kararlılık
 
-| #   | Kriter                | Hedef                                                                                     | Kaynak                     |
-| --- | --------------------- | ----------------------------------------------------------------------------------------- | -------------------------- |
-| K1  | Çökmesiz kullanıcı    | **≥ %99,5** (7 günlük)                                                                    | Crashlytics / Play Console |
-| K2  | Algılanan çökme oranı | < %1,09 (Google Play "kötü davranış" eşiği), hedef < %0,5                                 | Android vitals             |
-| K3  | Algılanan ANR oranı   | < %0,47 (Google Play eşiği), hedef < %0,2                                                 | Android vitals             |
-| K4  | JS hataları           | Yakalanmamış JS hatası ve WebView çizici süreç kaybı da çökme sayılır ve raporlanır       | Crashlytics özel olay      |
-| K5  | Kesintiler            | Arka plan, çağrı, bildirim, kulaklık, düşük bellek senaryolarında veri kaybı ve çökme yok | Faz 2.5 senaryo listesi    |
+| #   | Kriter                     | Hedef                                                                                     | Kaynak                               |
+| --- | -------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------ |
+| K1  | Çökmesiz kullanıcı         | **≥ %99,5** (7 günlük)                                                                    | Crashlytics / Play Console           |
+| K2  | Algılanan çökme oranı      | < %1,09 (Google Play "kötü davranış" eşiği), hedef < %0,5                                 | Android vitals                       |
+| K3  | Algılanan ANR oranı        | < %0,47 (Google Play eşiği), hedef < %0,2                                                 | Android vitals                       |
+| K4  | JS hataları                | Yakalanmamış JS hatası ve WebView çizici süreç kaybı da çökme sayılır ve raporlanır       | Crashlytics özel olay                |
+| K5  | Kesintiler                 | Arka plan, çağrı, bildirim, kulaklık, düşük bellek senaryolarında veri kaybı ve çökme yok | Faz 2.5 senaryo listesi              |
+| K6  | Motorlar arası determinizm | Aynı tekrar kaydı Chromium, WebKit ve Node'da her karede aynı checksum'ı üretir           | CI (Faz 2.7); gerçek cihazlarda 12.3 |
 
 ## 4. Dokunma ve okunurluk
 
@@ -82,7 +84,8 @@ oyununun yanında sırıtır mı?"
 - [ ] Çizgi kalınlığı, ışık yönü ve gölge ART_BIBLE kurallarına uyuyor.
 - [ ] Köşe yarıçapı, gölge, boşluk ve animasyon süreleri token'lardan; elle sayı yok.
 - [ ] Hazır bileşen görünümü yok (varsayılan buton, sistem fontu, düz gri panel).
-- [ ] Tek font ailesi seti; Türkçe karakterler (ğ Ğ ü Ü ş Ş ı İ ö Ö ç Ç) doğru çiziliyor.
+- [ ] Tek font ailesi seti; Türkçe karakterler (ğ Ğ ü Ü ş Ş ı İ ö Ö ç Ç) ve lansman dillerinin Latin
+      genişletilmiş ve Kiril karakterleri doğru çiziliyor.
 - [ ] En uzun dilde metin taşmıyor, kesilmiyor, satır kırılması bozuk değil.
 - [ ] İkonlar tek setten ve tek stilde.
 - [ ] Yapay zekâ izi yok: bozuk eller, anlamsız desen/yazı, tutarsız ışık, aşırı detay.

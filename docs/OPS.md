@@ -33,8 +33,9 @@ notları şablonu. -->
 
 ## 5. Sunucu (Nakama)
 
-<!-- Faz 5.1 / 5.5: ortamlar (geliştirme, test, canlı), kurulum, güncelleme, TLS, güvenlik duvarı,
-izleme ve uyarılar, log saklama süreleri (DATA_MAP ile uyumlu). -->
+<!-- Faz 5.1 / 5.5: barındırma kararı ve gerekçesi (kendi barındırma / yönetilen hizmet, KVKK yurt
+dışı aktarım etkisi; lansman tek Türkiye bölgesi), ortamlar (geliştirme, test, canlı), kurulum,
+güncelleme, TLS, güvenlik duvarı, izleme ve uyarılar, log saklama süreleri (DATA_MAP ile uyumlu). -->
 
 ## 6. Yedekleme ve geri yükleme
 
@@ -48,7 +49,7 @@ her biri için ilk 1 saatte yapılacaklar ve iletişim. -->
 
 ## 8. Veri silme ve yedekler
 
-<!-- Faz 10.3: hesap silme talebinin sunucuda uygulanması, yedeklerden silinme politikası ve süresi. -->
+<!-- Faz 10.1: hesap silme talebinin sunucuda uygulanması, yedeklerden silinme politikası ve süresi. -->
 
 ## 9. Sırlar ve erişimler
 
