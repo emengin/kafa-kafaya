@@ -12,7 +12,8 @@
  *   npm run bench -- --json sonuc.json                             # ham sonuçlar
  *
  * Ölçümler:
- * - **size:** `assets/*.js` gzip boyutu (Vite raporuyla aynı: zlib varsayılan seviye).
+ * - **size:** `assets/*.js` gzip boyutu (zlib varsayılan seviye; Vite'ın derleme raporundan
+ *   ~%0,5 düşük çıkabilir, derlemeler arası karşılaştırma için tutarlı).
  * - **startup:** sayfa gezintisinin başlangıcından menü sahnesinin açılmasına kadar geçen süre
  *   (yükleme ekranındaki doku üretimi dahil). Her koşu temiz tarayıcı bağlamında, service worker
  *   engelli; medyan.

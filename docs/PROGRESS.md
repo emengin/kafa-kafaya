@@ -2,7 +2,9 @@
 
 > Kısa tutulur: burada yalnızca özet ve onay kutuları var. Biten fazların ayrıntıları
 > [docs/archive/](archive/) altında: web sürümü (Faz 0–7) → [PROGRESS_WEB.md](archive/PROGRESS_WEB.md),
-> mobil Bölüm 0 → [PROGRESS_MOBILE_0.md](archive/PROGRESS_MOBILE_0.md).
+> mobil Bölüm 0 → [PROGRESS_MOBILE_0.md](archive/PROGRESS_MOBILE_0.md), Bölüm 1 →
+> [PROGRESS_MOBILE_1.md](archive/PROGRESS_MOBILE_1.md), Bölüm 2 →
+> [PROGRESS_MOBILE_2.md](archive/PROGRESS_MOBILE_2.md).
 
 ## Web sürümü v1.0.0 — özet
 
@@ -10,7 +12,8 @@ Canlı: https://emengin.github.io/kafa-kafaya/ · ölçümler, denge tabloları,
 
 **Mimari**
 
-- Vite + TypeScript (strict) + Phaser 3.90; mantıksal 1280×720, FIT + letterbox.
+- Vite + TypeScript (strict) + Phaser 4.2.1 (v1.0.0'da 3.90; geçiş Faz 2.0); mantıksal 1280×720,
+  FIT + letterbox.
 - `src/physics`: Phaser'dan bağımsız deterministik fizik (60 Hz sabit adım, sub-stepping, render
   enterpolasyonu). `GameSim` yalnızca `InputState` dizisiyle ilerler; ses/efekt olayları durumu
   değiştirmez; `saveState`/`loadState` tam durum kopyası (gol tekrarı bunun üstünde).
@@ -18,13 +21,15 @@ Canlı: https://emengin.github.io/kafa-kafaya/ · ölçümler, denge tabloları,
   tekrar oynatıcı da aynı arayüzü üretir.
 - AI (`src/game/ai`): fizikle ileri simülasyonla tahmin, 3 zorluk, tohumlu rastgelelik, hile yok.
 - Harici dosya yok: dokular Canvas 2D ile kodla, sesler Web Audio sentezi. `LiteGraphics` + kendi
-  köşe tamponu çizicisi, havuzlu parçacıklar, 3 kademeli uyarlamalı kalite.
+  köşe tamponu çizicisi (resimlerle aynı toplu çizime yazar), havuzlu parçacıklar, 3 kademeli
+  uyarlamalı kalite.
 - Tüm denge/ayar değerleri `src/config/gameConfig.ts`; sihirli sayı lint ile yasak.
 - Kayıt: `localStorage`, anahtar başına alan alan doğrulama (`src/save`). PWA: kodla SW + manifest.
-- Kalite hattı: ESLint + Prettier (Markdown dahil) + Vitest (319 test) + Playwright duman testi.
+- Kalite hattı: ESLint + Prettier (Markdown dahil) + Vitest (325 test) + Playwright duman testi.
   `main`'e push → GitHub Pages (`deploy.yml`); `v*` etiketi → GitHub Release (`release.yml`).
+  `npm run bench`: iki üretim derlemesini yan yana ölçer (boyut, açılış, kare işi, determinizm).
 - Üretimde özel Phaser paketi (`scripts/phaser`: BitmapText, ses yöneticisi, Phaser parçacıkları
-  yok) + kod bölme: gzip 277 kB.
+  yok) + kod bölme: gzip 305 kB (v1.0.0 / Phaser 3: 277 kB).
 
 **Önemli kararlar**
 
@@ -68,7 +73,7 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
   - [ ] 1.5 Üretim hattı provası [SEN] — kalite kapısı: sanat yönü
   - [ ] 1.6 Arayüz tasarım sistemi [SEN + SOHBET]
 - **Bölüm 2 — Mobil temel [CC]** (Bölüm 1 ile paralel)
-  - [ ] 2.0 Phaser 4'e geçiş
+  - [x] 2.0 Phaser 4'e geçiş — 2026-11-20 → Phaser 4.2.1, karşılaştırma aşağıda
   - [ ] 2.1 Capacitor ve Android derleme
   - [ ] 2.2 Ekran ve ölçekleme
   - [ ] 2.3 Dokunmatik kontroller v2
@@ -158,8 +163,31 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
   - [ ] 13.2 Sunucu taraflı yeniden simülasyon (opsiyonel)
 
 Faz ayrıntıları: 0.3 ve 0.4 → [archive/PROGRESS_MOBILE_0.md](archive/PROGRESS_MOBILE_0.md); 1.1 →
-[archive/PROGRESS_MOBILE_1.md](archive/PROGRESS_MOBILE_1.md). 0.1 ve 0.2 [SEN] fazları; yapıldıysa
-kutuları sen işaretle.
+[archive/PROGRESS_MOBILE_1.md](archive/PROGRESS_MOBILE_1.md); 2.0 →
+[archive/PROGRESS_MOBILE_2.md](archive/PROGRESS_MOBILE_2.md). 0.1 ve 0.2 [SEN] fazları; yapıldıysa
+kutuları sen işaretle. 1.3'ün stil testi görselleri `design/style-tests/` altında commit'lendi
+(`360c354`); kutuyu ve 1.3'ün bitişini sen işaretle.
+
+### Faz 2.0 — Phaser 3.90 ↔ 4.2.1 karşılaştırması
+
+`npm run bench`, headless Chrome 157, masaüstü GPU, CPU yavaşlatma ile düşük güçlü cihaz benzetimi
+(gerçek cihaz değil). Kare işi = Phaser güncelleme + çizim gönderimi, AI vs AI Zor–Zor, en yüksek
+kalite. Ayrıntı, ikinci koşular ve yöntem: [archive/PROGRESS_MOBILE_2.md](archive/PROGRESS_MOBILE_2.md).
+
+| Ölçüm                                           | Phaser 3.90           | Phaser 4.2.1          | Fark               |
+| ----------------------------------------------- | --------------------- | --------------------- | ------------------ |
+| Determinizm (tarayıcı, 2 maç × 119 durum özeti) | referans              | birebir aynı          | —                  |
+| Paket gzip (Vite raporu; oyun + Phaser)         | 277,5 kB              | 305,4 kB              | +27,9 kB (+%10)    |
+| Paket ham                                       | 950 kB                | 1.047 kB              | +97 kB             |
+| Açılış → menü hazır (medyan, 1× / 4× CPU)       | 483 / 923 ms          | 455 / 906 ms          | −%6 / −%2          |
+| Kare işi ort. 1× / 4× / 6× CPU                  | 0,53 / 2,28 / 3,56 ms | 0,65 / 2,93 / 4,50 ms | +%23 / +%29 / +%26 |
+| Kare işi p99, 6× CPU                            | 6,7 ms                | 7,9 ms                | +1,2 ms            |
+| Çizim çağrısı / kare                            | 13,5                  | 19,7                  | +6,2               |
+| Bellek ayırma / kare                            | ~123 kB               | ~157–161 kB           | +%28               |
+
+Görünüm: menü, seçim, maç, gol, tekrar, duraklatma ve telefon görünümünün piksel karşılaştırması
+— zamana bağlı öğeler dışında birebir aynı. Bütçe 16,7 ms/kare; artışların kaynağı ve çözüm önerileri
+aşağıdaki 2.4 notunda.
 
 ## Sonraki fazlar için notlar
 
@@ -234,3 +262,28 @@ sonra hâlâ görülen riskler:
   başlanırsa yeniden iş çıkabilir.
 - **2.1:** Capacitor derlemesinde service worker kaydı kapatılmalı; `base` yolu `/` olmalı (web
   `/kafa-kafaya/`); web ve yerel derleme için platform bayrağı (`src/platform`).
+- **2.4 — Phaser 4 maliyetleri (Faz 2.0 ölçümü):** (1) Maçtaki 18 `Rectangle` şekli `FillRect` →
+  `BatchHandlerTriFlat` yolundan çiziliyor: resimlerle arasında her geçiş toplu çizim boşaltması
+  (kare başına ~7) ve üçgen başına geçici diziler; `__WHITE` dokulu tonlu resim ya da LiteGraphics'e
+  çevrilirse çizim çağrısı Phaser 3 düzeyine (~14) iner. (2) Kap içinde karışım kipi her değiştiğinde
+  Phaser 4 yeni bir `DrawingContext` kurup toplu çizimi boşaltıyor; stadyumdaki ADD parlamaları ve
+  parçacıklar normal resimlerle iç içe — ADD nesneleri gruplanmalı. (3) Resim gönderim yolu
+  (`SubmitterQuad`) Phaser 3'teki gibi kutulanan sayılar üretiyor (~5,6 MB/sn); 127 görünür resmin
+  çoğu kalabalık — durağan katmanlar tek dokuya pişirilebilir ya da `SpriteGPULayer` denenebilir.
+  (4) 1× koşularda tek seferlik ~23 ms kare: muhtemelen shader çeşidinin ilk kullanımda derlenmesi;
+  yükleme ekranında ısıtma. (5) Canvas çiziciyi paketten çıkarmak için ikon dokuları
+  (`src/ui/icons.ts`, `generateTexture`) doğrudan Canvas 2D ile çizilmeli; WebGL'siz yedek kararı da
+  verilmeli (Android WebView'da WebGL var). (6) Ölçüm aracı hazır: `npm run bench`; değişiklik öncesi
+  derlemeyi bir klasöre kopyalayıp `--dirs eski,dist` ile karşılaştır. Ölçüm sırasında makinede başka
+  iş koşturma (bir koşu bu yüzden atıldı).
+- **Phaser güncellemeleri:** `LiteGraphics` hızlı yolu `BatchHandlerQuad`'ın iç alanlarına, paket
+  eklentisi `BatchHandler`'ın `Renderer` kullanımına dayanıyor. İkisi de korumalı (yedek yola
+  düşüşte duman testi, `Renderer` kullanımı değişirse derleme kırılır); güncellemeden sonra
+  `npm run bench` ile karşılaştır.
+- **2.7 — Durum özeti:** tezgâhın determinizm bölümü `JSON.stringify(saveState())` özetini
+  kullanıyor; bu kanonik değil (`-0` → `0`, `NaN` → `null`, alan sırası nesne kurulum sırasına bağlı).
+  2.7'nin checksum'ı için alan sırası sabit, ikili (Float64) bir serileştirme gerekir; tezgâhtaki
+  tarayıcı kancası (adım başına özet, gol tekrarı çelişki denetimi) çapraz motor testine örnek.
+- **3.6 — Phaser 4 filtreleri:** parlama, bulanıklık, gölge vb. artık her nesne ve kamerada var,
+  ama her filtre ayrı bir dokuya çizim geçişi; efekt bütçesine ve düşük seviye cihaz ölçümüne bağlı
+  kullanılmalı. Özel derlemede filtre düğümleri zaten paketin içinde (`RenderNodeManager`).
