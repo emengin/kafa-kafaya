@@ -172,6 +172,7 @@ export class LiteGraphics extends Phaser.GameObjects.Graphics {
   ): void => {
     src.seal();
     if (!src.renderFast(renderer as Renderer, context, parentMatrix)) {
+      warnFallbackOnce();
       BASE_RENDER.renderWebGL(renderer, src, context, parentMatrix);
     }
   };
@@ -660,6 +661,19 @@ export class LiteGraphics extends Phaser.GameObjects.Graphics {
     this.tri(ax + nx, ay + ny, bx + nx, by + ny, bx - nx, by - ny);
     this.tri(ax + nx, ay + ny, bx - nx, by - ny, ax - nx, ay - ny);
   }
+}
+
+/**
+ * Hızlı yol kullanılamayınca bir kez uyarır. Oyun yine doğru çizilir ama yavaşlar ve kare başına
+ * çöp üretir; uyarı genelde Phaser güncellemesiyle toplu çizici iç yapısının değiştiğini gösterir.
+ * Duman testi bu uyarıyı hata sayar (`e2e/smoke.spec.ts`).
+ */
+const LITE_FALLBACK_WARNING = '[LiteGraphics] hızlı WebGL yolu kullanılamıyor';
+let fallbackWarned = false;
+function warnFallbackOnce(): void {
+  if (fallbackWarned) return;
+  fallbackWarned = true;
+  console.warn(`${LITE_FALLBACK_WARNING}; Phaser'ın Graphics çizicisine düşüldü.`);
 }
 
 /** Phaser'ın Graphics çizicileri (hızlı yol uygun değilse ve canvas'ta bunlara devredilir). */

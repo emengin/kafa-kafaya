@@ -125,8 +125,8 @@ flowchart LR
   simülasyonun kendi koduyla tahmin eder.
 - **Phaser 4 yalnızca çizim, sahne ve girdi** için; tüm dokular Canvas 2D ile kodla, tüm sesler Web
   Audio ile üretilir. Her karede çizilen şekiller çöp üretmeyen `LiteGraphics` ile (üçgenleri
-  doğrudan Phaser'ın düz renkli toplu çizicisine yazar); üretim derlemesinde yalnızca kullanılan
-  modülleri içeren özel bir Phaser derlemesi.
+  resimlerle aynı toplu çizime doğrudan yazar); üretim derlemesinde yalnızca kullanılan modülleri
+  içeren özel bir Phaser derlemesi.
 - **Tüm ayar ve denge değerleri** `src/config/gameConfig.ts` içinde; kodda sihirli sayı yasağı lint
   ile zorlanır. **Tüm metinler** `src/i18n` içinde (TR/EN).
 

@@ -7,11 +7,16 @@ import './game';
  * için `window.__KAFA_GAME__` olarak açar; oyun akışı gerçek klavye girdisiyle yürütülür.
  */
 
+/** `src/ui/LiteGraphics.ts` `LITE_FALLBACK_WARNING`: hızlı çizim yolu Phaser'ın yoluna düştü. */
+const LITE_FALLBACK = '[LiteGraphics]';
+
 function collectErrors(page: Page): string[] {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (msg) => {
     if (msg.type() === 'error') errors.push(msg.text());
+    // Yedek çizici oyunu bozmaz ama yavaşlatır (genelde Phaser güncellemesi sonrası): hata say.
+    if (msg.type() === 'warning' && msg.text().startsWith(LITE_FALLBACK)) errors.push(msg.text());
   });
   return errors;
 }
