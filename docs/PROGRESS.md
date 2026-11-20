@@ -60,7 +60,8 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
   - [x] 0.4 Kararlar ve yol haritası revizyonu [CC] — 2026-11-20
 - **Bölüm 1 — Tasarım ve sanat yönü**
   - [ ] 1.1 Mobil oyun tasarım dokümanı [CC]
-  - [ ] 1.2 Rakip analizi [SEN + SOHBET]
+  - [x] 1.2 Rakip analizi [SEN + SOHBET] — 2026-11-20 →
+        [COMPETITOR_ANALYSIS.md](COMPETITOR_ANALYSIS.md)
   - [ ] 1.3 Stil testleri [SEN]
   - [ ] 1.4 Sanat rehberi [SOHBET]
   - [ ] 1.5 Üretim hattı provası [SEN] — kalite kapısı: sanat yönü
