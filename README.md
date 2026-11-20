@@ -123,9 +123,10 @@ flowchart LR
   arayüzü üretir; gamepad ve dokunmatik "sanal tuş" olarak klavyeyle aynı yoldan okunur.
 - **Yapay zekâ hile yapmaz:** ekrandaki bilginin bir kopyasını gecikmeli algılar, topun yolunu
   simülasyonun kendi koduyla tahmin eder.
-- **Phaser yalnızca çizim, sahne ve girdi** için; tüm dokular Canvas 2D ile kodla, tüm sesler Web
-  Audio ile üretilir. Her karede çizilen şekiller çöp üretmeyen `LiteGraphics` ile; üretim
-  derlemesinde yalnızca kullanılan modülleri içeren özel bir Phaser derlemesi.
+- **Phaser 4 yalnızca çizim, sahne ve girdi** için; tüm dokular Canvas 2D ile kodla, tüm sesler Web
+  Audio ile üretilir. Her karede çizilen şekiller çöp üretmeyen `LiteGraphics` ile (üçgenleri
+  doğrudan Phaser'ın düz renkli toplu çizicisine yazar); üretim derlemesinde yalnızca kullanılan
+  modülleri içeren özel bir Phaser derlemesi.
 - **Tüm ayar ve denge değerleri** `src/config/gameConfig.ts` içinde; kodda sihirli sayı yasağı lint
   ile zorlanır. **Tüm metinler** `src/i18n` içinde (TR/EN).
 
@@ -143,7 +144,7 @@ src/
   save/       localStorage kaydı (alan alan doğrulama)
   platform/   dokunmatik algılama, tam ekran, dikey ekran uyarısı, PWA kaydı
   i18n/       TR/EN metinler
-scripts/      simulate.ts, pwa/ (manifest, simgeler, service worker), phaser/ (özel derleme)
+scripts/      simulate.ts, bench/ (derleme karşılaştırma), pwa/ (manifest, simgeler, SW), phaser/ (özel derleme)
 e2e/          Playwright duman testi ve ekran görüntüleri
 docs/         GAME_DESIGN.md, ROADMAP_MOBILE.md, PROGRESS.md (durum), archive/ (faz günlükleri)
 ```
@@ -162,7 +163,9 @@ Katkılar memnuniyetle karşılanır. Bir değişiklik göndermeden önce:
 3. **Metinler `src/i18n/strings.ts`'te**, iki dilde birden; anahtar eşitliği testle denetlenir.
 4. **Determinizmi bozma:** simülasyon kodunda `Math.random`, gerçek zaman ya da Phaser kullanılmaz;
    rastgelelik tohumlu `SeededRandom`'dan gelir. Fizik/yapay zekâ değişikliklerinde determinizm ve
-   tekrar testleri geçmeli; denge etkisini `npm run simulate -- --characters` ile ölç.
+   tekrar testleri geçmeli; denge etkisini `npm run simulate -- --characters` ile ölç. Motor ya da
+   çizim değişikliklerinde `npm run bench -- --dirs eski-dist,dist` iki derlemeyi yan yana ölçer
+   (paket boyutu, açılış, kare süresi, tarayıcıda adım adım determinizm).
 5. **Harici varlık yok:** görseller Canvas 2D ile kodla, sesler Web Audio ile üretilir.
 6. **Testler:** saf mantık için Vitest testi ekle; sahne akışını etkileyen değişikliklerde duman
    testini çalıştır.

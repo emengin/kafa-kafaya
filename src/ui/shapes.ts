@@ -13,7 +13,12 @@ const MAX_SEGMENTS = 24;
 /** Yarıçap başına nokta (px başına). */
 const SEGMENTS_PER_PX = 0.9;
 const BUFFER = MAX_SEGMENTS * 2 + 2;
-const points: { x: number; y: number }[] = Array.from({ length: BUFFER }, () => ({ x: 0, y: 0 }));
+const buffer: { x: number; y: number }[] = Array.from({ length: BUFFER }, () => ({ x: 0, y: 0 }));
+/**
+ * Phaser 4 türleri `fillPoints`/`strokePoints` için `Vector2[]` ister; çalışma zamanında yalnızca
+ * `x`/`y` okunur (Phaser ve LiteGraphics). Düz nesneler yeterli, `Vector2` kurmaya gerek yok.
+ */
+const points = buffer as unknown as Phaser.Math.Vector2[];
 
 /** Yarıçapa uygun nokta sayısı. */
 export function segmentsFor(r: number): number {

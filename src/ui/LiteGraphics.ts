@@ -14,37 +14,73 @@ const STYLE_LEN = 3;
 const ARG = { X0: 1, Y0: 2, X1: 3, Y1: 4, X2: 5, Y2: 6 } as const;
 /** Dolgu stili komutunda renk ve saydamlık. */
 const STYLE = { COLOR: 1, ALPHA: 2 } as const;
-/** Toplu çizim köşesinin bileşenleri: konum, doku koordinatı, doku birimi, ton kipi, ton. */
-const V = { X: 0, Y: 1, U: 2, V: 3, UNIT: 4, EFFECT: 5, TINT: 6 } as const;
-/** Üçgen başına köşe; en az yelpaze dilimi; çeyrek daire oranı. */
+/**
+ * Düz renkli üçgen toplu çizicisinin (Phaser 4 `BatchHandlerTriFlat`) köşe düzeni: konum (2 ×
+ * float32) + ton (4 × uint8, tek uint32 olarak yazılır) = 12 bayt.
+ */
+const V = { X: 0, Y: 1, TINT: 2 } as const;
+const VERTEX_WORDS = 3;
+const VERTEX_STRIDE_BYTES = VERTEX_WORDS * Float32Array.BYTES_PER_ELEMENT;
+/** Üçgen başına köşe (ve indeks); en az yelpaze dilimi; çeyrek daire oranı. */
 const TRI_VERTS = 3;
 const MIN_FAN = 3;
 const QUARTER = 4;
 const WHITE = 0xffffff;
 
 type RenderFn = (...args: unknown[]) => void;
+type TransformMatrix = Phaser.GameObjects.Components.TransformMatrix;
 
-/** WebGL toplu çizim hattının (MultiPipeline) kullandığımız iç alanları. */
-interface BatchPipeline {
-  readonly vertexViewF32?: Float32Array;
-  readonly vertexViewU32?: Uint32Array;
+/** Phaser 4 çizim bağlamının (`DrawingContext`) kullandığımız alanları. */
+interface DrawingContext {
+  readonly camera: Phaser.Cameras.Scene2D.Camera;
+  readonly useCanvas: boolean;
+  readonly alphaStrategy: unknown;
+}
+
+/** `BatchHandlerTriFlat` toplu çizicisinin kullandığımız iç alanları. */
+interface FlatBatch {
+  readonly manager: { setCurrentBatchNode(node: unknown, context: DrawingContext): void };
+  readonly vertexBufferLayout: {
+    readonly buffer: { readonly viewF32: Float32Array; readonly viewU32: Uint32Array };
+    readonly layout: { readonly stride: number };
+  };
+  readonly indexBuffer: { readonly viewU16: Uint16Array };
+  readonly instancesPerBatch: number;
+  readonly verticesPerInstance: number;
+  readonly indicesPerInstance: number;
+  instanceCount: number;
   vertexCount: number;
-  readonly vertexCapacity: number;
-  readonly currentUnit: number;
-  readonly currentBatch: { start: number; count: number } | null;
-  readonly currentShader?: { vertexComponentCount: number };
-  flush(): void;
-  setTexture2D(texture?: unknown): number;
+  readonly _renderOptionsChanged: boolean;
+  updateRenderOptions(lighting: unknown, alphaStrategy: unknown): void;
+  updateShaderConfig(): void;
+  run(context: DrawingContext): void;
 }
 
-interface PipelineManager {
-  set(pipeline: unknown, gameObject: unknown): unknown;
-  preBatch(gameObject: unknown): void;
-  postBatch(gameObject: unknown): void;
+/** Graphics'in Phaser 4 çizim düğümleri (rol → düğüm) ve ışıklandırma durumu. */
+interface RenderNodeOwner {
+  readonly customRenderNodes: Partial<Record<string, unknown>>;
+  readonly defaultRenderNodes: Partial<Record<string, unknown>>;
+  readonly lighting: unknown;
 }
 
-/** Graphics dolgusunun renk tonu kipi (Phaser: dokuyu yok say, rengi kullan). */
-const TINT_FILL = 2;
+/** Düğüm beklediğimiz düz üçgen toplu çizicisi mi? (Değilse Phaser'ın kendi çizicisine düşülür.) */
+function isFlatBatch(node: unknown): node is FlatBatch {
+  const b = node as Partial<FlatBatch> | undefined;
+  return (
+    !!b &&
+    typeof b.run === 'function' &&
+    typeof b.updateRenderOptions === 'function' &&
+    typeof b.updateShaderConfig === 'function' &&
+    typeof b.manager?.setCurrentBatchNode === 'function' &&
+    b.vertexBufferLayout?.buffer.viewF32 instanceof Float32Array &&
+    b.vertexBufferLayout.buffer.viewU32 instanceof Uint32Array &&
+    b.vertexBufferLayout.layout.stride === VERTEX_STRIDE_BYTES &&
+    b.indexBuffer?.viewU16 instanceof Uint16Array &&
+    b.verticesPerInstance === TRI_VERTS &&
+    b.indicesPerInstance === TRI_VERTS
+  );
+}
+
 const ALPHA_MAX = 255;
 const ALPHA_SHIFT = 24;
 const BYTE = 0xff;
@@ -66,11 +102,12 @@ const OPAQUE = 0.99;
  * 2. `Graphics.clear()` komut dizisini `length = 0` ile kısaltır; V8 bu durumda dizinin bellek
  *    alanını bırakır ve dizi her karede baştan büyütülür (kopyalayarak).
  *
- * Bu sınıf aynı çizim arayüzünü korur ama her şeyi doğrudan `FILL_TRIANGLE`/`FILL_RECT`/
- * `FILL_STYLE` komutlarına çevirir (çizici bunları ayırmasız toplu çizime yollar) ve komutları
- * bir imleçle yazar: dizi hiç kısalmaz; çizimden hemen önce kullanılmayan kuyruk işlemsiz bir
- * değerle doldurulur. Dolgular dışbükey yelpaze, çizgiler parça başına iki üçgenlik dörtgen
- * (opak çizgide uçlar hafif uzatılır). Yol noktaları önceden ayrılmış bir tamponda.
+ * Bu sınıf aynı çizim arayüzünü korur ama her şeyi doğrudan `FILL_TRIANGLE`/`FILL_STYLE`
+ * komutlarına çevirir ve komutları bir imleçle yazar: dizi hiç kısalmaz; çizimden hemen önce
+ * kullanılmayan kuyruk işlemsiz bir değerle doldurulur. Dolgular dışbükey yelpaze, çizgiler parça
+ * başına iki üçgenlik dörtgen (opak çizgide uçlar hafif uzatılır). Yol noktaları önceden ayrılmış
+ * bir tamponda. WebGL'de kendi çizicisi üçgenleri doğrudan Phaser 4'ün düz renkli toplu
+ * çizicisine yazar (Faz 2.0; Phaser 3'te MultiPipeline'a yazıyordu).
  *
  * Kısıt: dolgular dışbükey kabul edilir (kullandığımız yüz parçaları, yaylar ve elipsler öyle).
  */
@@ -90,29 +127,33 @@ export class LiteGraphics extends Phaser.GameObjects.Graphics {
   constructor(scene: Phaser.Scene) {
     super(scene);
     scene.add.existing(this);
-    // Çizimden hemen önce kuyruğu temizle (Phaser her iki çiziciyi de örnek üzerinden çağırır).
-    const proto = Phaser.GameObjects.Graphics.prototype as unknown as {
-      renderWebGL: RenderFn;
-      renderCanvas: RenderFn;
-    };
-    const self = this as unknown as { renderWebGL: RenderFn; renderCanvas: RenderFn };
-    self.renderWebGL = (...args: unknown[]): void => {
-      this.seal();
-      const [renderer, , camera, parentMatrix] = args as [
-        { pipelines: PipelineManager },
-        unknown,
-        Phaser.Cameras.Scene2D.Camera,
-        Phaser.GameObjects.Components.TransformMatrix | undefined,
-      ];
-      if (!this.renderFast(renderer.pipelines, camera, parentMatrix)) {
-        proto.renderWebGL.apply(this, args);
-      }
-    };
-    self.renderCanvas = (...args: unknown[]): void => {
-      this.seal();
-      proto.renderCanvas.apply(this, args);
-    };
   }
+
+  /**
+   * WebGL çizimi (Phaser 4 render adımı). Phaser bunu nesne kurulurken `renderWebGL`'den yakalar ve
+   * düz fonksiyon olarak çağırır: `this` yoktur, nesne `src`'dir. Bu yüzden prototipe atanır
+   * (dosyanın sonunda) ve örnek alanlarına `src` üzerinden erişir.
+   */
+  static readonly drawWebGL = (
+    renderer: unknown,
+    src: LiteGraphics,
+    context: DrawingContext,
+    parentMatrix?: TransformMatrix,
+  ): void => {
+    src.seal();
+    if (!src.renderFast(context, parentMatrix)) {
+      BASE_RENDER.renderWebGL(renderer, src, context, parentMatrix);
+    }
+  };
+
+  /**
+   * Canvas çizimi: kullanılmayan kuyruğu temizleyip Phaser'ın çizicisine devreder. Argümanların
+   * hepsi iletilir (`generateTexture` hedef bağlamı ve kırpma bayrağını da geçirir).
+   */
+  static readonly drawCanvas = (renderer: unknown, src: LiteGraphics, ...rest: unknown[]): void => {
+    src.seal();
+    BASE_RENDER.renderCanvas(renderer, src, ...rest);
+  };
 
   override clear(): this {
     this.count = 0;
@@ -436,32 +477,43 @@ export class LiteGraphics extends Phaser.GameObjects.Graphics {
   }
 
   /**
-   * Hızlı WebGL çizimi: komutları okuyup üçgen köşelerini doğrudan toplu çizim hattının köşe
-   * tamponuna yazar (Phaser'ın Graphics çizicisi her üçgen için çift duyarlıklı bağımsız
-   * değişkenlerle çağrı yapıyor ve her karede ~18 MB/sn kutulanmış sayı üretiyordu). Hat beklenen
-   * alanlara sahip değilse false döner ve Phaser'ın kendi çizicisi kullanılır.
+   * Hızlı WebGL çizimi: komutları okuyup üçgen köşelerini ve indekslerini doğrudan düz renkli
+   * toplu çizicinin (`BatchHandlerTriFlat`) tamponlarına yazar. Phaser 4'ün Graphics çizicisi her
+   * üçgen için `FillTri` düğümünden geçer ve üçgen başına dört geçici dizi ayırır; bu yol hiç
+   * ayırmaz. Toplu çizici beklenen alanlara sahip değilse false döner ve Phaser'ın kendi çizicisi
+   * kullanılır. Davranış Phaser'ınkiyle aynıdır: aynı dönüşüm (`GetCalcMatrix`), aynı ton paketi,
+   * ışıklandırma ya da saydamlık stratejisi değişince aynı toplu çizim kesmesi.
    */
-  private renderFast(
-    pipelines: PipelineManager,
-    camera: Phaser.Cameras.Scene2D.Camera,
-    parentMatrix: Phaser.GameObjects.Components.TransformMatrix | undefined,
-  ): boolean {
+  private renderFast(context: DrawingContext, parentMatrix: TransformMatrix | undefined): boolean {
     if (this.cursor === 0) return true;
-    const p = pipelines.set(this.pipeline, this) as BatchPipeline;
-    const f32 = p.vertexViewF32;
-    const u32 = p.vertexViewU32;
-    const shader = p.currentShader;
-    if (!f32 || !u32 || !shader) return false;
+    const owner = this as unknown as RenderNodeOwner;
+    const sub = owner.customRenderNodes.Submitter ?? owner.defaultRenderNodes.Submitter;
+    if (!isFlatBatch(sub)) return false;
+    const camera = context.camera;
     camera.addToRenderList(this);
-    pipelines.preBatch(this);
-    const m = Phaser.GameObjects.GetCalcMatrix(this, camera, parentMatrix).calc;
+    const m = Phaser.GameObjects.GetCalcMatrix(this, camera, parentMatrix, !context.useCanvas).calc;
     const ma = m.a;
     const mb = m.b;
     const mc = m.c;
     const md = m.d;
     const me = m.e;
     const mf = m.f;
-    const alpha = camera.alpha * this.alpha;
+
+    // Toplu çizimi başlat (Phaser'ın `BatchHandlerTriFlat.batch` başlangıcıyla aynı sıra).
+    if (sub.instanceCount === 0) sub.manager.setCurrentBatchNode(sub, context);
+    sub.updateRenderOptions(owner.lighting, context.alphaStrategy);
+    if (sub._renderOptionsChanged) {
+      sub.run(context);
+      sub.updateShaderConfig();
+    }
+    const f32 = sub.vertexBufferLayout.buffer.viewF32;
+    const u32 = sub.vertexBufferLayout.buffer.viewU32;
+    const u16 = sub.indexBuffer.viewU16;
+    const cap = sub.instancesPerBatch;
+    let vertices = sub.vertexCount;
+    let triangles = sub.instanceCount;
+
+    const alpha = this.alpha;
     const cb = this.commandBuffer as number[];
     const end = this.cursor;
     let tint = 0;
@@ -476,37 +528,32 @@ export class LiteGraphics extends Phaser.GameObjects.Graphics {
         const x2 = cb[i + ARG.X2] ?? 0;
         const y2 = cb[i + ARG.Y2] ?? 0;
         i += TRI_LEN;
-        if (p.vertexCount + TRI_VERTS > p.vertexCapacity) p.flush();
-        let unit = p.currentUnit;
-        if (!p.currentBatch) unit = p.setTexture2D();
-        const comps = shader.vertexComponentCount;
-        let o = p.vertexCount * comps;
+        if (triangles >= cap || (triangles + 1) * TRI_VERTS > u16.length) {
+          // Tampon dolu: biriken üçgenleri çiz, baştan doldur.
+          sub.vertexCount = vertices;
+          sub.instanceCount = triangles;
+          sub.run(context);
+          vertices = 0;
+          triangles = 0;
+        }
+        let o = vertices * VERTEX_WORDS;
         f32[o + V.X] = x0 * ma + y0 * mc + me;
         f32[o + V.Y] = x0 * mb + y0 * md + mf;
-        f32[o + V.U] = 0;
-        f32[o + V.V] = 0;
-        f32[o + V.UNIT] = unit;
-        f32[o + V.EFFECT] = TINT_FILL;
         u32[o + V.TINT] = tint;
-        o += comps;
+        o += VERTEX_WORDS;
         f32[o + V.X] = x1 * ma + y1 * mc + me;
         f32[o + V.Y] = x1 * mb + y1 * md + mf;
-        f32[o + V.U] = 0;
-        f32[o + V.V] = 1;
-        f32[o + V.UNIT] = unit;
-        f32[o + V.EFFECT] = TINT_FILL;
         u32[o + V.TINT] = tint;
-        o += comps;
+        o += VERTEX_WORDS;
         f32[o + V.X] = x2 * ma + y2 * mc + me;
         f32[o + V.Y] = x2 * mb + y2 * md + mf;
-        f32[o + V.U] = 1;
-        f32[o + V.V] = 1;
-        f32[o + V.UNIT] = unit;
-        f32[o + V.EFFECT] = TINT_FILL;
         u32[o + V.TINT] = tint;
-        p.vertexCount += TRI_VERTS;
-        const batch = p.currentBatch;
-        if (batch) batch.count = p.vertexCount - batch.start;
+        const k = triangles * TRI_VERTS;
+        u16[k] = vertices;
+        u16[k + 1] = vertices + 1;
+        u16[k + 2] = vertices + 2;
+        vertices += TRI_VERTS;
+        triangles++;
       } else if (cmd === CMD.FILL_STYLE) {
         const a = (((cb[i + STYLE.ALPHA] ?? 1) * alpha * ALPHA_MAX) | 0) & BYTE;
         tint = ((a << ALPHA_SHIFT) | (cb[i + STYLE.COLOR] ?? 0)) >>> 0;
@@ -515,7 +562,8 @@ export class LiteGraphics extends Phaser.GameObjects.Graphics {
         i++;
       }
     }
-    pipelines.postBatch(this);
+    sub.vertexCount = vertices;
+    sub.instanceCount = triangles;
     return true;
   }
 
@@ -556,3 +604,15 @@ export class LiteGraphics extends Phaser.GameObjects.Graphics {
     this.tri(ax + nx, ay + ny, bx - nx, by - ny, ax - nx, ay - ny);
   }
 }
+
+/** Phaser'ın Graphics çizicileri (hızlı yol uygun değilse ve canvas'ta bunlara devredilir). */
+const BASE_RENDER = Phaser.GameObjects.Graphics.prototype as unknown as {
+  renderWebGL: RenderFn;
+  renderCanvas: RenderFn;
+};
+
+// Prototipe atanır: Phaser 4 render adımını nesne kurulurken `this.renderWebGL`'den yakalar.
+Object.defineProperties(LiteGraphics.prototype, {
+  renderWebGL: { value: LiteGraphics.drawWebGL, writable: true, configurable: true },
+  renderCanvas: { value: LiteGraphics.drawCanvas, writable: true, configurable: true },
+});

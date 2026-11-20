@@ -5,6 +5,20 @@ Bu projedeki önemli değişiklikler bu dosyada belgelenir. Biçim
 [Anlamsal Sürümleme](https://semver.org/lang/tr/)'ye uyar. Ayrıntılı geliştirme günlüğü, ölçümler ve
 denge tabloları: [docs/archive/PROGRESS_WEB.md](docs/archive/PROGRESS_WEB.md).
 
+## [Yayınlanmadı]
+
+### Değişenler
+
+- **Phaser 3.90 → Phaser 4.2.1** (mobil yol haritası Faz 2.0). Oyun davranışı ve görünüm aynı;
+  tarayıcıda aynı tohumlu AI vs AI maçları adım adım birebir aynı durumu üretiyor. `LiteGraphics`
+  çizicisi Phaser 4'ün render node mimarisine taşındı; özel Phaser derlemesi Phaser 4'e göre yeniden
+  kuruldu. Ölçümler: [docs/PROGRESS.md](docs/PROGRESS.md).
+
+### Eklenenler
+
+- `npm run bench`: üretim derlemelerini yan yana ölçen tezgâh (paket boyutu, açılış süresi, kare
+  işi, tarayıcıda determinizm, ekran görüntüleri).
+
 ## [1.0.0] — 2026-11-19
 
 İlk kararlı sürüm: tüm modlar, platformlar ve cila tamam. ▶ https://emengin.github.io/kafa-kafaya/

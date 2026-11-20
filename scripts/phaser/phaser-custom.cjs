@@ -1,13 +1,18 @@
 /**
- * Kafa Kafaya için özel Phaser derlemesi (Faz 7, paket boyutu).
+ * Kafa Kafaya için özel Phaser derlemesi (Faz 7, paket boyutu; Faz 2.0'da Phaser 4'e taşındı).
  *
  * Tam `phaser` paketi oyunun hiç kullanmadığı sistemleri de taşır: Matter.js ve Arcade fiziği,
- * tilemap'ler, parçacıklar, ses yöneticisi (sesler kendi Web Audio motorumuzda), BitmapText,
- * Mesh, Video, Spine, çoğu şekil ve dosya türü… Bu giriş `phaser/src/phaser-core.js` üzerine
- * kuruludur ve yalnızca oyunun kullandığı ek nesneleri (Container, TileSprite, Zone, Rectangle,
- * Arc), `Display.Color` ve `Geom.Rectangle`'ı ekler. Yalnızca üretim derlemesinde `phaser`
- * içe aktarımının yerine geçer (vite.config.ts); geliştirme sunucusu tam paketi kullanır.
- * Özellik bayrakları (`typeof WEBGL_RENDERER` …) `flags.ts` eklentisiyle sabitlenir.
+ * tilemap'ler, parçacıklar, ses yöneticisi (sesler kendi Web Audio motorumuzda), yükleyici (tüm
+ * dokular kodla üretilir), BitmapText, Sprite, Layer, Video, Spine, çoğu şekil ve dosya türü… Bu
+ * giriş `phaser/src/phaser-core.js` üzerine kuruludur ve yalnızca oyunun kullandığı ek nesneleri
+ * (Container, TileSprite, Zone, Rectangle, Arc), `Display.Color` ve `Geom.Rectangle`'ı ekler.
+ * Yalnızca üretim derlemesinde `phaser` içe aktarımının yerine geçer (vite.config.ts); geliştirme
+ * sunucusu tam paketi kullanır. `phaser/src/…` yolları ve özellik bayrakları (`typeof
+ * WEBGL_RENDERER` …) `plugin.ts` eklentisinde çözülür ve sabitlenir.
+ *
+ * Phaser 4 farkları: FX sistemi yok (yerini çekirdeğin kendi içinde çektiği filtreler aldı),
+ * `TintModes` eklendi. `Phaser.Renderer` ad alanı yok: oyun kodu kullanmıyor ve dizini tüm WebGL
+ * shader/düğümlerini pakete sokuyor (BatchHandler'ın içe aktarımı eklentide daraltılır).
  *
  * Yeni bir Phaser nesnesi/fabrikası kullanılırsa buraya eklenmelidir (uçtan uca testler eksik
  * modülü çalışma zamanı hatası olarak yakalar).
@@ -43,7 +48,6 @@ var Phaser = {
   },
   DOM: require('phaser/src/dom'),
   Events: require('phaser/src/events'),
-  FX: require('phaser/src/fx'),
   Game: require('phaser/src/core/Game'),
   GameObjects: {
     DisplayList: require('phaser/src/gameobjects/DisplayList'),
@@ -75,7 +79,6 @@ var Phaser = {
     Vector2: require('phaser/src/math/Vector2'),
   },
   Plugins: require('phaser/src/plugins'),
-  Renderer: require('phaser/src/renderer'),
   Scale: require('phaser/src/scale'),
   ScaleModes: require('phaser/src/renderer/ScaleModes'),
   Scene: require('phaser/src/scene/Scene'),
@@ -83,6 +86,7 @@ var Phaser = {
   Structs: require('phaser/src/structs'),
   Textures: require('phaser/src/textures'),
   Time: require('phaser/src/time'),
+  TintModes: require('phaser/src/renderer/TintModes'),
   Tweens: require('phaser/src/tweens'),
 };
 
