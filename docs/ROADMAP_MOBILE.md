@@ -67,7 +67,7 @@ Bazı bölümler paralel yürür: Claude Code sunucu veya meta oyun fazlarınday
 - **Güç satılmaz, çeşitlilik satılır.** Karakterler birbirinin yan seçeneğidir:
   - Tüm karakterlerin toplam istatistik bütçesi eşittir.
   - AI-vs-AI denge simülasyonunda ve ileride online veride her karakterin kazanma oranı %45–55 bandındadır.
-  - Her karakter oynayarak makul sürede açılabilir (süre hedefi Faz 1.1'de belirlenir); satın almak sadece beklememek içindir.
+  - Her karakter oynayarak makul sürede açılabilir (süre hedefi: GAME_DESIGN_MOBILE.md K15, §9.3); satın almak sadece beklememek içindir.
   - Seviye veya yükseltmeyle güç artışı yoktur.
 - Karakterler dışında satılanlar görünüş, kolaylık ve gösteriştir.
 - İki para birimi: Altın (oynayarak kazanılır), Elmas (satın alınır, az miktarda oynayarak da kazanılır; tek oyunculu moddan asla gelmez).
@@ -338,10 +338,10 @@ Bitti kriteri: Rıza verilince test çökmesi ve bir analiz olayı Firebase kons
 Faz 2.7'den sonra yapılır.
 
 1. 2.7 öncesi ve sonrası aynı girdilerle karşılaştırma (top yörüngesi, zıplama yüksekliği, şut ve süper hızları); his değiştiyse ayar değerleriyle geri getirilir.
-2. Karakter dengesi: toplam istatistik bütçesinin eşitliği testle zorlanır; AI-vs-AI simülasyonunda her karakterin kazanma oranı %45–55 bandına çekilir (web v1.0.0'da Ayaz %57).
+2. Karakter dengesi: toplam istatistik bütçesinin eşitliği testle zorlanır; AI-vs-AI simülasyonunda her karakterin kazanma oranı %45–55 bandına, her eşleşme %35–65 bandına çekilir (GAME_DESIGN_MOBILE.md K14; web v1.0.0'da Ayaz %57, Bora–Toprak %71).
 3. Denge raporu (kazanma oranları ve eşleşme tablosu) PROGRESS.md'de.
 
-Bitti kriteri: Tüm karakterler %45–55 bandında; determinizm ve çapraz motor testleri yeşil.
+Bitti kriteri: Tüm karakterler %45–55, tüm eşleşmeler %35–65 bandında; determinizm ve çapraz motor testleri yeşil.
 
 ---
 
@@ -538,7 +538,7 @@ Günlük dönen vitrin, Altın/Elmas fiyatları, satın almadan önce önizleme,
 
 ### Faz 6.6 — Karakter koleksiyonu ve tek oyunculu mod (Y)
 
-Karakter açma sistemi: her karakter oynayarak makul sürede açılır (hedef süre Faz 1.1'de), satın almak sadece beklememek için; karakterler yan seçenektir, yükseltme yoktur. Web'deki turnuva modunun mobil ilerlemeye bağlanması; tek oyunculu ödüller Faz 5.3'teki sınırlarla.
+Karakter açma sistemi: her karakter oynayarak makul sürede açılır (hedef süre GAME_DESIGN_MOBILE.md K15, §9.3), satın almak sadece beklememek için; karakterler yan seçenektir, yükseltme yoktur. Web'deki turnuva modunun mobil ilerlemeye bağlanması; tek oyunculu ödüller Faz 5.3'teki sınırlarla.
 
 ### Faz 6.7 — Kendi stadyumun (Y)
 
@@ -564,7 +564,7 @@ Her parti bittiğinde Faz 7.6 çalıştırılır.
 
 ### Faz 7.1 — Karakterler 3–12
 
-Mevcut 10 karakterin kalan 8'inin yeniden çizimi (ilk ikisi Faz 4.2'de) + 2 yeni karakter. 3'erli partiler halinde. Her karakter: tüm katmanlar, ifadeler, kendine özel süper şutun görsel kimliği. Yeni karakterlerin istatistikleri ve süper şutları Faz 1.1'de tasarlanır, Faz 7.6'da kodlanır.
+Mevcut 10 karakterin kalan 8'inin yeniden çizimi (ilk ikisi Faz 4.2'de) + 2 yeni karakter. 3'erli partiler halinde. Her karakter: tüm katmanlar, ifadeler, kendine özel süper şutun görsel kimliği. Yeni karakterler (Yankı, Kauçuk) ve süper şutları Faz 1.1'de tasarlandı (GAME_DESIGN_MOBILE.md §9.4), Faz 7.6'da kodlanır.
 
 ### Faz 7.2 — Stadyumlar 2–4
 
@@ -585,7 +585,7 @@ Menü, 2–3 maç parçası, sezon temaları, zafer/yenilgi kısa müzikleri.
 ### Faz 7.6 — İçerik partisi entegrasyonu [CC] (Y)
 
 1. Yeni varlıkları manifest ve veri dosyalarına ekle; ASSET_LOG doğrulaması. Yeni karakterlerin partisinde süper şut mekaniklerini kodla.
-2. Denge simülasyonu: her karakterin kazanma oranı %45–55 bandında; toplam istatistik bütçesi eşit.
+2. Denge simülasyonu: her karakterin kazanma oranı %45–55, her eşleşme %35–65 bandında (eşleşme başına ≥ 200 maç); toplam istatistik bütçesi eşit.
 3. Mağaza ve dolap önizlemelerini kontrol et; ART_BIBLE uyum denetimi.
 
 Bitti kriteri: Parti oyunda, denge raporu PROGRESS.md'de.

@@ -48,7 +48,7 @@ Canlı: https://emengin.github.io/kafa-kafaya/ · ölçümler, denge tabloları,
 
 Kaynak: [ROADMAP_MOBILE.md](ROADMAP_MOBILE.md). [CC] Claude Code · [SOHBET] claude.ai · [SEN]
 geliştirici · [PRO] avukat / mali müşavir. Kararlar:
-[GAME_DESIGN_MOBILE.md § Kararlar](GAME_DESIGN_MOBILE.md#kararlar-faz-04-2026-11-20).
+[GAME_DESIGN_MOBILE.md § Kararlar](GAME_DESIGN_MOBILE.md#kararlar).
 
 **Bağımlılıklar:** Bölüm 2, Bölüm 1 ile paralel ilerleyebilir · 3.4, 1.4 ve 1.6 bitmeden başlamaz ·
 2.9, 2.7'den sonra · 8.3–8.8, 8.1–8.2'den sonra.
@@ -59,7 +59,8 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
   - [x] 0.3 Proje yapısı ve dokümanlar [CC] — 2026-11-20
   - [x] 0.4 Kararlar ve yol haritası revizyonu [CC] — 2026-11-20
 - **Bölüm 1 — Tasarım ve sanat yönü**
-  - [ ] 1.1 Mobil oyun tasarım dokümanı [CC]
+  - [x] 1.1 Mobil oyun tasarım dokümanı [CC] — 2026-11-20 →
+        [GAME_DESIGN_MOBILE.md](GAME_DESIGN_MOBILE.md)
   - [x] 1.2 Rakip analizi [SEN + SOHBET] — 2026-11-20 →
         [COMPETITOR_ANALYSIS.md](COMPETITOR_ANALYSIS.md)
   - [ ] 1.3 Stil testleri [SEN]
@@ -156,21 +157,45 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
   - [ ] 13.1 Yerelleştirme: Çince, Japonca, Korece ve Arapça
   - [ ] 13.2 Sunucu taraflı yeniden simülasyon (opsiyonel)
 
-0.3 ve 0.4 ayrıntıları: [archive/PROGRESS_MOBILE_0.md](archive/PROGRESS_MOBILE_0.md). 0.1 ve 0.2
-[SEN] fazları; yapıldıysa kutuları sen işaretle.
+Faz ayrıntıları: 0.3 ve 0.4 → [archive/PROGRESS_MOBILE_0.md](archive/PROGRESS_MOBILE_0.md); 1.1 →
+[archive/PROGRESS_MOBILE_1.md](archive/PROGRESS_MOBILE_1.md). 0.1 ve 0.2 [SEN] fazları; yapıldıysa
+kutuları sen işaretle.
 
 ## Sonraki fazlar için notlar
 
-Faz 0.3'teki açık sorular Faz 0.4'te karara bağlandı; değeri belirlenmemiş konular
+Faz 0.3'teki açık sorular Faz 0.4'te, 1.1'e bırakılanlar Faz 1.1'de (K13–K17) karara bağlandı;
+değeri belirlenmemiş konular
 [GAME_DESIGN_MOBILE.md § Hâlâ açık olanlar](GAME_DESIGN_MOBILE.md#hâlâ-açık-olanlar)'da. Kararlardan
 sonra hâlâ görülen riskler:
 
-- **1.1 — Dolaylı Elmas:** görev, başarım, seviye ödülü ya da Sezon Kartı ücretsiz yolu Elmas veriyor
-  ve tek oyunculu maçlar bunları ilerletiyorsa Elmas dolaylı yoldan tek oyunculudan gelir (K3).
-  Elmas veren ilerlemenin hangi modlardan sayılacağı 1.1'de netleşmeli.
-- **1.1 / 2.9 — Eşleşme dengesi:** %45–55 bandı genel kazanma oranını sınırlar, Bora–Toprak %71 gibi
-  karşı eşleşmeleri değil. Sıralamalıda karakter rakip görülerek seçiliyorsa sorun büyür; eşleşme
-  eşiği ve seçim sırası 1.1'de.
+- **2.3 — Yerel 2 oyuncu:** telefonda iki kişilik dokunmatik düzen prototiplenmeli; rahat değilse
+  yalnızca gamepad ve tablet (GAME_DESIGN_MOBILE §7.7).
+- **2.9 / 7.6 — Eşleşme eşiği artık bitti kriterinde:** her eşleşme %35–65 (K14). Web v1.0.0'da üç
+  eşleşme dışarıda: Bora–Toprak %71, Ayaz–Pamuk %69, Toprak–Şimşek %69. Ölçüm eşleşme başına ≥ 200
+  maç: 10 karakterle 9.000, 12 karakterle 13.200 maç/tarama.
+- **3.3 — Kozmetik yuvaları:** yol haritasındaki yuva listesi §4.1'in 13 kategorisiyle hizalanmalı:
+  karakter skini, giriş animasyonu, stadyum parçası ve ifade paketi eksik; "saç" ayrı yuva değil,
+  skinin parçası. Top skini ev sahibinin, top izi topa son dokunanın.
+- **5.3 — Değerler hazır:** tek oyunculu tavan 300 Altın + 600 XP ve makullük eşikleri §2.4'te
+  (K16); online kuyrukta yapay zekâya düşen maç tek oyunculu sayılır (K13).
+- **5.4 — Uzaktan ayar anahtarları:** ilk liste GAME_DESIGN_MOBILE §2.7 ve §6.2'de.
+- **6.x — Elmas veren ilerleme yalnızca online:** görev, başarım ve ustalık tanımları sunucuda mod
+  bayrağı taşımalı (K13); esas alınan, istemcinin bildirdiği mod değil sunucunun maç kaydı.
+- **6.9 — Ekonomi modeli:** §2.5 tablosu tek dosyalık geçici bir hesap betiğiyle üretildi (varsayımlar
+  §2.5'te ve arşivde). 6.9'daki simülasyon harcayan oyuncu tiplerini, etkinlikleri, sezon sonu
+  ödüllerini ve Elmas harcamasını da kapsamalı.
+- **7.3 — Kozmetik paketi v1:** sayılar §4.5'teki lansman hedefinin altında ve 7 kategoriyi
+  içermiyor (karakter skini, ayakkabı, çerçeve, plaka, giriş animasyonu, stadyum, ifade); 7.3 ya da
+  yeni bir içerik fazı §4.5'e göre planlanmalı.
+- **7.6 — Yeni süperler (Yankı, Sekme):** `SUPER_SHOTS` girdileri, `superEffects.ts`, yapay zekâ
+  kullanım ve kaçınma kuralları, süper önizlemesi ve 2.7'nin çapraz motor tekrarları. Sekmenin
+  "her sekmede hız ×1,15"i yansıma koduna dokunur; tahminci aynı kodu kullanmalı.
+- **8.x / 10.3 — Fiyat gösterimi ve yaş:** Elmas fiyatlarının yanında TL karşılığı (§5.3) ve 18 yaş
+  altı limitleri (§5.4) avukat incelemesinin kapsamına alınmalı.
+- **Faz yok — "maçın anı" paylaşımı:** sonuç ekranındaki tekrarın paylaşılması (§1.4) için faz yok;
+  12.4'ün kayıt altyapısıyla Bölüm 6 ya da 11'e eklenmeli.
+- **12.6 — Günlük sıfırlama saati:** 00:00 TSİ uzak bölgelerde günün ortasına denk gelir; bölgesel
+  sıfırlama kararı test lansmanından önce.
 - **2.4 / 2.7 — Ölçüm sırası:** rollback ≤ 4 ms ölçümü, 2.7'de gelecek kendi
   `sin/cos/atan2/exp/pow` fonksiyonlarından önce yapılıyor; bunlar yavaşsa bütçe kayar. Öneri: ölçüm
   2.7 sonunda da tekrarlansın (şu an yalnızca 4.6 ve 12.3'te).
@@ -191,7 +216,8 @@ sonra hâlâ görülen riskler:
   yakın bölge yurt dışıdır ve aktarım yükümlülüğü doğar; iki karar birbirini etkiler.
 - **9.3 — Geçersiz maç açığı:** uyuşmazlıkta maç geçersiz sayılınca kaybeden taraf bilerek bozuk
   checksum gönderip kaybı silebilir. Oyuncu başına uyuşmazlık oranı izlenmeli; eşiği aşan hesaba
-  kaçma cezası (9.6) uygulanmalı.
+  kaçma cezası (9.6) uygulanmalı. Online maçlar artık Elmas da verdiği için (K13) önemi arttı; aynı
+  cihaz ya da ağdan iki hesabın eşleşmesi de izlenmeli.
 - **9.4 / 11.6 / 12.6 — Tek bölge ve uzak diller:** PT-BR, ES ve ID; Brezilya, Latin Amerika ve
   Endonezya'yı hedefler. Bu bölgelerdeki iki oyuncu Türkiye üzerinden oynarken gidiş-dönüş gecikmesi
   kabaca 400 ms'yi aşar; 9.2'nin 150 ms hedefi tutmaz, gecikme eşikli eşleştirme bu oyuncuları
