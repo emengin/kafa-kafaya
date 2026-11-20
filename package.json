@@ -18,7 +18,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "screenshots": "playwright test -c playwright.screenshots.config.ts",
-    "simulate": "node scripts/run-ts.js scripts/simulate.ts"
+    "simulate": "node scripts/run-ts.js scripts/simulate.ts",
+    "bench": "node scripts/run-ts.js scripts/bench/bench.ts"
   },
   "dependencies": {
     "phaser": "^3.90.0"
