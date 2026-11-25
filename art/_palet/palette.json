@@ -1,0 +1,100 @@
+{
+  "version": "1.0",
+  "core": {
+    "gunbatimi": "#F28C38",
+    "kiremit": "#C2562F",
+    "krem": "#F3E3C3",
+    "emaye": "#1F4E9C",
+    "mor_golge": "#3B2F4A",
+    "asfalt": "#4A4E57",
+    "oyna": "#FFD23F",
+    "kontur": "#2B1D14"
+  },
+  "character": {
+    "goz": "#140C08",
+    "goz_parlama": "#FFF9EE",
+    "kenar_isigi": "#F28C38",
+    "kenar_isigi_acik": "#FFD08A",
+    "ten": {
+      "T1": { "taban": "#F7DCC6", "golge": "#D8AC98", "allik": "#F0B0A1" },
+      "T2": { "taban": "#EFC29F", "golge": "#D09176", "allik": "#EB9F87" },
+      "T3": { "taban": "#DBA57C", "golge": "#BC7658", "allik": "#DE8C70" },
+      "T4": { "taban": "#BF8558", "golge": "#A0593A", "allik": "#CC7759" },
+      "T5": { "taban": "#93603D", "golge": "#814129", "allik": "#AB5F46" },
+      "T6": { "taban": "#6A4029", "golge": "#582719", "allik": "#8E4938" }
+    },
+    "sac": {
+      "siyah": "#463630",
+      "koyu_kahve": "#5A3B2A",
+      "kestane": "#8A4E2E",
+      "bal": "#C99A55",
+      "kizil": "#B5522B",
+      "kir": "#A8A29C",
+      "beyaz": "#ECE7DF"
+    }
+  },
+  "accessory": {
+    "antrasit": "#3D3A40",
+    "bordo": "#8E2B3A",
+    "domates": "#E04A3A",
+    "pembe": "#E86FA8",
+    "mor": "#7D4CB8",
+    "turkuaz": "#1BA8BC",
+    "cam": "#2E7D4F",
+    "fistik": "#9CCB3B",
+    "hardal": "#B98A12",
+    "petrol": "#1E5F74",
+    "kirik_beyaz": "#F5F0E6",
+    "lavanta": "#C0A8E8"
+  },
+  "side": {
+    "sol": { "ana": "#2A6AD8", "tahta": "#8CC4FF" },
+    "sag": { "ana": "#FFA54A", "tahta": "#FFB877" }
+  },
+  "kits": {
+    "lacivert": { "hex": "#24346E", "L": 24, "bant": "koyu" },
+    "koyu_yesil": { "hex": "#1F5C40", "L": 35, "bant": "koyu" },
+    "antrasit": { "hex": "#34343C", "L": 22, "bant": "koyu" },
+    "patlican": { "hex": "#4E3088", "L": 28, "bant": "koyu" },
+    "mavi": { "hex": "#2F6FD6", "L": 48, "bant": "orta" },
+    "kirmizi": { "hex": "#D2412F", "L": 49, "bant": "orta" },
+    "yesil": { "hex": "#2F9A5A", "L": 57, "bant": "orta" },
+    "turuncu": { "hex": "#EE7A2A", "L": 64, "bant": "orta" },
+    "pembe": { "hex": "#D9578F", "L": 56, "bant": "orta" },
+    "beyaz": { "hex": "#F4F1EA", "L": 95, "bant": "acik" },
+    "sari": { "hex": "#F5C945", "L": 83, "bant": "acik" },
+    "acik_mavi": { "hex": "#8EC6F0", "L": 78, "bant": "acik" },
+    "nane": { "hex": "#A6E3C6", "L": 86, "bant": "acik" },
+    "seftali": { "hex": "#FFC59A", "L": 84, "bant": "acik" }
+  },
+  "kit_clash_rule": "gecer = (|L1-L2| >= 20) || (protan, deutan ve tritan simulasyonlarinin ucunde de deltaE2000 >= 25)",
+  "background": {
+    "gok": ["#5B5893", "#A9739B", "#EE9A6E", "#FFCF8F"],
+    "bulut": "#EFA894",
+    "uzak_siluet": "#765A80",
+    "uzak_isik": "#F2A07A",
+    "cephe_krem": "#A8998C",
+    "cephe_sari": "#A18457",
+    "cephe_mavi": "#6D7B90",
+    "cephe_kiremit": "#863A22",
+    "duvar": "#B89C86",
+    "duvar_isik": "#F6C08A",
+    "kaldirim": "#8C8A90",
+    "zemin_cizgisi": "#E9B88A"
+  },
+  "ui": {
+    "emaye": "#1F4E9C",
+    "emaye_koyu": "#163A75",
+    "kirik_beyaz": "#FFF9EE",
+    "krem": "#F3E3C3",
+    "oyna": "#FFD23F",
+    "oyna_alt": "#D9A400",
+    "bildirim": "#CF3A2C",
+    "onay": "#2E9E5B",
+    "pasif": "#B8B2A7",
+    "pasif_metin": "#5C564F",
+    "kara_tahta": "#2E3A36",
+    "ahsap": "#7A4A2A"
+  },
+  "fx": { "yildiz": "#FFE7A0" }
+}

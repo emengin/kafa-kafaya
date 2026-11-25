@@ -1,0 +1,8 @@
+Konsept kaydı (ART_BIBLE §8.7)
+Tarih: 2026-11-20 (üretim), 2026-11-22 (profil kesimi)
+Araç: Google Nano Banana 2.x (Gemini görsel modeli), çözünürlük 1K, düşünme seviyesi Medium
+Kaynak dosya: design/style-tests/A/A_02_bakkal_buyuk_kafa.jpg (4 görünümlü model sayfası); bu dosya o sayfadaki "side profile" görünümünün kesimidir.
+Prompt: character turnaround sheet for a 2D mobile soccer game, friendly neighborhood grocer with a huge mustache and flat cap, original character, OVERSIZED HEAD about twice the size of the body, tiny body, thick hand-inked brown outlines, 2-tone cel shading, warm orange sunset rim light, plain orange and cream jersey, cleats, front view, 3/4 view, side profile, back view, plain cream background
+Olumsuz prompt: yok
+Seed: kaydedilmedi
+Durum: YALNIZCA REFERANS. Oyuna girmez; elle yeniden çizilecek (Faz 1.5).

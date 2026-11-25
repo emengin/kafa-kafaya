@@ -1,0 +1,104 @@
+GIMP Palette
+Name: Kafa Kafaya
+Columns: 8
+#
+242 140  56	cekirdek_gunbatimi
+194  86  47	cekirdek_kiremit
+243 227 195	cekirdek_krem
+ 31  78 156	cekirdek_emaye
+ 59  47  74	cekirdek_mor_golge
+ 74  78  87	cekirdek_asfalt
+255 210  63	cekirdek_oyna
+ 43  29  20	cekirdek_kontur
+ 20  12   8	goz
+255 249 238	goz_parlama
+242 140  56	kenar_isigi
+255 208 138	kenar_isigi_acik
+247 220 198	ten_T1_taban
+216 172 152	ten_T1_golge
+240 176 161	ten_T1_allik
+239 194 159	ten_T2_taban
+208 145 118	ten_T2_golge
+235 159 135	ten_T2_allik
+219 165 124	ten_T3_taban
+188 118  88	ten_T3_golge
+222 140 112	ten_T3_allik
+191 133  88	ten_T4_taban
+160  89  58	ten_T4_golge
+204 119  89	ten_T4_allik
+147  96  61	ten_T5_taban
+129  65  41	ten_T5_golge
+171  95  70	ten_T5_allik
+106  64  41	ten_T6_taban
+ 88  39  25	ten_T6_golge
+142  73  56	ten_T6_allik
+ 70  54  48	sac_siyah
+ 90  59  42	sac_koyu_kahve
+138  78  46	sac_kestane
+201 154  85	sac_bal
+181  82  43	sac_kizil
+168 162 156	sac_kir
+236 231 223	sac_beyaz
+ 61  58  64	aksesuar_antrasit
+142  43  58	aksesuar_bordo
+224  74  58	aksesuar_domates
+232 111 168	aksesuar_pembe
+125  76 184	aksesuar_mor
+ 27 168 188	aksesuar_turkuaz
+ 46 125  79	aksesuar_cam
+156 203  59	aksesuar_fistik
+185 138  18	aksesuar_hardal
+ 30  95 116	aksesuar_petrol
+245 240 230	aksesuar_kirik_beyaz
+192 168 232	aksesuar_lavanta
+ 42 106 216	taraf_sol_ana
+140 196 255	taraf_sol_tahta
+255 165  74	taraf_sag_ana
+255 184 119	taraf_sag_tahta
+ 36  52 110	forma_lacivert
+ 31  92  64	forma_koyu_yesil
+ 52  52  60	forma_antrasit
+ 78  48 136	forma_patlican
+ 47 111 214	forma_mavi
+210  65  47	forma_kirmizi
+ 47 154  90	forma_yesil
+238 122  42	forma_turuncu
+217  87 143	forma_pembe
+244 241 234	forma_beyaz
+245 201  69	forma_sari
+142 198 240	forma_acik_mavi
+166 227 198	forma_nane
+255 197 154	forma_seftali
+ 91  88 147	arkaplan_gok1
+169 115 155	arkaplan_gok2
+238 154 110	arkaplan_gok3
+255 207 143	arkaplan_gok4
+239 168 148	arkaplan_bulut
+118  90 128	arkaplan_uzak_siluet
+242 160 122	arkaplan_uzak_isik
+168 153 140	arkaplan_cephe_krem
+161 132  87	arkaplan_cephe_sari
+109 123 144	arkaplan_cephe_mavi
+134  58  34	arkaplan_cephe_kiremit
+184 156 134	arkaplan_duvar
+246 192 138	arkaplan_duvar_isik
+140 138 144	arkaplan_kaldirim
+233 184 138	arkaplan_zemin_cizgisi
+ 31  78 156	ui_emaye
+ 22  58 117	ui_emaye_koyu
+255 249 238	ui_kirik_beyaz
+243 227 195	ui_krem
+255 210  63	ui_oyna
+217 164   0	ui_oyna_alt
+207  58  44	ui_bildirim
+ 46 158  91	ui_onay
+184 178 167	ui_pasif
+ 92  86  79	ui_pasif_metin
+ 46  58  54	ui_kara_tahta
+122  74  42	ui_ahsap
+255 231 160	fx_yildiz
+207  69  16	golge_forma_turuncu
+212 183 149	golge_krem
+ 23  67 196	golge_forma_mavi
+214 147  39	golge_forma_sari
+213 210 205	golge_forma_beyaz

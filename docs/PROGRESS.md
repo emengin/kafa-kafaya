@@ -68,9 +68,11 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
         [GAME_DESIGN_MOBILE.md](GAME_DESIGN_MOBILE.md)
   - [x] 1.2 Rakip analizi [SEN + SOHBET] — 2026-11-20 →
         [COMPETITOR_ANALYSIS.md](COMPETITOR_ANALYSIS.md)
-  - [ ] 1.3 Stil testleri [SEN]
-  - [ ] 1.4 Sanat rehberi [SOHBET]
+  - [x] 1.3 Stil testleri [SEN] — 2026-11-20 →
+        [design/style-tests/NOTLAR.md](../design/style-tests/NOTLAR.md)
+  - [x] 1.4 Sanat rehberi [SOHBET] — 2026-11-20 → [ART_BIBLE.md](ART_BIBLE.md)
   - [ ] 1.5 Üretim hattı provası [SEN] — kalite kapısı: sanat yönü
+    - Bakkal taslağı (`art/karakter/bakkal/kar_bakkal_taslak.svg`) geçici, revizyon bekliyor.
   - [ ] 1.6 Arayüz tasarım sistemi [SEN + SOHBET]
 - **Bölüm 2 — Mobil temel [CC]** (Bölüm 1 ile paralel)
   - [x] 2.0 Phaser 4'e geçiş — 2026-11-20 → Phaser 4.2.1, karşılaştırma aşağıda
@@ -165,8 +167,9 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
 Faz ayrıntıları: 0.3 ve 0.4 → [archive/PROGRESS_MOBILE_0.md](archive/PROGRESS_MOBILE_0.md); 1.1 →
 [archive/PROGRESS_MOBILE_1.md](archive/PROGRESS_MOBILE_1.md); 2.0 →
 [archive/PROGRESS_MOBILE_2.md](archive/PROGRESS_MOBILE_2.md). 0.1 ve 0.2 [SEN] fazları; yapıldıysa
-kutuları sen işaretle. 1.3'ün stil testi görselleri `design/style-tests/` altında commit'lendi
-(`360c354`); kutuyu ve 1.3'ün bitişini sen işaretle.
+kutuları sen işaretle. 1.3'ün stil testi görselleri ve karşılaştırması `design/style-tests/`
+altında (seçilen yön: A "Mahalle Maçı", dev kafa oranlarıyla); 1.4'ün sonucu
+[ART_BIBLE.md](ART_BIBLE.md).
 
 ### Faz 2.0 — Phaser 3.90 ↔ 4.2.1 karşılaştırması
 
