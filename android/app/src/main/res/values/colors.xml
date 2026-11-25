@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Açılış ekranı zemini = src/config/gameConfig.ts PLATFORM.backgroundColor
+         (scripts/mobile/mobile.test.ts eşitliği denetler). -->
+    <color name="splash_background">#070B26</color>
+</resources>

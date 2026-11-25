@@ -1,1 +1,3 @@
 * text=auto eol=lf
+# Windows toplu iş dosyaları CRLF kalmalı (android/gradlew.bat).
+*.bat text eol=crlf

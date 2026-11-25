@@ -1,5 +1,6 @@
 import { t } from '../i18n';
 import { isTouchDevice } from './device';
+import { IS_NATIVE_APP } from './target';
 
 /**
  * Tam ekran düğmesi ve dikey ekran uyarısı (Faz 6). İkisi de DOM öğesidir (index.html): oyun
@@ -20,6 +21,9 @@ interface LockableOrientation {
 const doc = (): Document & WebkitDocument => document;
 
 export function fullscreenSupported(): boolean {
+  // Mobil uygulama zaten tam ekran (sistem çubuklarını yerel kod gizler); WebView'ın tam ekran
+  // API'si video için tasarlanmış, oyun tuvalinde güvenilir değil → düğme hiç görünmez.
+  if (IS_NATIVE_APP) return false;
   const d = doc();
   return d.fullscreenEnabled || d.webkitFullscreenEnabled === true;
 }

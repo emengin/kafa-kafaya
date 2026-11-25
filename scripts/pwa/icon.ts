@@ -1,9 +1,16 @@
 /**
- * PWA simgesi (derleme zamanında, kodla): gece mavisi gradyan zemin, ortada beyaz top (koyu
- * kontur, ortada beşgen, dikiş çizgileri) ve altın halka. Her piksel 4×4 alt örnekle hesaplanır
- * (kenar yumuşatma). `maskable` → tam kare zemin ve topu güvenli bölgeye (%80) sığdıran ölçek.
+ * PWA ve uygulama simgesi (derleme zamanında, kodla): gece mavisi gradyan zemin, ortada beyaz top
+ * (koyu kontur, ortada beşgen, dikiş çizgileri) ve altın halka. Her piksel 4×4 alt örnekle
+ * hesaplanır (kenar yumuşatma). Yer tutucudur: final uygulama ikonu Faz 4'te (ART_BIBLE §11.7).
+ *
+ * Çeşitler:
+ * - `any`: yuvarlak köşeli kare (PWA).
+ * - `maskable`: tam kare zemin, top güvenli bölgede (%80) (PWA maskable, Android eski simge).
+ * - `foreground`: `maskable`'ın saydam zeminli hâli (Android uyarlanır simge ön katmanı).
+ * - `background`: yalnızca zemin (Android uyarlanır simge arka katmanı).
  */
-type RGBA = readonly [number, number, number, number];
+export type RGBA = readonly [number, number, number, number];
+export type IconVariant = 'any' | 'maskable' | 'foreground' | 'background';
 
 const TOP: RGBA = [27, 42, 107, 255];
 const BOTTOM: RGBA = [58, 123, 213, 255];
@@ -49,16 +56,17 @@ function inPolygon(px: number, py: number, pts: readonly (readonly [number, numb
 }
 
 /** Birim karede (0–1) bir noktanın rengi. */
-function colorAt(u: number, v: number, maskable: boolean): RGBA {
-  // Zemin: maskable tam kare, değilse yuvarlak köşeli kare.
-  if (!maskable) {
+function colorAt(u: number, v: number, variant: IconVariant): RGBA {
+  // Zemin: `any` yuvarlak köşeli kare, diğerleri tam kare.
+  if (variant === 'any') {
     const r = 0.22;
     const qx = Math.max(Math.abs(u - 0.5) - (0.5 - r), 0);
     const qy = Math.max(Math.abs(v - 0.5) - (0.5 - r), 0);
     if (Math.hypot(qx, qy) > r) return CLEAR;
   }
-  let c = mix(TOP, BOTTOM, v);
-  const R = maskable ? 0.28 : 0.33;
+  let c = variant === 'foreground' ? CLEAR : mix(TOP, BOTTOM, v);
+  if (variant === 'background') return c;
+  const R = variant === 'any' ? 0.33 : 0.28;
   const d = Math.hypot(u - 0.5, v - 0.5);
   const ring = R + 0.045;
   if (d <= ring + 0.022 && d >= ring - 0.012) c = GOLD;
@@ -85,7 +93,22 @@ function colorAt(u: number, v: number, maskable: boolean): RGBA {
 }
 
 /** size × size RGBA piksel dizisi. */
-export function renderIcon(size: number, maskable: boolean): Uint8Array {
+export function renderIcon(size: number, variant: IconVariant): Uint8Array {
+  return render(size, (u, v) => colorAt(u, v, variant));
+}
+
+/**
+ * Açılış ekranı: düz zemin ortasında simgenin topu (`foreground`), `scale` oranında küçültülmüş.
+ * Kare çizilir; Android her yön ve yoğunluk için ortadan kırparak küçültür, top ortada kalır.
+ */
+export function renderSplash(size: number, scale: number, background: RGBA): Uint8Array {
+  return render(size, (u, v) => {
+    const c = colorAt(0.5 + (u - 0.5) / scale, 0.5 + (v - 0.5) / scale, 'foreground');
+    return c[3] === 0 ? background : c;
+  });
+}
+
+function render(size: number, colorOf: (u: number, v: number) => RGBA): Uint8Array {
   const out = new Uint8Array(size * size * 4);
   const n = SAMPLES * SAMPLES;
   for (let y = 0; y < size; y++) {
@@ -96,11 +119,7 @@ export function renderIcon(size: number, maskable: boolean): Uint8Array {
       let a = 0;
       for (let sy = 0; sy < SAMPLES; sy++) {
         for (let sx = 0; sx < SAMPLES; sx++) {
-          const c = colorAt(
-            (x + (sx + 0.5) / SAMPLES) / size,
-            (y + (sy + 0.5) / SAMPLES) / size,
-            maskable,
-          );
+          const c = colorOf((x + (sx + 0.5) / SAMPLES) / size, (y + (sy + 0.5) / SAMPLES) / size);
           // Ön çarpımlı ortalama (saydam kenarlarda renk kaymasın).
           r += c[0] * c[3];
           g += c[1] * c[3];

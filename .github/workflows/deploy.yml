@@ -33,6 +33,9 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      # Mobil (Capacitor) derlemesi ayrı klasöre (dist-mobile/); yalnızca duman testi için,
+      # Pages'e yüklenmez. Android APK derlemesi Faz 2.6'da.
+      - run: npm run build:mobile
 
       - name: Playwright tarayıcısı
         run: npx playwright install --with-deps chromium

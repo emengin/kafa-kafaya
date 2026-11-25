@@ -70,7 +70,11 @@ export function pwa(options: PwaOptions): Plugin {
         this.emitFile({
           type: 'asset',
           fileName: icon.file,
-          source: encodePng(icon.size, icon.size, renderIcon(icon.size, icon.maskable)),
+          source: encodePng(
+            icon.size,
+            icon.size,
+            renderIcon(icon.size, icon.maskable ? 'maskable' : 'any'),
+          ),
         });
         emitted.push(icon.file);
       }

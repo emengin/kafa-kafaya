@@ -1,6 +1,6 @@
 import { inflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
-import { renderIcon } from './icon';
+import { renderIcon, renderSplash } from './icon';
 import { crc32, encodePng } from './png';
 import { buildServiceWorker, cacheVersion } from './serviceWorker';
 
@@ -36,8 +36,8 @@ describe('PWA — PNG kodlayıcı', () => {
 describe('PWA — simge', () => {
   it('normal simgenin köşeleri saydam, maskable tam dolu; ortada beyaz top', () => {
     const size = 64;
-    const any = renderIcon(size, false);
-    const mask = renderIcon(size, true);
+    const any = renderIcon(size, 'any');
+    const mask = renderIcon(size, 'maskable');
     expect(any[3]).toBe(0);
     expect(mask[3]).toBe(255);
     // Topun beyaz bölgesi: merkezin biraz yukarısı (beşgen ile kontur arası).
@@ -48,6 +48,34 @@ describe('PWA — simge', () => {
     const i = (py * size + px) * 4;
     expect(any[i]).toBeGreaterThan(200);
     expect(any[i + 3]).toBe(255);
+  });
+
+  it('Android uyarlanır simge: ön katman = maskable eksi zemin, arka katman = yalnızca zemin', () => {
+    const size = 64;
+    const mask = renderIcon(size, 'maskable');
+    const fg = renderIcon(size, 'foreground');
+    const bg = renderIcon(size, 'background');
+    const center = (size / 2) * size * 4 + (size / 2) * 4;
+    // Köşe: ön katman saydam, arka katman maskable ile aynı zemin.
+    expect(fg[3]).toBe(0);
+    expect([...bg.subarray(0, 4)]).toEqual([...mask.subarray(0, 4)]);
+    // Merkez: ön katman topu maskable ile aynı çizer; arka katmanda top yok.
+    expect([...fg.subarray(center, center + 4)]).toEqual([...mask.subarray(center, center + 4)]);
+    expect([...bg.subarray(center, center + 4)]).not.toEqual([
+      ...mask.subarray(center, center + 4),
+    ]);
+  });
+
+  it('açılış ekranı: kenarlar düz zemin rengi, ortada top', () => {
+    const size = 64;
+    const background = [7, 11, 38, 255] as const;
+    const splash = renderSplash(size, 0.25, background);
+    expect([...splash.subarray(0, 4)]).toEqual([...background]);
+    const last = splash.length - 4;
+    expect([...splash.subarray(last)]).toEqual([...background]);
+    const center = (size / 2) * size * 4 + (size / 2) * 4;
+    expect([...splash.subarray(center, center + 4)]).not.toEqual([...background]);
+    expect(splash[center + 3]).toBe(255);
   });
 });
 

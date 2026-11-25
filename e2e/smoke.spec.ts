@@ -5,7 +5,14 @@ import './game';
  * Duman testi (Faz 7): oyun açılıyor, menüden Hızlı Maç başlıyor, maç 10 sn boyunca hatasız
  * çalışıyor (simülasyon ilerliyor, konsolda hata yok). `?debug=1` yalnızca oyun nesnesini test
  * için `window.__KAFA_GAME__` olarak açar; oyun akışı gerçek klavye girdisiyle yürütülür.
+ * Her test iki derlemede de koşar (playwright.config.ts: `web` ve `mobil` projeleri).
  */
+
+/** Mobil (Capacitor) derlemesinin Playwright projesi. */
+const MOBILE_PROJECT = 'mobil';
+
+const swRegistrations = (page: Page): Promise<number> =>
+  page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length);
 
 /** `src/ui/LiteGraphics.ts` `LITE_FALLBACK_WARNING`: hızlı çizim yolu Phaser'ın yoluna düştü. */
 const LITE_FALLBACK = '[LiteGraphics]';
@@ -74,5 +81,25 @@ test('oyun açılıyor, maç başlıyor, 10 sn hatasız çalışıyor', async ({
   expect((await frame(page)) - startFrame).toBeGreaterThan(MIN_FRAMES);
   expect(await matchTick(page)).toBeGreaterThan(startTick);
   expect(await isActive(page, 'Match')).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('derleme hedefi: web PWA olarak, mobil uygulama olarak açılıyor', async ({ page }, info) => {
+  const mobile = info.project.name === MOBILE_PROJECT;
+  const errors = collectErrors(page);
+  await page.goto('./?debug=1');
+  await expect(page.locator('#game canvas')).toBeVisible();
+  // Menü açıldıysa sayfa çoktan yüklendi (service worker kaydı `load` olayında yapılır).
+  await expect.poll(() => isActive(page, 'Menu'), { timeout: 20_000 }).toBe(true);
+
+  // Web: manifest + service worker (çevrimdışı). Mobil: ikisi de yok (güncelleme mağazadan).
+  await expect(page.locator('link[rel="manifest"]')).toHaveCount(mobile ? 0 : 1);
+  if (mobile) expect(await swRegistrations(page)).toBe(0);
+  else await expect.poll(() => swRegistrations(page), { timeout: 15_000 }).toBeGreaterThan(0);
+
+  // Tam ekran düğmesi: web'de tarayıcı destekliyorsa görünür; mobilde hiç görünmez (uygulama
+  // zaten tam ekran).
+  const fullscreenApi = await page.evaluate(() => document.fullscreenEnabled);
+  await expect(page.locator('#fullscreen')).toBeVisible({ visible: !mobile && fullscreenApi });
   expect(errors).toEqual([]);
 });

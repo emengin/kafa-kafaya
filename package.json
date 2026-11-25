@@ -11,6 +11,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:mobile": "tsc --noEmit && vite build --mode mobile",
+    "cap:sync": "npm run build:mobile && cap sync android",
+    "cap:open": "cap open android",
+    "assets:placeholder": "node scripts/run-ts.js scripts/mobile/placeholderAssets.ts",
     "preview": "vite preview",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
@@ -22,9 +26,13 @@
     "bench": "node scripts/run-ts.js scripts/bench/bench.ts"
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
     "phaser": "^4.2.1"
   },
   "devDependencies": {
+    "@capacitor/assets": "^4.0.0",
+    "@capacitor/cli": "^8.6.2",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.65.1",
     "@types/node": "^26.6.6",
