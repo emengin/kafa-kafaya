@@ -71,12 +71,14 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
   - [x] 1.3 Stil testleri [SEN] — 2026-11-20 →
         [design/style-tests/NOTLAR.md](../design/style-tests/NOTLAR.md)
   - [x] 1.4 Sanat rehberi [SOHBET] — 2026-11-20 → [ART_BIBLE.md](ART_BIBLE.md)
+    - v1.1 (2026-11-26): dünya mahalleden stadyuma, kadro futbolcu tiplerine geçti; çizim tarzı
+      aynı. Ek B kararları işlendi (Elmas, Inkscape, kod tabanlı animasyon, kedi yok).
   - [ ] 1.5 Üretim hattı provası [SEN] — kalite kapısı: sanat yönü
     - Bakkal taslağı (`art/karakter/bakkal/kar_bakkal_taslak.svg`) geçici, revizyon bekliyor.
   - [ ] 1.6 Arayüz tasarım sistemi [SEN + SOHBET]
 - **Bölüm 2 — Mobil temel [CC]** (Bölüm 1 ile paralel)
   - [x] 2.0 Phaser 4'e geçiş — 2026-11-20 → Phaser 4.2.1, karşılaştırma aşağıda
-  - [ ] 2.1 Capacitor ve Android derleme — kod tamam, **gerçek telefonda test bekliyor** (aşağıda)
+  - [x] 2.1 Capacitor ve Android derleme — 2026-11-26 → gerçek telefonda açılıp oynandı (aşağıda)
   - [ ] 2.2 Ekran ve ölçekleme
   - [ ] 2.3 Dokunmatik kontroller v2
   - [ ] 2.4 Performans (rollback ≤ 4 ms dahil)
@@ -165,11 +167,13 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
   - [ ] 13.2 Sunucu taraflı yeniden simülasyon (opsiyonel)
 
 Faz ayrıntıları: 0.3 ve 0.4 → [archive/PROGRESS_MOBILE_0.md](archive/PROGRESS_MOBILE_0.md); 1.1 →
-[archive/PROGRESS_MOBILE_1.md](archive/PROGRESS_MOBILE_1.md); 2.0 →
+[archive/PROGRESS_MOBILE_1.md](archive/PROGRESS_MOBILE_1.md); 2.0 ve 2.1 →
 [archive/PROGRESS_MOBILE_2.md](archive/PROGRESS_MOBILE_2.md). 0.1 ve 0.2 [SEN] fazları; yapıldıysa
 kutuları sen işaretle. 1.3'ün stil testi görselleri ve karşılaştırması `design/style-tests/`
-altında (seçilen yön: A "Mahalle Maçı", dev kafa oranlarıyla); 1.4'ün sonucu
-[ART_BIBLE.md](ART_BIBLE.md).
+altında (seçilen çizim tarzı: Yön A'nın sıcak el çizimi, dev kafa oranlarıyla; testteki "Mahalle
+Maçı" adı yalnızca çalışma adıydı); 1.4'ün sonucu [ART_BIBLE.md](ART_BIBLE.md). Oyunun dünyası
+stadyumlar, kadrosu kurgusal futbolcu tipleri + 3 sürpriz karakter; çalışma adı "Kafa Kafaya: Futbol
+Arenası" ([GAME_DESIGN_MOBILE.md](GAME_DESIGN_MOBILE.md) K18).
 
 ### Faz 2.0 — Phaser 3.90 ↔ 4.2.1 karşılaştırması
 
@@ -192,69 +196,24 @@ Görünüm: menü, seçim, maç, gol, tekrar, duraklatma ve telefon görünümü
 — zamana bağlı öğeler dışında birebir aynı. Bütçe 16,7 ms/kare; artışların kaynağı ve çözüm önerileri
 aşağıdaki 2.4 notunda.
 
-### Faz 2.1 — Capacitor ve Android derleme (2026-11-25, telefon testi bekliyor)
+### Faz 2.1 — Capacitor ve Android derleme (2026-11-26, tamamlandı)
 
 Capacitor 8.6.2; `com.emengin.kafakafaya` / "Kafa Kafaya"; adımlar README → "Android'de çalıştırma".
-Kutu, oyun gerçek bir telefonda açılıp oynandıktan sonra işaretlenir; ayrıntılar o zaman arşive.
-
-**Yapılanlar**
-
-- İki derleme kipi, tek kaynak `scripts/mobile/target.ts`: `npm run build` → `dist/`,
-  `/kafa-kafaya/`, PWA (değişmedi) · `npm run build:mobile` → `dist-mobile/`, `/`, service worker
-  ve manifest yok. Uygulama tarafı bayrak: `__NATIVE_APP__` → `src/platform/target.ts` (SW kaydı ve
-  tam ekran düğmesi kapalı; ölü kod paketten atılıyor).
-- `android/`: yatay kilit (`userLandscape`), `appCategory="game"`, tam ekran (`SystemBars.hidden` +
-  `MainActivity`: kenardan kaydırınca çubuklar geçici görünür, odak dönünce yeniden gizlenir),
-  WebView zemini ve açılış rengi `#070b26` (`PLATFORM.backgroundColor`).
-- Geçici ikon ve açılış ekranı: `npm run assets:placeholder` (PWA simge kodu → `@capacitor/assets`).
-  Şablondaki Capacitor logosu silindi; Android 12+ açılışındaki "beyaz zemin + genel Android simgesi"
-  varsayılanı (core-splashscreen) oyunun rengi ve simgesiyle değiştirildi.
-- Gradle sarmalayıcısı 8.14.3 → **9.1.0** (sağlama toplamıyla): Android Studio'nun JDK 25'i Gradle
-  8.14'ü çalıştıramıyor ("Unsupported class file major version 69"); 9.1.0 Java 25'i destekleyen en
-  eski 9.x, AGP 8.13 ile derleniyor. Debug APK 5,0 MB.
-- Testler: +9 birim testi (derleme kipleri, TS ↔ Android eşitliği, simge katmanları; toplam 334);
-  Playwright `web` + `mobil` projeleri (duman testi + derleme hedefi testi iki derlemede); CI'a
-  `build:mobile` adımı. `.gitignore`: derleme çıktıları, `local.properties`, `*.keystore`, `*.jks`.
-
-**Kararlar**
-
-- `webDir` = ayrı `dist-mobile/`: `dist/` paylaşılsa web derlemesi uygulamaya kopyalanıp boş ekran
-  verebilirdi, mobil derleme de web duman testini bozardı. Ters denemeyle doğrulandı (mobil klasöre
-  web derlemesi konunca mobil duman testi kırılıyor).
-- `cap:sync` önce `build:mobile` çalıştırır: eski derleme kopyalanamaz.
-- `userLandscape`: iki yatay yön, kullanıcının döndürme kilidine uyar.
-- Uygulamada tam ekran düğmesi yok; WebView'ın Fullscreen API'si video için tasarlanmış.
-- `@capacitor/splash-screen` eklenmedi: sistem açılışı → `#070b26` WebView → oyun. Açılışı oyun
-  hazır olana kadar tutmak 2.5 notunda.
-- Geçici kaynak PNG'ler depoya girmez (ART_BIBLE: `assets/` yalnızca kabul edilmiş final);
-  `node_modules/.cache` altına üretilir. Android'e yazılan çıktılar depoda (Android Studio onlarla
-  derler).
-
-**Faz 4 notu — geçici görseller:** `android/app/src/main/res/mipmap-*` ve `drawable*/splash.png`
-kodla üretilmiş yer tutucu. Final ikon (ART_BIBLE §11.7, §13.2) ve açılış ekranı gelince:
-`npx capacitor-assets generate --android --assetPath <klasör>`, ASSET_LOG kaydı,
-`scripts/mobile/placeholderAssets.ts` silinir.
+Kod 2026-11-25'te bitti; oyun 2026-11-26'da gerçek bir Android telefonda açılıp oynandı. Yapılanlar,
+kararlar ve bilinen sorunlar: [archive/PROGRESS_MOBILE_2.md](archive/PROGRESS_MOBILE_2.md).
 
 **Bitti kriterleri**
 
-| Kriter                                                      | Durum                                                                        |
-| ----------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| 1. Capacitor kurulumu, uygulama kimliği, Android projesi    | ✅                                                                           |
-| 2. Geçici ikon ve açılış ekranı                             | ✅ yer tutucu (Faz 4'te değişir)                                             |
-| 3. Debug derlemesinin gerçek cihazda çalışması; README      | ◐ debug APK derleniyor, README hazır; **gerçek cihazda denenmedi**           |
-| **Faz: oyun gerçek bir Android telefonda açılıp oynanıyor** | ⏳ geliştiricinin telefon testi                                              |
-| Web yayını bozulmadı                                        | ✅ web derlemesi aynı yolda, PWA simgeleri bayt bayt aynı, duman testi yeşil |
-| QUALITY_BAR B1 (indirme ≤ 100 MB)                           | ✅ debug APK 5,0 MB                                                          |
-| QUALITY_BAR B3 (ağ yokken açılış)                           | ✅ tasarım gereği (tüm dosyalar APK içinde); cihazda doğrulanacak            |
-| QUALITY_BAR A1–A3 (açılış süreleri), D5 (güvenli alan)      | ölçülemedi: gerçek cihaz yok; A1–A3 Faz 2.4, D5 Faz 2.2                      |
-
-**Bilinen sorunlar**
-
-- Gradle 10 uyumsuzluk uyarıları Capacitor şablonundan ve AGP 8.13'ten (ör. `rootProject.buildDir`);
-  derlemeyi etkilemiyor.
-- `versionName "1.0"` / `versionCode 1` sabit; `allowBackup="true"` (şablon varsayılanı) — notlarda.
-- `npm audit`: 7 orta düzey uyarı typescript-eslint → minimatch zincirinden (Faz 2.1'den önce de
-  vardı; Capacitor'dan değil).
+| Kriter                                                      | Durum                                                                                 |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| 1. Capacitor kurulumu, uygulama kimliği, Android projesi    | ✅                                                                                    |
+| 2. Geçici ikon ve açılış ekranı                             | ✅ yer tutucu (Faz 4'te değişir)                                                      |
+| 3. Debug derlemesinin gerçek cihazda çalışması; README      | ✅ gerçek Android telefonda açıldı ve oynandı (2026-11-26); README hazır              |
+| **Faz: oyun gerçek bir Android telefonda açılıp oynanıyor** | ✅ 2026-11-26, geliştiricinin telefonu                                                |
+| Web yayını bozulmadı                                        | ✅ web derlemesi aynı yolda, PWA simgeleri bayt bayt aynı, duman testi yeşil          |
+| QUALITY_BAR B1 (indirme ≤ 100 MB)                           | ✅ debug APK 5,0 MB                                                                   |
+| QUALITY_BAR B3 (ağ yokken açılış)                           | ✅ tasarım gereği (tüm dosyalar APK içinde); cihazda ağsız açılış ayrıca kaydedilmedi |
+| QUALITY_BAR A1–A3 (açılış süreleri), D5 (güvenli alan)      | ölçülmedi (telefon testi açılış ve oynanışı kapsadı); A1–A3 Faz 2.4, D5 Faz 2.2       |
 
 ## Sonraki fazlar için notlar
 
@@ -342,6 +301,19 @@ sonra hâlâ görülen riskler:
 - **8.1 — Yedekleme (2.1'den):** `android:allowBackup="true"` (şablon varsayılanı) → localStorage
   kaydı Google yedeğine gidiyor; veri haritasına yazılmalı ya da `dataExtractionRules` ile
   sınırlanmalı.
+- **4.2 / 7.1 — `toprak` → `bakkal` kimlik değişikliği (ART_BIBLE v1.1):** kayıt
+  (`src/save/progress.ts`) açılmış karakterleri kimlikle tutuyor ve `isCharacterId` bilinmeyen
+  kimliği sessizce atıyor; yeniden adlandırmada `toprak`'ı açmış oyuncu kilidi kaybeder. Kimlik
+  değişirken kayıt göçü (`toprak` → `bakkal`) ve testi eklenmeli; tekrar kayıtları ve denge
+  betikleri de eski kimliği kullanıyor olabilir.
+- **3.1 / 3.2 — İskelet dosyası (ART_BIBLE v1.1 §13.6):** karakter başına `kar_{id}_iskelet.json`
+  (§6.1 eklem sistemi, @2x, y yukarı). Parçalar şablon sayfası boyutunda dışa aktarılıyor; atlas
+  aracının kırpma payını (orijinal boyut + konum) koruması şart. Eklemleri §6.1 ile karşılaştıran
+  test 3.2'de.
+- **4.x — Geçici ikon ve açılış ekranı (2.1'den):** `android/app/src/main/res/mipmap-*` ve
+  `drawable*/splash.png` kodla üretilmiş yer tutucu. Final ikon (ART_BIBLE §11.7, §13.2) ve açılış
+  ekranı gelince: `npx capacitor-assets generate --android --assetPath <klasör>`, ASSET_LOG kaydı,
+  `scripts/mobile/placeholderAssets.ts` silinir.
 - **Capacitor 9 (2.1'den):** 9.0 RC şablonu AGP 9.4 + Gradle 9.8, minSdk 26, compileSdk 37. Geçişte
   Gradle 10 uyarıları da kapanır; `android/` şablon farkı elle birleştirilir (`MainActivity`, manifest,
   `styles.xml`, `colors.xml` özelleştirildi).

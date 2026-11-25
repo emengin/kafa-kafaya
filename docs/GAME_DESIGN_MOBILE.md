@@ -1,7 +1,10 @@
 # Kafa Kafaya — Mobil Oyun Tasarım Belgesi
 
 > **Durum:** Faz 1.1'de dolduruldu (2026-11-20). Temel kararlar § Kararlar'da (K1–K12 Faz 0.4,
-> K13–K17 Faz 1.1).
+> K13–K17 Faz 1.1, K18 ve K2 güncellemesi 2026-11-26).
+>
+> **Çalışma adı:** "Kafa Kafaya: Futbol Arenası" (marka araştırması Faz 0.2'de). Dünya ve kadro:
+> K18; görsel kurallar [ART_BIBLE.md](ART_BIBLE.md).
 >
 > Bu belge [GAME_DESIGN.md](GAME_DESIGN.md)'yi (web sürümü: fizik, kurallar, karakterler, süperler,
 > AI) **genişletir**, yerine geçmez. İkisi çeliştiğinde mobil derleme için bu belge geçerlidir ve
@@ -19,6 +22,8 @@
   koleksiyonu → dolapta giydirme, online maçta gösteriş → tekrar. Hedef oturum 10–15 dk (3–5 maç).
 - **İki para birimi:** Altın oynayarak kazanılır ve **satılmaz**; Elmas satın alınır, az miktarda
   yalnızca sunucunun doğruladığı olaylardan (online maç, giriş günü) kazanılır (K13, K17).
+- **Dünya:** stadyumlar (gündüz, gece ışıklı, karlı, yağmurlu; ileride kumsal, çatı gibi eğlenceli
+  sahalar). Kadro çoğunlukla kurgusal futbolcu tipleri, aralarında 3 sürpriz komik karakter (K18).
 - **12 karakter:** 3'ü baştan açık, 2'si seviye ödülü (oyuncu seçer), 7'si 5.000 Altın ya da 500
   Elmas. Düzenli ücretsiz oyuncu kilitli bir karakteri **yaklaşık 1 haftada** açar (K15).
 - **Sezon Kartı:** 7 hafta, 50 kademe; ücretsiz yol 25 ödül, premium yol 50 ödül; ikisinde de Elmas
@@ -117,7 +122,7 @@ kalıcı öğe sınırı **10**, etkin bir etkinlik varsa +1 etkinlik kartı:
 | Konu                  | Web (GAME_DESIGN.md)                                   | Mobil                                                                            |
 | --------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------- |
 | Karakter kilitleri    | 6 açık; her turnuva şampiyonluğu sıradakini açar (§11) | 3 açık, 2 seviye ödülü, 7 Altın/Elmas ile (§9.3); Kupa Yolu karakter açmaz       |
-| Kadro                 | 10 karakter                                            | 12 karakter: + Yankı, Kauçuk (§9.4)                                              |
+| Kadro                 | 10 karakter                                            | 12 karakter: + Dede, Kaleci Teyze (§9.4); Toprak'ın yerini Bakkal alır (§9.2)    |
 | Maç süresi            | 60/90/120 sn ayarı                                     | Online 90 sn sabit; tek oyunculuda ayar kalır                                    |
 | Duraklatma            | Her durumda                                            | Online maçta yok (bağlantı ve kopma Faz 9.6); tek oyunculuda var                 |
 | Gol tekrarı           | Her golden sonra, ayardan kapatılabilir                | Online'da maç içinde yok, sonuç ekranında "maçın anı"; tek oyunculuda ayar kalır |
@@ -339,8 +344,9 @@ iddia yazılmaz; yalnızca ödüllerin kendisi önizlenir.
 
 - Lansman (Faz 12.7) için ilk 2–3 sezonun içeriği hazır olur. Sezon başına içerik hedefi: 75
   ödül + Mağaza'ya ~20 yeni ürün + 1 etkinlik serisi.
-- Tema örnekleri (sanat yönü Faz 1.3–1.4'te seçilince yeniden yazılır): S1 "Açılış" (oyunun
-  kimliği), S2 "Kış Ligi" (kar, buz), S3 "Yaz Sahili" (plaj, gün batımı), S4 "Gece Maçı" (ışıklar).
+- Tema örnekleri (stadyum varyantlarıyla, ART_BIBLE §10.4): S1 "Açılış" (ilk stadyum, oyunun
+  kimliği), S2 "Kış Ligi" (karlı stadyum), S3 "Gece Maçı" (ışıklı stadyum), S4 "Yaz Sahili" (kumsal
+  sahası). Yağmurlu stadyum bir etkinlik ya da sezon teması olabilir.
 - Yeni karakter (lansman sonrası) bir sezonun teması olarak gelebilir; aynı gün Altınla da
   alınabilir (§9.3).
 
@@ -348,21 +354,21 @@ iddia yazılmaz; yalnızca ödüllerin kendisi önizlenir.
 
 ### 4.1 Kategoriler
 
-| #   | Kategori                    | Kapsam                     | Kim görür                                            | Özel kural                                                                        |
-| --- | --------------------------- | -------------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------- |
-| 1   | Karakter skini              | Karaktere özel             | Herkes                                               | Saç, yüz boyası, kostüm teması; kafa dairesi ve oranlar aynı                      |
-| 2   | Forma                       | Evrensel                   | Herkes                                               | Ayna maçında misafir alternatif renge geçer                                       |
-| 3   | Ayakkabı                    | Evrensel                   | Herkes                                               | Ayak çarpışma şekli değişmez; iz efekti varsa ≤ efekt bütçesi                     |
-| 4   | Aksesuar                    | Evrensel (kafa)            | Herkes                                               | Silüet kafa dairesinin dışına en çok yarıçapın %12'si kadar taşar                 |
-| 5   | Top skini                   | Evrensel                   | Herkes: maçta **ev sahibinin** topu                  | Aynı boyut, kalın dış kontur; zeminle karışan ya da saydam desen yok              |
-| 6   | Top izi                     | Evrensel                   | Herkes: **topa son dokunanın** izi                   | Top her zaman izin üstünde; iz topu gizlemez                                      |
-| 7   | Gol patlama efekti          | Evrensel                   | Herkes: golcünün                                     | Gol sonrası duraklama süresinde; tam ekran parlama kuralı (QUALITY_BAR §5)        |
-| 8   | Gol kutlaması               | Evrensel (parçalı iskelet) | Herkes: golcünün                                     | Deterministik gol sonrası duraklama süresine sığar; sunum katmanında              |
-| 9   | Profil çerçevesi            | Evrensel                   | Eşleşme ekranı, sıralama tablosu, profil             | Lig, seviye ve başarım çerçeveleri satılmaz                                       |
-| 10  | İsim plakası                | Evrensel                   | Eşleşme ekranı, HUD'daki ad şeridi                   | Okunurluk: metin kontrastı ≥ 4,5:1                                                |
-| 11  | Maç öncesi giriş animasyonu | Evrensel                   | Herkes, maç girişinde                                | ≤ 3 sn; iki oyuncunun girişi aynı anda oynar, maç girişini uzatmaz                |
-| 12  | Stadyum özelleştirmesi      | Parça başına               | Online maçta **ev sahibi** olunca rakip de (Faz 6.7) | Tribün rengi, ışıklar, saha deseni, tezahürat; oynanış çizgileri ve kale aynı     |
-| 13  | İfade paketi                | Evrensel                   | Online maçta rakip                                   | Hazır mesaj ve emoji (serbest yazı yok); rakip ifadeleri tek dokunuşla susturulur |
+| #   | Kategori                    | Kapsam                     | Kim görür                                            | Özel kural                                                                                                  |
+| --- | --------------------------- | -------------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 1   | Karakter skini              | Karaktere özel             | Herkes                                               | Saç, yüz boyası, kostüm teması; kafa dairesi ve oranlar aynı                                                |
+| 2   | Forma                       | Evrensel                   | Herkes                                               | Oyuncu her ekranda solda; çakışmada (ayna maçı dahil) sağdaki rakip alternatif renge geçer (ART_BIBLE §2.6) |
+| 3   | Ayakkabı                    | Evrensel                   | Herkes                                               | Ayak çarpışma şekli değişmez; iz efekti varsa ≤ efekt bütçesi                                               |
+| 4   | Aksesuar                    | Evrensel (kafa)            | Herkes                                               | Silüet kafa dairesinin dışına en çok yarıçapın %12'si kadar taşar                                           |
+| 5   | Top skini                   | Evrensel                   | Herkes: maçta **ev sahibinin** topu                  | Aynı boyut, kalın dış kontur; zeminle karışan ya da saydam desen yok                                        |
+| 6   | Top izi                     | Evrensel                   | Herkes: **topa son dokunanın** izi                   | Top her zaman izin üstünde; iz topu gizlemez                                                                |
+| 7   | Gol patlama efekti          | Evrensel                   | Herkes: golcünün                                     | Gol sonrası duraklama süresinde; tam ekran parlama kuralı (QUALITY_BAR §5)                                  |
+| 8   | Gol kutlaması               | Evrensel (parçalı iskelet) | Herkes: golcünün                                     | Deterministik gol sonrası duraklama süresine sığar; sunum katmanında                                        |
+| 9   | Profil çerçevesi            | Evrensel                   | Eşleşme ekranı, sıralama tablosu, profil             | Lig, seviye ve başarım çerçeveleri satılmaz                                                                 |
+| 10  | İsim plakası                | Evrensel                   | Eşleşme ekranı, HUD'daki ad şeridi                   | Okunurluk: metin kontrastı ≥ 4,5:1                                                                          |
+| 11  | Maç öncesi giriş animasyonu | Evrensel                   | Herkes, maç girişinde                                | ≤ 3 sn; iki oyuncunun girişi aynı anda oynar, maç girişini uzatmaz                                          |
+| 12  | Stadyum özelleştirmesi      | Parça başına               | Online maçta **ev sahibi** olunca rakip de (Faz 6.7) | Tribün rengi, ışıklar, saha deseni, tezahürat; oynanış çizgileri ve kale aynı                               |
+| 13  | İfade paketi                | Evrensel                   | Online maçta rakip                                   | Hazır mesaj ve emoji (serbest yazı yok); rakip ifadeleri tek dokunuşla susturulur                           |
 
 İfade paketi (13. kategori) yol haritasındaki 12 kategoriye eklendi: hazır mesajlar (Faz 9.6) ve
 sonuç ekranındaki ifade paneli bunlara dayanır. "Saç" ayrı bir yuva değildir, karakter skininin
@@ -753,23 +759,31 @@ Faz 11.3 hunisi ve 12.6 test lansmanı bunları ölçer.
 İstatistik ölçeği ve fizik karşılıkları GAME_DESIGN.md §7'de. Kazanma oranı web v1.0.0 (AI vs AI,
 Orta, 3.600 maç); yeni karakterler henüz ölçülmedi.
 
-| #   | Karakter   | Tema                   | Hız | Zıp. | Şut | Kafa | Süper şut    | Açılma            | Web v1.0.0 kazanma |
-| --- | ---------- | ---------------------- | --- | ---- | --- | ---- | ------------ | ----------------- | ------------------ |
-| 1   | **Kor**    | Ateş, kırmızı          | 3   | 3    | 5   | 3    | Ateş Topu    | Baştan açık       | %50                |
-| 2   | **Bora**   | Rüzgâr, beyaz-yeşil    | 4   | 4    | 3   | 3    | Kasırga      | Baştan açık       | %50                |
-| 3   | **Kaya**   | Taş, gri               | 2   | 3    | 4   | 5    | Dev Top      | Baştan açık       | %49                |
-| 4   | **Ayaz**   | Buz, açık mavi         | 3   | 4    | 3   | 4    | Buz          | Seçim ya da Altın | %57 → Faz 2.9      |
-| 5   | **Şimşek** | Elektrik, sarı         | 5   | 3    | 4   | 2    | Zikzak       | Seçim ya da Altın | %51                |
-| 6   | **Sis**    | Gölge, mor             | 4   | 5    | 2   | 3    | Işınlanma    | Seçim ya da Altın | %49                |
-| 7   | **Yay**    | Okçu, turuncu          | 3   | 5    | 3   | 3    | Gökkuşağı    | Seçim ya da Altın | %47                |
-| 8   | **Demir**  | Mıknatıs, kırmızı-gri  | 3   | 3    | 4   | 4    | Mıknatıs     | Seçim ya da Altın | %47                |
-| 9   | **Pamuk**  | Bulut, pembe           | 4   | 4    | 2   | 4    | Serap        | Seçim ya da Altın | %52                |
-| 10  | **Toprak** | Deprem, kahverengi     | 2   | 4    | 5   | 3    | Sarsıntı     | Seçim ya da Altın | %47                |
-| 11  | **Yankı**  | Ses ve mağara, turkuaz | 5   | 4    | 2   | 3    | Yankı (yeni) | Seçim ya da Altın | —                  |
-| 12  | **Kauçuk** | Lastik, antrasit-limon | 4   | 2    | 3   | 5    | Sekme (yeni) | Seçim ya da Altın | —                  |
+**Görünüm (K18, K2):** 9 karakter adını lakap olarak korur ve kurgusal futbolcu tipi olarak çizilir;
+3 slot sürpriz karaktere geçer (ad ve görünüş değişir, istatistik ve süper aynı kalır). Arketip,
+yaş, ten, beden, aksesuar ve forma ART_BIBLE §7.3'te. Tema sütunu süperin ve renk vurgusunun
+temasıdır; renkler web sürümünden, yeniden çizimde ART_BIBLE §7 kurallarıyla kesinleşir.
+
+| #   | Karakter                        | Tema                          | Hız | Zıp. | Şut | Kafa | Süper şut    | Açılma            | Web v1.0.0 kazanma |
+| --- | ------------------------------- | ----------------------------- | --- | ---- | --- | ---- | ------------ | ----------------- | ------------------ |
+| 1   | **Kor**                         | Golcü; ateş, kırmızı          | 3   | 3    | 5   | 3    | Ateş Topu    | Baştan açık       | %50                |
+| 2   | **Bora**                        | Kanat; rüzgâr, beyaz-yeşil    | 4   | 4    | 3   | 3    | Kasırga      | Baştan açık       | %50                |
+| 3   | **Kaya**                        | Stoper; taş, gri              | 2   | 3    | 4   | 5    | Dev Top      | Baştan açık       | %49                |
+| 4   | **Ayaz**                        | Orta saha; buz, açık mavi     | 3   | 4    | 3   | 4    | Buz          | Seçim ya da Altın | %57 → Faz 2.9      |
+| 5   | **Şimşek**                      | Genç kanat; elektrik, sarı    | 5   | 3    | 4   | 2    | Zikzak       | Seçim ya da Altın | %51                |
+| 6   | **Sis**                         | Çalımcı; gölge, mor           | 4   | 5    | 2   | 3    | Işınlanma    | Seçim ya da Altın | %49                |
+| 7   | **Yay**                         | Frikikçi; kavis, turuncu      | 3   | 5    | 3   | 3    | Gökkuşağı    | Seçim ya da Altın | %47                |
+| 8   | **Demir**                       | Kaptan; mıknatıs, kırmızı-gri | 3   | 3    | 4   | 4    | Mıknatıs     | Seçim ya da Altın | %47                |
+| 9   | **Pamuk**                       | Oyun kurucu; bulut, pembe     | 4   | 4    | 2   | 4    | Serap        | Seçim ya da Altın | %52                |
+| 10  | **Bakkal** (Toprak slotu)       | Sürpriz: bakkal amca; deprem  | 2   | 4    | 5   | 3    | Sarsıntı     | Seçim ya da Altın | %47 (Toprak)       |
+| 11  | **Dede** (Yankı slotu)          | Sürpriz: fileli dede; yankı   | 5   | 4    | 2   | 3    | Yankı (yeni) | Seçim ya da Altın | —                  |
+| 12  | **Kaleci Teyze** (Kauçuk slotu) | Sürpriz: kaleci teyze; lastik | 4   | 2    | 3   | 5    | Sekme (yeni) | Seçim ya da Altın | —                  |
 
 Başlangıç üçlüsü (Kor, Bora, Kaya) bilerek üç farklı oyun tarzı: hücum (güçlü şut), denge, savunma
 (büyük kafa). Süperleri en kolay okunanlardır.
+
+Kodda Bakkal'ın kimliği yeniden çizime kadar `toprak` kalır; web v1.0.0 ölçümlerinde ve eski
+notlarda geçen "Toprak" bu slottur. Dede ve Kaleci Teyze henüz kodda yok (Faz 7.6).
 
 ### 9.3 Açılma yolu ve süre hedefleri (K15)
 
@@ -793,7 +807,7 @@ modeli):
 Elmasla almak yalnızca beklememek içindir: düzenli oyuncu için 500 Elmas ≈ 1 haftalık Altın kazancı
 (1 Elmas ≈ 10 Altın oranı).
 
-### 9.4 Yeni karakterler: Yankı ve Kauçuk
+### 9.4 Yeni karakterler: Dede ve Kaleci Teyze
 
 İki yeni karakter, kadroda boş kalan iki boşluğu doldurur: ikinci 5 hızlı karakter (yalnızca Şimşek
 vardı) ve ilk 2 zıplamalı karakter (hiç yoktu). Süperleri mevcut 10 süperde olmayan iki mekaniği
@@ -801,8 +815,13 @@ getirir: **zamanlama aldatması** ve **sekme geometrisi**. İkisi de yalnızca `
 vektörü işlemleriyle yazılır (K4). Değerler ilk öneridir; Faz 7.6'da kodlanır, Faz 2.9 sonrası
 ayarla birlikte dengelenir.
 
-**Yankı** (5 / 4 / 2 / 3) — ses ve mağara teması, turkuaz. Büyük kulak ve ses dalgası motifi,
-sakin ve gizemli ifade. Hızlı ve çevik, şutu zayıf; süperi şut gücünü zamanlamayla telafi eder.
+Faz 1.1'de bu slotlar "Yankı" ve "Kauçuk" adlı karakterlerdi; 2026-11-26'da sürpriz karakterlere
+geçti (K2, K18). İstatistikler, süper mekanikleri ve süper adları aynı kaldı; süper adları ve görsel
+kimlikleri Faz 7.1'de karakterle birlikte gözden geçirilebilir.
+
+**Dede** (5 / 4 / 2 / 3) — sürpriz karakter, fileli dede (ART_BIBLE §7.3). Yaşına bakmadan sahanın
+en hızlısı; sakin ve muzip ifade. Hızlı ve çevik, şutu zayıf; süperi şut gücünü zamanlamayla telafi
+eder: yavaş başlar, birden patlar.
 
 | Süper: **Yankı** (`echo`) | Değer                                                                                                           |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------- |
@@ -813,8 +832,9 @@ sakin ve gizemli ifade. Hızlı ve çevik, şutu zayıf; süperi şut gücünü 
 | Karşı oyun                | Yakındaysan yavaş fazda aktif vur (ortak karşı oyun); uzaktaysan patlama çizgisine gir (düz, tahmin edilebilir) |
 | Güçlü / zayıf             | Uzak mesafeden güçlü; yakın rakibe karşı zayıf                                                                  |
 
-**Kauçuk** (4 / 2 / 3 / 5) — lastik teması, antrasit ve limon. Lastik top gibi yuvarlak ve parlak
-kafa, hiperaktif sırıtma. Büyük kafa ve hızla zeminde iyi savunur, alçak zıplar (aşırtmalara karşı zayıf).
+**Kaleci Teyze** (4 / 2 / 3 / 5) — sürpriz karakter (ART_BIBLE §7.3). Yılların kaleci tecrübesi,
+kocaman kaleci eldivenleri, kendinden emin gülümseme. Büyük kafa ve hızla zeminde iyi savunur, alçak
+zıplar (aşırtmalara karşı zayıf).
 
 | Süper: **Sekme** (`ricochet`) | Değer                                                                                               |
 | ----------------------------- | --------------------------------------------------------------------------------------------------- |
@@ -838,7 +858,7 @@ yakındaysa vur; Sekme: sekme sonrası yörüngeyi tahminci zaten simüle eder) 
 
 - 12 karakterle tam tarama 66 eşleşme × 200 = 13.200 maçtır.
 - Web v1.0.0'da eşiğin dışında kalanlar: Ayaz genel %57; eşleşmede Bora–Toprak %71, Ayaz–Pamuk
-  %69, Toprak–Şimşek %69. Faz 2.9 bunları banda çeker.
+  %69, Toprak–Şimşek %69 (Toprak slotu mobilde Bakkal). Faz 2.9 bunları banda çeker.
 - Online veride eşik dışına çıkan karakter bir sonraki sürümlü değer setinde ayarlanır; istatistik
   bütçesi (14) korunur, ayar önce süper parametreleriyle yapılır (web Faz 7 tecrübesi).
 
@@ -866,7 +886,8 @@ Altın (K17), lig/seviye/başarım/ustalık ödülleri.
 
 Bağlayıcıdır; uygulandıkları fazlar [ROADMAP_MOBILE.md](ROADMAP_MOBILE.md)'de. K1–K12 Faz 0.4'te
 (2026-11-20) Faz 0.3'ün açık sorularından, K13–K17 Faz 1.1'de (2026-11-20) "Hâlâ açık olanlar"dan
-karara bağlandı. Tasarım bu kararlarla çelişmez; değişiklik gerekiyorsa önce bu bölüm güncellenir.
+karara bağlandı. K18 ve K2'nin güncellemesi 2026-11-26'da tema değişikliğiyle geldi. Tasarım bu
+kararlarla çelişmez; değişiklik gerekiyorsa önce bu bölüm güncellenir.
 
 ### K1. Güç satılmaz, çeşitlilik satılır (eski soru 1)
 
@@ -884,7 +905,12 @@ karara bağlandı. Tasarım bu kararlarla çelişmez; değişiklik gerekiyorsa �
 
 Mevcut 10 karakter yeniden çizilir (ikisi Faz 4.2'de, kalan 8'i Faz 7.1'de) ve 2 yeni karakter
 eklenir. Yeni karakterlerin istatistikleri (eşit bütçe) ve süper şutları Faz 1.1'de tasarlandı
-(§9.4: Yankı ve Kauçuk), Faz 7.6'da kodlanır.
+(§9.4), Faz 7.6'da kodlanır.
+
+**Güncelleme (2026-11-26, K18):** 12 slotun istatistikleri ve süperleri değişmez. 9 slot adını
+korur ve kurgusal futbolcu tipi olarak çizilir. 3 slot sürpriz karaktere geçer: **Toprak → Bakkal**,
+**Yankı → Dede**, **Kauçuk → Kaleci Teyze**. İlk model sayfaları Bakkal + 2 futbolcu tipiyle başlar
+(ART_BIBLE Ek B karar 4). Kadro, ekonomi ve denge tabloları bu yüzden değişmedi.
 
 ### K3. Tek oyunculu ödüller ve çevrimdışı oyun (eski soru 3)
 
@@ -1004,6 +1030,20 @@ Sonuçları:
 - Ödüllü reklamlar yalnızca Altın ve deneme verir; Elmas vermez (Elmas'ın değeri ve reklamla Elmas
   çiftçiliğinin önlenmesi).
 
+### K18. Dünya ve kadro: stadyum ve futbolcular (2026-11-26)
+
+- Oyun stadyumlarda geçer: gündüz, gece ışıklı, karlı, yağmurlu; ileride kumsal, çatı gibi eğlenceli
+  sahalar. Mahalle teması kaldırıldı.
+- Kadronun çoğunluğu (en az %75) kurgusal futbolcu tipleridir (farklı yaş, ten, saç, beden; gerçek
+  futbolcuya ya da kulübe benzemez). Aralarında birkaç sürpriz komik karakter vardır (en fazla %25;
+  şu an Bakkal, Dede, Kaleci Teyze). Hepsi aynı istatistik bütçesine ve denge kurallarına tabidir
+  (K1).
+- Çizim tarzı değişmez: ART_BIBLE'daki sıcak el çizimi, dev kafa oranları, kontur, palet, yüz
+  ızgarası ve yaylı kafa.
+- Para birimleri Altın + Elmas (§2.1); şişe kapağı, misket ve kedi maskot yok.
+- Çalışma adı "Kafa Kafaya: Futbol Arenası"; marka araştırması Faz 0.2'de. Uygulama kimliği
+  (`com.emengin.kafakafaya`) değişmedi.
+
 ### Hâlâ açık olanlar
 
 İlkesi karara bağlanmış ama değeri ya da kapsamı belirlenmemiş konular. Faz 1.1'de kapananlar:
@@ -1022,3 +1062,5 @@ seçim sırası (K14).
 | 18 yaş altı harcama limiti değeri ve ebeveyn onayı akışı (§5.4)                                | 8.5, avukat 10.3  |
 | Lig eşikleri, kupa değerleri ve sezon sıfırlaması (§7.2'deki ilk değerler)                     | 9.5               |
 | Yankı ve Sekme süperlerinin son sayısal değerleri (§9.4)                                       | 7.6 (2.9 sonrası) |
+| Çalışma adı "Kafa Kafaya: Futbol Arenası" için marka araştırması (K18)                         | 0.2               |
+| Stadyum varyantlarının renkleri ve çim zemin rengi (ART_BIBLE §2.4)                            | 4.1, 7.2          |

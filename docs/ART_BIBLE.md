@@ -1,9 +1,11 @@
 # Kafa Kafaya — Sanat Rehberi (Art Bible)
 
-> **Sürüm:** 1.0 · **Tarih:** 20 Kasım 2026 · **Faz:** 1.4
-> **Seçilen stil:** Yön A "Mahalle Maçı", dev kafa oranlarıyla (COMPETITOR_ANALYSIS.md §7.1 + NOTLAR.md final testi)
-> **Ana referans:** `A/A_02_bakkal_buyuk_kafa.jpg`
-> **Üretim modeli:** Tek kişi. Konsept yapay zekâ ile, son görsel vektör programında elle yeniden çizilir.
+> **Sürüm:** 1.1 · **Tarih:** 26 Kasım 2026 · **Faz:** 1.4 (v1.1: dünya ve kadro değişikliği, [Ek C](#ek-c--değişiklik-günlüğü))
+> **Çalışma adı:** "Kafa Kafaya: Futbol Arenası" (marka araştırması bekliyor)
+> **Seçilen stil:** Yön A'nın sıcak el çizimi, dev kafa oranlarıyla (COMPETITOR_ANALYSIS.md §7.1 + NOTLAR.md final testi). Testteki "Mahalle Maçı" adı yalnızca çizim tarzını tarif eder; oyunun dünyası mahalle değil, stadyumdur.
+> **Dünya ve kadro:** Stadyumlar (gündüz, gece ışıklı, karlı, yağmurlu; ileride kumsal, çatı gibi eğlenceli sahalar). Kadronun çoğunluğu kurgusal futbolcu tipleri, aralarında birkaç sürpriz komik karakter (bakkal amca, dede, kaleci teyze).
+> **Ana referans:** `A/A_02_bakkal_buyuk_kafa.jpg` (çizim tarzı ve oranlar için; sahne ve kostüm için değil)
+> **Üretim modeli:** Tek kişi. Konsept yapay zekâ ile, son görsel Inkscape'te elle yeniden çizilir.
 
 **Bu belge nasıl okunur?**
 
@@ -32,7 +34,7 @@
 14. [Kabul kriterleri](#14-kabul-kriterleri)
 
 - [Ek A — palette.json](#ek-a--palettejson)
-- [Ek B — Açık kararlar](#ek-b--açık-kararlar)
+- [Ek B — Kararlar](#ek-b--kararlar)
 - [Ek C — Değişiklik günlüğü](#ek-c--değişiklik-günlüğü)
 
 ---
@@ -58,34 +60,34 @@
 
 ### 1.1 Tek cümlede
 
-> **Akşamüstü, apartmanların arasında, mahallenin tanıdık tipleri dev kafalarıyla kafa kafaya. Sıcak, mizahi ve küçük ekranda bile bir bakışta okunur.**
+> **Stadyumun ışıkları altında, kurgusal futbolcular ve birkaç sürpriz tip dev kafalarıyla kafa kafaya. Sıcak, mizahi ve küçük ekranda bile bir bakışta okunur.**
 
 Stilin üç ayağı:
 
 | Ayak          | Ne demek                                                     | Nasıl sağlanır                                                                              |
 | ------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| **Sıcak**     | Gün batımı ışığı, mahalle samimiyeti, nostalji               | Sıcak palet, turuncu kenar ışığı, krem ve kiremit tonları, mor-gri gölgeler                 |
+| **Sıcak**     | Gün batımı ve projektör ışığının sıcaklığı, samimiyet, mizah | Sıcak palet, turuncu kenar ışığı, krem ve kiremit tonları, mor-gri gölgeler                 |
 | **Okunur**    | Telefonda 1 saniyede karakter, top, skor ve "ben hangisiyim" | Dev kafa, kalın kontur, sade yüz, değer (L\*) yapısı, sakin arka plan                       |
 | **El yapımı** | Fabrikasyon değil, bir çizerin elinden çıkmış gibi           | Hafif asimetrik silüetler, uçları sivrilen çizgiler, karakterli şekiller. Dağınıklık değil. |
 
 ### 1.2 Bu oyun neye benzer, neye benzemez
 
-| ✅ Benzer                                                                       | ❌ Benzemez                                                                   |
-| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| Sıcak gün batımında mahalle sokak futbolu                                       | Öfkeli, dişlerini sıkan karikatür futbolcu (Kafa Topu 2 / Head Soccer kalıbı) |
-| Dev kafa, minik gövde, kısa bacak, belirgin ayakkabı                            | Gerçekçi oranlar ya da gerçek bir futbolcuya benzeyen yüz                     |
-| Nokta gözler, büyük ama sade burun, mizahi aksesuar (kasket, pala bıyık, topuz) | Anime/manga gözleri, parlak ve büyük göz bebekleri                            |
-| Kalın koyu kahve kontur, düz renk, tek gölge tonu                               | 3D render, plastik/vinil parlaklık, yumuşak airbrush gölge                    |
-| Çıkartma (sticker) kadar net silüet                                             | Tarama, ince çizgi dokusu, karikatür dergisi yoğunluğunda detay               |
-| Emaye sokak tabelası, teneke tabela, tebeşir ve kâğıt gibi arayüz malzemeleri   | 2010 estetiği: parlak gradyan, bevel, gloss hap butonlar, gri eğimli kartlar  |
-| Mahalle hayatı mizahı (balkondan alkışlayan komşu, kaçan kedi)                  | Neon, glow, e-spor görünümü (Yön B'nin dili)                                  |
-| Meslek ve mahalle arketipleri                                                   | Etnik, bölgesel veya dini klişeler                                            |
-| Sıcak ve davetkâr bir sahne, her yaşa hitap eden ton                            | Çocuk kitabı pastelliği ("çocuk oyunu" algısı)                                |
-| Tek elden çıkmış, tutarlı kadro                                                 | Yapay zekâ işi gibi duran "ortalama", parlak ve aşırı detaylı görseller       |
+| ✅ Benzer                                                                                                                        | ❌ Benzemez                                                                   |
+| -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Sıcak ışıklı, samimi bir stadyumda neşeli bir futbol maçı                                                                        | Öfkeli, dişlerini sıkan karikatür futbolcu (Kafa Topu 2 / Head Soccer kalıbı) |
+| Dev kafa, minik gövde, kısa bacak, belirgin ayakkabı                                                                             | Gerçekçi oranlar ya da gerçek bir futbolcuya benzeyen yüz                     |
+| Nokta gözler, büyük ama sade burun, mizahi aksesuar (ter bandı, atkı, ters kep; sürpriz karakterlerde kasket, pala bıyık, topuz) | Anime/manga gözleri, parlak ve büyük göz bebekleri                            |
+| Kalın koyu kahve kontur, düz renk, tek gölge tonu                                                                                | 3D render, plastik/vinil parlaklık, yumuşak airbrush gölge                    |
+| Çıkartma (sticker) kadar net silüet                                                                                              | Tarama, ince çizgi dokusu, karikatür dergisi yoğunluğunda detay               |
+| Emaye stadyum tabelası, boyalı metal tabela, taktik tahtası ve kâğıt gibi arayüz malzemeleri                                     | 2010 estetiği: parlak gradyan, bevel, gloss hap butonlar, gri eğimli kartlar  |
+| Tribün mizahı (golde ayağa fırlayan kalabalık, havalanan atkılar ve bayraklar)                                                   | Neon, glow, e-spor görünümü (Yön B'nin dili). Gece stadyumu da neon olmaz.    |
+| Oyun tarzı arketipleri (golcü, stoper, frikikçi) ve birkaç sürpriz tip                                                           | Etnik, bölgesel veya dini klişeler; gerçek futbolcu, kulüp veya stadyum       |
+| Sıcak ve davetkâr bir sahne, her yaşa hitap eden ton                                                                             | Çocuk kitabı pastelliği ("çocuk oyunu" algısı)                                |
+| Tek elden çıkmış, tutarlı kadro                                                                                                  | Yapay zekâ işi gibi duran "ortalama", parlak ve aşırı detaylı görseller       |
 
 ### 1.3 Ana referans: A_02'den ne alınır, ne düzeltilir
 
-**Alınır:** dev kafa oranı (kafa toplam boyun ~%60'ı), nokta gözler ve küçük parlama, büyük yuvarlak burun, kalın koyu kahve kontur, sıcak turuncu kenar ışığı, pembe allık, düz renk bıyık, sade raglan kollu forma, krem zemin üzerinde okunur silüet.
+**Alınır:** dev kafa oranı (kafa toplam boyun ~%60'ı), nokta gözler ve küçük parlama, büyük yuvarlak burun, kalın koyu kahve kontur, sıcak turuncu kenar ışığı, pembe allık, düz renk bıyık, sade raglan kollu forma, krem zemin üzerinde okunur silüet. A_02 bütün kadronun **çizim** referansıdır; bakkalın kasketi ve bıyığı yalnızca onun kimliğidir, futbolcu tiplerine taşınmaz.
 
 **Düzeltilir:** A_02'ye özel yeniden çizim listesi [§9.4](#94-a_02-için-düzeltme-listesi)'te.
 
@@ -105,9 +107,9 @@ Stilin üç ayağı:
 | Ad                | Hex       | L\* | Rol                                                             |
 | ----------------- | --------- | --- | --------------------------------------------------------------- |
 | Gün batımı        | `#F28C38` | 68  | Gökyüzünün sıcak bantları, karakter kenar ışığı, sıcak efektler |
-| Kiremit           | `#C2562F` | 50  | Çatılar, tuğla, sıcak vurgular                                  |
+| Kiremit           | `#C2562F` | 50  | Tribün çatıları, tuğla, sıcak vurgular                          |
 | Krem sıva         | `#F3E3C3` | 91  | İkincil paneller, kâğıt, model sayfası zemini                   |
-| Emaye mavi        | `#1F4E9C` | 34  | Arayüz panelleri (sokak tabelası)                               |
+| Emaye mavi        | `#1F4E9C` | 34  | Arayüz panelleri (stadyum tabelası)                             |
 | Mor gölge         | `#3B2F4A` | 22  | Sahne gölgeleri, zemin gölgesi, arka plan gölge çarpanı         |
 | Asfalt            | `#4A4E57` | 33  | Zemin                                                           |
 | OYNA sarısı       | `#FFD23F` | 86  | **Yalnızca** birincil eylem butonu                              |
@@ -146,31 +148,35 @@ Fantezi saç renkleri (mor, mavi tutam vb.) yalnızca kozmetik olarak, aksesuar 
 
 ### 2.4 Arka plan paleti
 
+Bu bölümdeki değerler v1.0'ın **akşamüstü (gün batımı) setidir** ve sıcak stilin referans ışığıdır. v1.1'de renkler değişmedi; yalnızca kullanım yerleri mahalleden stadyuma çevrildi. `palette.json` anahtar adları ([Ek A](#ek-a--palettejson): `cephe_*`, `duvar`, `kaldirim` vb.) aynen kalır.
+
+**Stadyum varyantları:** Gündüz, gece ışıklı, karlı ve yağmurlu stadyumların gök, tribün ve zemin renkleri henüz yok. Her varyant bu setten türetilir, [§2.1](#21-renk-yönetimi)'deki kuralla (önce bu bölüme ve palet dosyasına) eklenir ve [§2.8](#28-değer-l-yapısı)'deki değer kurallarından geçer. Çim zemin rengi de bu yolla, ilk stadyumla (Faz 4.1) eklenir; o zamana kadar zemin için çekirdek paletteki Asfalt yer tutucudur. İlk stadyumun hangi ışıkta olacağı Faz 4.1'de seçilir.
+
 **Gökyüzü: 4 düz bant.** Pürüzsüz gradyan yerine bant kullanılır: hem stile uyar hem de mobil doku sıkıştırmasında bantlaşma (banding) bozulması yaşanmaz.
 
-| Bant         | Hex       | L\* | Konum                                                                       |
-| ------------ | --------- | --- | --------------------------------------------------------------------------- |
-| Gök 1 (tepe) | `#5B5893` | 40  | En üst. HUD bunun üstünde okunur.                                           |
-| Gök 2        | `#A9739B` | 55  | Oyun yüksekliğinin üst kısmı                                                |
-| Gök 3        | `#EE9A6E` | 71  | Bina silüetlerinin arkası                                                   |
-| Gök 4 (ufuk) | `#FFCF8F` | 86  | **Binaların arkasında kalır.** Oyun yüksekliğinde görünmez (topla karışır). |
+| Bant         | Hex       | L\* | Konum                                                                      |
+| ------------ | --------- | --- | -------------------------------------------------------------------------- |
+| Gök 1 (tepe) | `#5B5893` | 40  | En üst. HUD bunun üstünde okunur.                                          |
+| Gök 2        | `#A9739B` | 55  | Oyun yüksekliğinin üst kısmı                                               |
+| Gök 3        | `#EE9A6E` | 71  | Tribün silüetinin arkası                                                   |
+| Gök 4 (ufuk) | `#FFCF8F` | 86  | **Tribünün arkasında kalır.** Oyun yüksekliğinde görünmez (topla karışır). |
 
 **Diğer arka plan renkleri:**
 
-| Ad                           | Hex       | L\* | Kullanım                                       |
-| ---------------------------- | --------- | --- | ---------------------------------------------- |
-| Bulut                        | `#EFA894` | ~75 | Düz şekil. Üst kenarda `#FFD08A` ışık çizgisi. |
-| Uzak silüet (K1)             | `#765A80` | ~42 | Tek ton. Üst kenarda `#F2A07A` ışık çizgisi.   |
-| Cephe: krem, gölgede         | `#A8998C` | 64  | Orta plan (K2)                                 |
-| Cephe: sarı sıva, gölgede    | `#A18457` | 57  | Orta plan (K2)                                 |
-| Cephe: açık mavi, gölgede    | `#6D7B90` | 51  | Orta plan (K2)                                 |
-| Çatı/tuğla: kiremit, gölgede | `#863A22` | 34  | Orta plan (K2), çatılar                        |
-| Duvar (K3)                   | `#B89C86` | 66  | Saha arkası duvar/çit                          |
-| Duvar ışık kenarı            | `#F6C08A` | 81  | Duvarın üst kenarı                             |
-| Kaldırım                     | `#8C8A90` | 58  | Zemin çizgisinin hemen altı                    |
-| Kaldırım ışık kenarı         | `#E9B88A` | 78  | **Zemin çizgisi.** Karakterlerin bastığı yer.  |
+| Ad                              | Hex       | L\* | Kullanım                                        |
+| ------------------------------- | --------- | --- | ----------------------------------------------- |
+| Bulut                           | `#EFA894` | ~75 | Düz şekil. Üst kenarda `#FFD08A` ışık çizgisi.  |
+| Uzak silüet (K1)                | `#765A80` | ~42 | Tek ton. Üst kenarda `#F2A07A` ışık çizgisi.    |
+| Tribün/yapı: krem, gölgede      | `#A8998C` | 64  | Orta plan (K2): koltuk blokları, tribün cephesi |
+| Tribün/yapı: sarı, gölgede      | `#A18457` | 57  | Orta plan (K2)                                  |
+| Tribün/yapı: açık mavi, gölgede | `#6D7B90` | 51  | Orta plan (K2)                                  |
+| Çatı: kiremit, gölgede          | `#863A22` | 34  | Orta plan (K2), tribün çatısı                   |
+| Saha kenarı panosu (K3)         | `#B89C86` | 66  | Saha arkası panolar ve duvar                    |
+| Pano ışık kenarı                | `#F6C08A` | 81  | Panonun üst kenarı                              |
+| Saha kenarı şeridi              | `#8C8A90` | 58  | Zemin çizgisinin hemen altı                     |
+| Zemin ışık kenarı               | `#E9B88A` | 78  | **Zemin çizgisi.** Karakterlerin bastığı yer.   |
 
-Cephe renkleri, §7.1'deki yerel renklerin mor gölge (`#3B2F4A`) ile %40 "Çarp" (Multiply) karışımıdır. Yeni bir cephe rengi de aynı yolla üretilir.
+Tribün/yapı renkleri, §7.1'deki yerel renklerin mor gölge (`#3B2F4A`) ile %40 "Çarp" (Multiply) karışımıdır. Yeni bir tribün veya yapı rengi de aynı yolla üretilir.
 
 ### 2.5 Arayüz paleti
 
@@ -193,10 +199,10 @@ Cephe renkleri, §7.1'deki yerel renklerin mor gölge (`#3B2F4A`) ile %40 "Çarp
 
 İki oyuncunun ayırt edilmesi **asla yalnızca renge dayanmaz.** Kimlik dört katmanda verilir:
 
-1. **Konum:** "Sen" her zaman soldasın (öneri, bkz. [Ek B](#ek-b--açık-kararlar)).
+1. **Konum:** "Sen" her zaman soldasın ([Ek B](#ek-b--kararlar) karar 1). Çevrim içi maçta ekran her cihazda yerel olarak aynalanır; iki oyuncu da kendini solda görür.
 2. **"SEN" oku:** Başlama vuruşunda ve her golden sonra 2 saniye kafanın üstünde görünür.
 3. **Taraf renkleri:** HUD ve arayüzde kullanılır.
-4. **Forma çakışma kuralı:** Sahnedeki iki forma birbirine yakınsa sağdaki oyuncu otomatik olarak alternatif formasına geçer.
+4. **Forma çakışma kuralı:** Sahnedeki iki forma birbirine yakınsa sağdaki oyuncu otomatik olarak alternatif formasına geçer. Sağdaki her zaman rakip olduğu için oyuncu kendini hep ev formasıyla görür.
 
 #### Taraf renkleri (yalnızca HUD ve arayüzde)
 
@@ -275,8 +281,8 @@ Okunurluğun asıl kaynağı renk değil **açıklık farkıdır.** Oyun yüksek
 | Top                                          | ~98 (kırık beyaz) + kalın kontur             |
 | Karakter yerel renkleri                      | 22–95 (koyu formalar kenar ışığıyla ayrılır) |
 | Gökyüzü (oyun yüksekliğinde görünen bantlar) | 40–72                                        |
-| Orta plan cepheler (K2)                      | 34–65                                        |
-| Duvar (K3)                                   | 50–70                                        |
+| Orta plan tribünler (K2)                     | 34–65                                        |
+| Saha kenarı panoları (K3)                    | 50–70                                        |
 | Zemin                                        | 25–40                                        |
 
 **Kurallar:**
@@ -314,18 +320,19 @@ Gölge tonu her renk için **bir kez** formülle üretilir ve swatch olarak sabi
 
 Karakter ve sahne **farklı** ışık mantığıyla çizilir. Bu bilinçli bir stilizasyondur.
 
-|             | Karakter                                                               | Sahne                                                                                        |
-| ----------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Ana ışık    | Önden-üstten yumuşak dolgu. Yerel renk baskın, yüz her zaman aydınlık. | Gün batımı arkada. Cepheler sırttan aydınlanır, kameraya bakan yüzler mor-gri gölgede kalır. |
-| Gölge       | Alttan okunur (bkz. 3.2)                                               | Cepheler gölgede, üst kenarlarda sıcak ışık çizgisi                                          |
-| Kenar ışığı | Sırtta ve kafa tepesinin arka yarısında, sıcak turuncu                 | Çatı, korkuluk ve duvar üst kenarlarında                                                     |
-| Düşen gölge | Ayak altında elips                                                     | İzleyiciye doğru, ekranın altına düşer. Sağa veya sola uzun gölge yoktur.                    |
+|             | Karakter                                                               | Sahne                                                                                                    |
+| ----------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Ana ışık    | Önden-üstten yumuşak dolgu. Yerel renk baskın, yüz her zaman aydınlık. | Gün batımı arkada. Tribünler ve yapılar sırttan aydınlanır, kameraya bakan yüzler mor-gri gölgede kalır. |
+| Gölge       | Alttan okunur (bkz. 3.2)                                               | Tribünler gölgede, üst kenarlarda sıcak ışık çizgisi                                                     |
+| Kenar ışığı | Sırtta ve kafa tepesinin arka yarısında, sıcak turuncu                 | Tribün çatısı, korkuluk ve pano üst kenarlarında                                                         |
+| Düşen gölge | Ayak altında elips                                                     | İzleyiciye doğru, ekranın altına düşer. Sağa veya sola uzun gölge yoktur.                                |
 
 **Neden böyle?**
 
 - **Aynalama güvenliği:** Sağdaki oyuncu, soldakinin aynalanmış halidir. Gölge alttan geldiği için aynalamada bozulmaz. Kenar ışığı sırtta olduğu için karakterle birlikte aynalanır ve tutarlı görünür.
 - **Simetrik sahne:** Güneş diski gösterilmez. Gün batımı gökyüzünün genel tonu olarak verilir. Düşen gölgeler ekranın altına düşer; böylece iki taraf da eşit aydınlık görünür.
-- **Okunurluk:** Arka plan cepheleri gölgede ve sakin kalır, karakterler ise tam renkle öne çıkar.
+- **Okunurluk:** Arka plan tribünleri gölgede ve sakin kalır, karakterler ise tam renkle öne çıkar.
+- **Diğer stadyum ışıkları:** Gündüz, gece ve hava varyantlarında da sahne ışığı arkadan gelir (gece: tribün arkasındaki projektörler). Işık kaynağı çizilebilir ama parlamasız, düz şekil olarak ([§12.1](#121-efekt-stili)). Karakter ışığı sahaya göre değişmez (bkz. [§10.4](#104-modüler-saha-kiti)).
 
 ### 3.2 Gölge (karakter)
 
@@ -362,8 +369,8 @@ Karakter ve sahne **farklı** ışık mantığıyla çizilir. Bu bilinçli bir s
 
 - A_02'deki kontur kafa çapının yaklaşık %1,8'i. Yeni standart bilerek daha kalın (%2,8), çünkü 720p cihazlarda da dış kontur en az 3,3 px kalmalıdır.
 - **Çizgi karakteri:** Çizgi uçları **%30–40 kalınlığa sivrilir** (taper). Köşelerde ve iç bükey bölgelerde kontur hafifçe kalınlaşır (en fazla +%20). Kalınlık bunun dışında sabittir; titrek veya rastgele değişen kalınlık kullanılmaz.
-- **Uygulama:** Vektör programında genişlik profili kullanılır (Illustrator: Width Profile; Affinity Designer: basınç profili; Inkscape: Power Stroke). Profiller `art/_sablon/` içinde kayıtlı tutulur, her çizimde aynı profil kullanılır.
-- Dışa aktarmadan önce konturlar şekle çevrilir (expand) ki her ölçekte aynı orana sahip olsun. Ya da program "konturları ölçekle" ayarıyla dışa aktarılır. Hangisi seçildiyse her dosyada aynısı kullanılır.
+- **Uygulama (Inkscape, [Ek B](#ek-b--kararlar) karar 5):** Genişlik profili **Power Stroke** yol efektiyle verilir. Kayıtlı profiller `art/_sablon/kontur_profilleri.svg` içinde örnek yollar olarak durur; yeni bir yola "Yol Efektini Yapıştır" (Ctrl+7) ile aktarılır. Her çizimde aynı profil kullanılır.
+- Power Stroke'un sonucu dolgulu bir şekildir, bu yüzden her ölçekte aynı orana sahiptir. Kontur efekti olmayan düz çizgiler dışa aktarmadan önce "Konturu Yola Dönüştür" ile şekle çevrilir. Her dosyada aynı yol izlenir.
 
 ### 3.6 Etkileşim dili: kim kontur alır?
 
@@ -372,8 +379,8 @@ Oyuncu neye çarpabileceğini konturdan anlar.
 | Katman                                                                                          | Kontur                                                 |
 | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
 | Oynanış nesneleri: karakter, top, kale direkleri ve üst direk, zemin çizgisi, sahadaki duvarlar | **Tam kontur** `#2B1D14`, 5 px @1x                     |
-| Saha arkası (K3: duvar, çit)                                                                    | Yerel rengin %40 koyusu, 3 px @1x                      |
-| Orta plan (K2: cepheler, balkonlar)                                                             | Yerel rengin %40 koyusu, 2 px @1x                      |
+| Saha arkası (K3: saha kenarı panoları, duvar)                                                   | Yerel rengin %40 koyusu, 3 px @1x                      |
+| Orta plan (K2: tribünler, kalabalık)                                                            | Yerel rengin %40 koyusu, 2 px @1x                      |
 | Uzak plan (K1) ve gökyüzü (K0)                                                                  | Kontur yok                                             |
 | Arayüz                                                                                          | 4 px @1x `#2B1D14`                                     |
 | Efektler                                                                                        | Büyük efektler tam kontur, küçük parçacıklar kontursuz |
@@ -460,21 +467,21 @@ Kozmetiklerin (şapka, gözlük, saç) **her kafaya oturması** için yüzün be
 
 Ölçüt: **6 inçlik telefonda, maç sırasında, 1 saniyede.** Bu sürede görünmeyen detay, üretim maliyeti ve görsel gürültü demektir.
 
-| Öğe                             | Sınır                                                                                                                                                                                                      |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Kırışıklık**                  | Yüz başına **toplam 2–3** temiz çizgi (profilde tek göz görünür: göz kenarında en fazla 1–2, alında en fazla 1, gülme çizgisinde en fazla 1). Yalnızca yaşlı karakterlerde. Ortak "yaş" katmanından gelir. |
-| **Bıyık / sakal**               | Düz renk şekli + en fazla 1 gölge tonu + en fazla **3 iç tutam çizgisi.** Tel tel kıl çizimi yok.                                                                                                          |
-| **Kirli sakal**                 | Tek düz ton katmanı (cilt tabanından ~%15–20 koyu, hafif mora kayık). Nokta, doku veya tarama yok.                                                                                                         |
-| **Saç**                         | Taban + 1 gölge tonu + en fazla 3 iç ayrım çizgisi + isteğe bağlı 1 parlama şekli.                                                                                                                         |
-| **Kumaş**                       | Parça başına en fazla 2 kırışık çizgisi. Düğme, cep ve dikiş yok (forma yakası ve raglan kol dikişi hariç).                                                                                                |
-| **Ayakkabı**                    | Görünür krampon sayısı sabit: 3. Bağcık en fazla 2 çizgi. Logo yok.                                                                                                                                        |
-| **Çil**                         | En fazla 3 nokta, her biri en az 5 px @1x.                                                                                                                                                                 |
-| **Desen** (çorap, şerit, tente) | Şerit kalınlığı en az 4 px @1x. Daha ince şerit küçük ekranda titreşir (moiré).                                                                                                                            |
-| **Doku**                        | Karakterde, topta ve oyun nesnelerinde **yok.** Arka planda yalnızca tek bir global kâğıt/grain katmanı, en fazla %6 opaklık.                                                                              |
-| **Gradyan**                     | Karakterde ve arayüzde **yok.** Gökyüzü bantlıdır.                                                                                                                                                         |
-| **En küçük şekil**              | @1x'te 4 px'ten küçük kapalı şekil yok. Paralel iki çizgi arası en az 3 px @1x.                                                                                                                            |
-| **Renk sayısı**                 | Karakter başına en fazla **18 swatch** (gölge, allık, kenar ışığı ve göz dahil, kontur hariç). A_02'nin sadeleştirilmiş hali bu sınırın içindedir.                                                         |
-| **Detay yoğunluğu**             | En yoğun yer yüz, sonra saç ve aksesuar, en sade yer gövde ve bacaklar.                                                                                                                                    |
+| Öğe                                     | Sınır                                                                                                                                                                                                      |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Kırışıklık**                          | Yüz başına **toplam 2–3** temiz çizgi (profilde tek göz görünür: göz kenarında en fazla 1–2, alında en fazla 1, gülme çizgisinde en fazla 1). Yalnızca yaşlı karakterlerde. Ortak "yaş" katmanından gelir. |
+| **Bıyık / sakal**                       | Düz renk şekli + en fazla 1 gölge tonu + en fazla **3 iç tutam çizgisi.** Tel tel kıl çizimi yok.                                                                                                          |
+| **Kirli sakal**                         | Tek düz ton katmanı (cilt tabanından ~%15–20 koyu, hafif mora kayık). Nokta, doku veya tarama yok.                                                                                                         |
+| **Saç**                                 | Taban + 1 gölge tonu + en fazla 3 iç ayrım çizgisi + isteğe bağlı 1 parlama şekli.                                                                                                                         |
+| **Kumaş**                               | Parça başına en fazla 2 kırışık çizgisi. Düğme, cep ve dikiş yok (forma yakası ve raglan kol dikişi hariç).                                                                                                |
+| **Ayakkabı**                            | Görünür krampon sayısı sabit: 3. Bağcık en fazla 2 çizgi. Logo yok.                                                                                                                                        |
+| **Çil**                                 | En fazla 3 nokta, her biri en az 5 px @1x.                                                                                                                                                                 |
+| **Desen** (çorap, şerit, tente, bayrak) | Şerit kalınlığı en az 4 px @1x. Daha ince şerit küçük ekranda titreşir (moiré).                                                                                                                            |
+| **Doku**                                | Karakterde, topta ve oyun nesnelerinde **yok.** Arka planda yalnızca tek bir global kâğıt/grain katmanı, en fazla %6 opaklık.                                                                              |
+| **Gradyan**                             | Karakterde ve arayüzde **yok.** Gökyüzü bantlıdır.                                                                                                                                                         |
+| **En küçük şekil**                      | @1x'te 4 px'ten küçük kapalı şekil yok. Paralel iki çizgi arası en az 3 px @1x.                                                                                                                            |
+| **Renk sayısı**                         | Karakter başına en fazla **18 swatch** (gölge, allık, kenar ışığı ve göz dahil, kontur hariç). A_02'nin sadeleştirilmiş hali bu sınırın içindedir.                                                         |
+| **Detay yoğunluğu**                     | En yoğun yer yüz, sonra saç ve aksesuar, en sade yer gövde ve bacaklar.                                                                                                                                    |
 
 **Küçük ekran testleri** (her karakter için zorunlu, ayrıntı [§14.3](#143-test-prosedürleri)):
 
@@ -486,7 +493,7 @@ Kozmetiklerin (şapka, gözlük, saç) **her kafaya oturması** için yüzün be
 
 ## 6. Karakter yapısı, varyantlar ve yaylı kafa
 
-Karakterler **parçalı (cut-out) animasyonla** hareket eder (Faz 3.2). Her parça ayrı bir görseldir, eklem noktasından döner. Kozmetik sistemi de bu parçaların değiştirilmesidir.
+Karakterler **parçalı (cut-out) animasyonla** hareket eder (Faz 3.2). Her parça ayrı bir görseldir, eklem noktasından döner. Kozmetik sistemi de bu parçaların değiştirilmesidir. Animasyon **kodla** yazılır ([Ek B](#ek-b--kararlar) karar 6): parçalı iskelet, yaylı kafa ve ifade değişimleri motorda; animasyon aracı (Spine vb.) ve anahtar kare dosyası yoktur. Sanatçının motora verdiği tek veri parça görselleri ve pivot dosyasıdır ([§13.6](#136-pivot-ve-katman-verisi-kod-tabanlı-animasyon)).
 
 ### 6.1 Katman sırası (arkadan öne, sağa bakan karakter)
 
@@ -575,24 +582,24 @@ Analizdeki "en az 4 ifade" kuralı (nötr, sevinç, zorlanma, yenilgi) bu setle 
 
 ### 6.3 Varyant listesi
 
-Kütüphanelerin hedef boyutları ilk kadro (10 karakter) içindir. Sayılar arttıkça her yeni parça bu bölümdeki kurallara uyar.
+Kütüphanelerin hedef boyutları ilk kadro (12 karakter, [§7.3](#73-önerilen-ilk-kadro-12-karakter)) içindir. Sayılar arttıkça her yeni parça bu bölümdeki kurallara uyar.
 
-| Kategori                 | İçerik                                                                                                 | Hedef sayı                           | Kural                                                                            |
-| ------------------------ | ------------------------------------------------------------------------------------------------------ | ------------------------------------ | -------------------------------------------------------------------------------- |
-| **Kafa şekli** (alt yüz) | Yuvarlak, geniş çene, armut, sivri çene, kare-yuvarlak, tombul yanak                                   | 6                                    | Üst kemer sabit, daire zarfı içinde                                              |
-| **Saç**                  | Kısa, dalgalı, perçemli/kabarık, topuz, iki yanda puf, örgü, dağınık, kel tepe + yan saç, kabarık kısa | 9                                    | **Her saçın iki sürümü vardır:** `tam` ve `sapka_alti` (yalnızca favori ve ense) |
-| **Kaş**                  | 5 ifade × 3 kalınlık                                                                                   | 15                                   | Saç renginde (yaşlılarda kır/beyaz)                                              |
-| **Göz**                  | 6 ifade × 2 boy                                                                                        | 12                                   | Ortak                                                                            |
-| **Ağız**                 | 7 ifade                                                                                                | 7                                    | Ortak                                                                            |
-| **Burun**                | Yuvarlak top, kemerli, küçük kalkık, geniş, uzun                                                       | 5                                    | Profilde silüetin parçası, taşma payına dahil                                    |
-| **Bıyık**                | Pala, ince kalem, fırça, beyaz pos                                                                     | 4                                    | Düz renk + en fazla 3 tutam çizgisi                                              |
-| **Sakal**                | Kirli sakal tonu, kısa sakal, kır sakal                                                                | 3                                    | Düz ton. Arka görünümde görünmez.                                                |
-| **Yaş katmanı**          | Kırışıklık seti 1–3                                                                                    | 3                                    | Toplam 2–3 çizgi                                                                 |
-| **Baş aksesuarı**        | Kasket, hasır şapka, kask, bandana, ter bandı, örgü saç bandı, kulaklık                                | Karakter başına 1 imza + kozmetikler | Taşma payı içinde, aksesuar renginde                                             |
-| **Yüz aksesuarı**        | Kare kalın gözlük, yuvarlak gözlük                                                                     | 2+                                   | Sap kulağa bağlanır, saçla birleşmez                                             |
-| **Boyun aksesuarı**      | Papyon, düdük ipi                                                                                      | 2+                                   | Gövde grubunda                                                                   |
-| **Forma**                | Raglan, düz yaka, polo yaka, atlet                                                                     | 4 kesim × renk                       | Her karakterde ev + açık alternatif + koyu alternatif                            |
-| **Ayakkabı**             | Klasik krampon, eski tip deri, sneaker                                                                 | 3 kesim × renk                       | 3 görünür krampon, logo yok                                                      |
+| Kategori                 | İçerik                                                                                                                                          | Hedef sayı                           | Kural                                                                            |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | -------------------------------------------------------------------------------- |
+| **Kafa şekli** (alt yüz) | Yuvarlak, geniş çene, armut, sivri çene, kare-yuvarlak, tombul yanak                                                                            | 6                                    | Üst kemer sabit, daire zarfı içinde                                              |
+| **Saç**                  | Kısa, dikleştirilmiş sivri kısa, keskin perçemli, omuz boyu dalgalı, kısa pixie, küt kâküllü bob, uzun tek örgü, iki yanda puf, topuz, kazınmış | 10                                   | **Her saçın iki sürümü vardır:** `tam` ve `sapka_alti` (yalnızca favori ve ense) |
+| **Kaş**                  | 5 ifade × 3 kalınlık                                                                                                                            | 15                                   | Saç renginde (yaşlılarda kır/beyaz)                                              |
+| **Göz**                  | 6 ifade × 2 boy                                                                                                                                 | 12                                   | Ortak                                                                            |
+| **Ağız**                 | 7 ifade                                                                                                                                         | 7                                    | Ortak                                                                            |
+| **Burun**                | Yuvarlak top, kemerli, küçük kalkık, geniş, uzun                                                                                                | 5                                    | Profilde silüetin parçası, taşma payına dahil                                    |
+| **Bıyık**                | Pala, ince kalem, fırça, beyaz pos                                                                                                              | 4                                    | Düz renk + en fazla 3 tutam çizgisi                                              |
+| **Sakal**                | Kirli sakal tonu, kısa sakal, kır sakal                                                                                                         | 3                                    | Düz ton. Arka görünümde görünmez.                                                |
+| **Yaş katmanı**          | Kırışıklık seti 1–3                                                                                                                             | 3                                    | Toplam 2–3 çizgi                                                                 |
+| **Baş aksesuarı**        | Kasket, ters kep, hasır şapka, bandana, ter bandı, ince saç bandı, geniş saç bandı, örgü saç bandı, kafa bandajı                                | Karakter başına 1 imza + kozmetikler | Taşma payı içinde, aksesuar renginde                                             |
+| **Yüz aksesuarı**        | Yuvarlak gözlük, kare kalın gözlük                                                                                                              | 2+                                   | Sap kulağa bağlanır, saçla birleşmez                                             |
+| **Boyun aksesuarı**      | Kalın atkı, boyunda kulaklık                                                                                                                    | 2+                                   | Gövde grubunda                                                                   |
+| **Forma**                | Raglan, düz yaka, polo yaka, atlet                                                                                                              | 4 kesim × renk                       | Her karakterde ev + açık alternatif + koyu alternatif                            |
+| **Ayakkabı**             | Klasik krampon, eski tip deri, sneaker                                                                                                          | 3 kesim × renk                       | 3 görünür krampon, logo yok                                                      |
 
 ### 6.4 Yaylı kafa eklemi
 
@@ -615,7 +622,7 @@ Yaylı kafa hissi çizimde değil **animasyonda** verilir: kafa grubu gövdeye g
 
 Çarpışma dairesi **salınmaz.** Gövdeye sabittir; yalnızca görsel sallanır.
 
-**Animasyon için başlangıç değerleri** (Faz 3.2'de ayarlanır):
+**Animasyon için başlangıç değerleri** (Faz 3.2'de ayarlanır). Yaylı kafa kodda bir sönümlü yay olarak yazılır; değerler diğer ayarlar gibi `src/config/gameConfig.ts`'te tutulur, çizime gömülmez:
 
 | Parametre              | Değer                                                                              |
 | ---------------------- | ---------------------------------------------------------------------------------- |
@@ -639,57 +646,69 @@ Yaylı kafa hissi çizimde değil **animasyonda** verilir: kafa grubu gövdeye g
 
 ### 7.1 Kurallar
 
-| Eksen            | Kural (kadro büyüdükçe oranlar korunur)                                                                                                         |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Cinsiyet**     | Kadınlar/kızlar en az **%40**. Kadın karakterler de mesleğiyle tanımlanır; "teyze/ev hanımı" tek kadın rolü olamaz.                             |
-| **Yaş**          | Çocuklar en fazla **%20** ("çocuk oyunu" algısından kaçınmak için). Yaşlılar (60+) en az **%20**. Gerisi genç ve yetişkin.                      |
-| **Ten tonu**     | T1–T6'nın hepsi kullanılır. Hiçbir ton kadronun %30'undan fazlasını oluşturmaz.                                                                 |
-| **Ten ve statü** | **ASLA** ten tonu ile meslek statüsü arasında örüntü kurulmaz (ör. koyu ten = hizmet işi). Otorite figürleri (muhtar, hoca) farklı tonlardadır. |
-| **Beden**        | İnce, orta ve geniş gövdenin her biri en az %25                                                                                                 |
-| **Silüet**       | Her karakterin tek bir **silüet kancası** vardır (kasket + pala bıyık, topuz, kask...). 32 px testinde diğerlerinden ayrışmalıdır.              |
-| **Kişilik**      | Aksesuar, ifade, poz ve animasyonla verilir. Aksan, din veya köken üzerinden verilmez.                                                          |
+| Eksen                  | Kural (kadro büyüdükçe oranlar korunur)                                                                                                                                                                      |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Futbolcu / sürpriz** | Kadronun en az **%75**'i kurgusal futbolcu tipi; sürpriz komik karakterler en fazla **%25** (12 karakterde 3). Kurallar ikisi için de aynıdır (§7.4).                                                        |
+| **Cinsiyet**           | Kadınlar en az **%40**. Kadın karakterler de oyun tarzıyla tanımlanır; kadın futbolcu tipleri kadronun ana gövdesindedir, "teyze" tek kadın rolü olamaz.                                                     |
+| **Yaş**                | Çocuk karakter yok ("çocuk oyunu" algısı; en genç 17). Futbolcu tiplerinde en az üç yaş grubu: genç (≤ 21), oyuncu çağı (22–32), veteran (33+). 60+ en az **%15** (12 karakterde 2; sürpriz karakterlerden). |
+| **Ten tonu**           | T1–T6'nın hepsi kullanılır. Hiçbir ton kadronun %30'undan fazlasını oluşturmaz.                                                                                                                              |
+| **Ten ve statü**       | **ASLA** ten tonu ile statü ya da rol arasında örüntü kurulmaz (ör. koyu ten = yalnızca hız ya da güç, açık ten = yalnızca zekâ). Otorite figürleri (kaptan, veteran) farklı tonlardadır.                    |
+| **Beden**              | İnce, orta ve geniş gövdenin her biri en az %25                                                                                                                                                              |
+| **Silüet**             | Her karakterin tek bir **silüet kancası** vardır (kasket + pala bıyık, ters kep, küt bob saç...). 32 px testinde diğerlerinden ayrışmalıdır.                                                                 |
+| **Kişilik**            | Aksesuar, ifade, poz ve animasyonla verilir. Aksan, din veya köken üzerinden verilmez.                                                                                                                       |
 
 ### 7.2 Klişe yasağı
 
-| ❌ Yapılmaz                                                                                                                        | ✅ Yerine                                                                                      |
-| ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Bölgesel aksan, yöresel yiyecek veya kıyafetle "esprili" karakter (ör. bir bölgenin yemeğini veya ağzını karakterin şakası yapmak) | Meslek ve mahalle rolü: bakkal, muhtar, berber, kurye, manav                                   |
-| Etnik özellik abartısı (burun, göz, dudak, saç dokusu üzerinden karikatür)                                                         | Herkese aynı yüz kütüphanesi. Abartı yalnızca kişisel özelliklerde (bıyık, topuz, kasket)      |
-| Fes, nazar boncuğu, kilim gibi turistik "Türkiye" sembollerini karakter kimliği yapmak                                             | Evrensel sokak futbolu önde, yerel detaylar arka planda ve ikinci okumada                      |
-| Başörtüsü, takke vb. dini veya kültürel giysiyi şaka unsuru yapmak                                                                 | Bu giysiler kadroda yer alabilir, ama karakterin doğal parçası olarak, asla espri olarak değil |
-| Koyu ten tonlarını yalnızca destek ya da hizmet rollerine vermek                                                                   | Tonları her statüye dağıtmak                                                                   |
-| Gerçek bir kişiye (futbolcu, ünlü, politikacı) benzeyen yüz                                                                        | Ortak yüz kütüphanesi + özgün kafa şekli                                                       |
+| ❌ Yapılmaz                                                                                                                            | ✅ Yerine                                                                                      |
+| -------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Bölgesel aksan, yöresel yiyecek veya kıyafetle "esprili" karakter (ör. bir bölgenin yemeğini veya ağzını karakterin şakası yapmak)     | Oyun tarzı ve mevki: golcü, stoper, frikikçi; sürpriz karakterlerde meslek ya da rol (bakkal)  |
+| Etnik özellik abartısı (burun, göz, dudak, saç dokusu üzerinden karikatür)                                                             | Herkese aynı yüz kütüphanesi. Abartı yalnızca kişisel özelliklerde (bıyık, topuz, kasket)      |
+| Fes, nazar boncuğu, kilim gibi turistik "Türkiye" sembollerini karakter kimliği yapmak                                                 | Evrensel futbol önde, yerel detaylar arka planda ve ikinci okumada                             |
+| Başörtüsü, takke vb. dini veya kültürel giysiyi şaka unsuru yapmak                                                                     | Bu giysiler kadroda yer alabilir, ama karakterin doğal parçası olarak, asla espri olarak değil |
+| Koyu ten tonlarını yalnızca destek, hız ya da güç rollerine vermek                                                                     | Tonları her role ve statüye dağıtmak                                                           |
+| Yaşlı karakteri yavaşlığı, unutkanlığı ya da beceriksizliğiyle güldürmek                                                               | Beklenmedik yetenekle güldürmek (sahanın en hızlısı olan dede)                                 |
+| Gerçek bir kişiye (futbolcu, ünlü, politikacı) benzeyen yüz; gerçek bir futbolcunun imza saçı, sakalı, gol sevinci veya forma numarası | Ortak yüz kütüphanesi + özgün kafa şekli + özgün saç ve aksesuar birleşimi                     |
 
-**Prompt ipucu:** Yapay zekâ aracında ülke ya da milliyet kelimesi ("Turkish") yerine nesne listesi kullan (balkon, çamaşır ipi, bakkal tentesi). Milliyet kelimeleri modeli turistik klişelere (fes, cami silüeti, nazar) doğru çeker.
+**Prompt ipucu:** Yapay zekâ aracında ülke ya da milliyet kelimesi ("Turkish") yerine nesne listesi kullan (tribün, projektör, saha kenarı panosu). Milliyet kelimeleri modeli turistik klişelere (fes, cami silüeti, nazar) doğru çeker. Futbolcu tiplerinde de gerçek bir oyuncunun, kulübün ya da ligin adı yazılmaz.
 
-### 7.3 Önerilen ilk kadro (10 karakter)
+### 7.3 Önerilen ilk kadro (12 karakter)
 
-> Bu bir öneridir. Model sayfaları çizildikçe değişebilir. Değişiklikte 7.1'deki oranlar korunur.
+> **Oyun slotu** sütunu bağlayıcıdır (GAME_DESIGN_MOBILE K2): oyundaki 12 slotun istatistikleri ve süperleri değişmez. 9 slot adını lakap olarak korur ve kurgusal futbolcu tipi olarak çizilir; 3 slot sürpriz karaktere geçer (ad ve görünüş değişir, istatistik ve süper aynı kalır). Görünüş sütunları öneridir; model sayfaları çizildikçe değişebilir, değişiklikte 7.1'deki oranlar korunur.
 
-| #   | Kimlik (`id`)  | Arketip                  | Yaş    | Cinsiyet | Ten | Beden | Silüet kancası                           | İmza aksesuar · renk            | Ev forması (bant)          |
-| --- | -------------- | ------------------------ | ------ | -------- | --- | ----- | ---------------------------------------- | ------------------------------- | -------------------------- |
-| 1   | `bakkal`       | Bakkal Amca              | 50'ler | E        | T2  | Geniş | Kasket + pala bıyık                      | Kasket · antrasit               | Turuncu-krem raglan (orta) |
-| 2   | `muhtar`       | Muhtar Hanım             | 50'ler | K        | T4  | Orta  | Kabarık kısa kır saç, kalın kaşlar       | Kare kalın gözlük · bordo       | Patlıcan (koyu)            |
-| 3   | `kaleci_teyze` | Kaleci Teyze             | 60'lar | K        | T1  | Geniş | Yüksek beyaz topuz + kaleci eldivenleri  | Örgü saç bandı · lavanta        | Nane (açık)                |
-| 4   | `yildiz`       | Mahallenin Yıldızı       | 11     | K        | T5  | İnce  | İki yanda puf topuz                      | Ter bandı · fıstık yeşili       | Kırmızı (orta)             |
-| 5   | `dede`         | Fileli Dede              | 70'ler | E        | T3  | İnce  | Hasır şapka + beyaz gür kaşlar           | Hasır şapka bandı · hardal      | Açık mavi (açık)           |
-| 6   | `berber`       | Berber                   | 30'lar | E        | T6  | Orta  | Yüksek kabarık perçem + ince kalem bıyık | Papyon · domates                | Antrasit (koyu)            |
-| 7   | `kurye`        | Kurye                    | 20'ler | K        | T3  | İnce  | Bisiklet kaskı, altından koyu kahve saç  | Kask · turkuaz                  | Sarı (açık)                |
-| 8   | `hoca`         | Mahallenin Futbol Hocası | 50'ler | E        | T5  | Geniş | Kel tepe + yanlarda kır saç + kır sakal  | Boyunda düdük ipi · kırık beyaz | Koyu yeşil (koyu)          |
-| 9   | `ogrenci`      | Üniversiteli             | 19     | E        | T4  | İnce  | Kulaklık + dağınık bal rengi saç         | Kulaklık · mor                  | Mavi (orta)                |
-| 10  | `manav`        | Manav Abla               | 40'lar | K        | T6  | Orta  | Tek yandan kalın örgü + bandana          | Bandana · çam yeşili            | Şeftali (açık)             |
+| #   | Kimlik (`id`)  | Oyun slotu · süper      | Arketip                      | Yaş    | Cinsiyet | Ten | Beden | Silüet kancası                                           | İmza aksesuar · renk           | Ev forması (bant)          |
+| --- | -------------- | ----------------------- | ---------------------------- | ------ | -------- | --- | ----- | -------------------------------------------------------- | ------------------------------ | -------------------------- |
+| 1   | `kor`          | Kor · Ateş Topu         | Golcü                        | 20'ler | K        | T4  | Orta  | Yukarı dikilmiş, alev gibi sivri kısa kızıl saç          | Ter bandı · turkuaz            | Kırmızı (orta)             |
+| 2   | `bora`         | Bora · Kasırga          | Kanat oyuncusu               | 20'ler | E        | T3  | İnce  | Arkaya savrulan omuz boyu dalgalı kestane saç            | İnce saç bandı · fıstık yeşili | Nane (açık)                |
+| 3   | `kaya`         | Kaya · Dev Top          | Stoper                       | 33     | E        | T5  | Geniş | Kazınmış kafa + kafa bandajı + kısa sakal, geniş çene    | Kafa bandajı · kırık beyaz     | Antrasit (koyu)            |
+| 4   | `ayaz`         | Ayaz · Buz              | Soğukkanlı orta saha         | 20'ler | K        | T1  | Orta  | Kısa bal rengi pixie saç + uçları arkaya uçuşan atkı     | Kalın atkı · petrol            | Açık mavi (açık)           |
+| 5   | `simsek`       | Şimşek · Zikzak         | Altyapıdan gelen hızlı kanat | 17     | E        | T6  | İnce  | Yıldırım gibi öne kırılan keskin siyah perçem            | Boyunda kulaklık · hardal      | Sarı (açık)                |
+| 6   | `sis`          | Sis · Işınlanma         | Çalımcı on numara            | 19     | K        | T3  | İnce  | Küt kâküllü siyah bob saç                                | Yuvarlak gözlük · mor          | Patlıcan (koyu)            |
+| 7   | `yay`          | Yay · Gökkuşağı         | Frikikçi                     | 34     | E        | T2  | Orta  | Ters takılmış kep (siper arkada), altından bal rengi saç | Ters kep · çam yeşili          | Şeftali (açık)             |
+| 8   | `demir`        | Demir · Mıknatıs        | Kaptan, top kapan ön libero  | 36     | K        | T6  | Geniş | Bandana + sırta inen kalın tek siyah örgü                | Bandana · domates              | Mavi (orta)                |
+| 9   | `pamuk`        | Pamuk · Serap           | Oyun kurucu                  | 20'ler | K        | T5  | Orta  | İki yanda koyu kahve puf topuz                           | Geniş saç bandı · pembe        | Beyaz (açık)               |
+| 10  | `bakkal`       | Toprak slotu · Sarsıntı | **Sürpriz:** Bakkal Amca     | 50'ler | E        | T2  | Geniş | Kasket + kahverengi pala bıyık                           | Kasket · antrasit              | Turuncu-krem raglan (orta) |
+| 11  | `dede`         | Yankı slotu · Yankı     | **Sürpriz:** Fileli Dede     | 70'ler | E        | T4  | İnce  | Geniş hasır şapka + beyaz gür kaşlar                     | Hasır şapka bandı · bordo      | Koyu yeşil (koyu)          |
+| 12  | `kaleci_teyze` | Kauçuk slotu · Sekme    | **Sürpriz:** Kaleci Teyze    | 60'lar | K        | T1  | Geniş | Yüksek beyaz topuz + kocaman kaleci eldivenleri          | Örgü saç bandı · lavanta       | Pembe (orta)               |
 
-**Kadronun dağılımı:** 5 kadın, 5 erkek · çocuk 1 (%10), genç 2, yetişkin 5, yaşlı 2 (%20) · T1: 1, T2: 1, T3: 2, T4: 2, T5: 2, T6: 2 · geniş 3, orta 3, ince 4 · ev formaları: koyu 3, orta 3, açık 4 · aksesuar renkleri benzersiz (boşta kalan: pembe, petrol).
+**Kadronun dağılımı:** 9 futbolcu tipi + 3 sürpriz karakter (%25) · 6 kadın, 6 erkek · genç (≤ 21) 2, oyuncu çağı (22–32) 4, veteran (33+) 3, sürpriz karakterler 50'ler 1 ve 60+ 2 (%17) · T1–T6 her biri 2 · ince 4, orta 4, geniş 4 · ev formaları: koyu 3, orta 4, açık 5 · 12 aksesuar renginin hepsi kullanıldı (kütüphane doldu; 13. karakterde §2.7'deki kuralla yeni renk eklenir).
 
-**Aksesuar kontrastı:** Saç rengi seçimleri §2.7'deki ΔL 15 kuralına göre yapıldı. Örneğin lavanta saç bandı (L\* 73) kır saç (67) üzerinde kaybolurdu, beyaz saç (92) üzerinde okunur. Mor kulaklık (43) kestane saç (40) üzerinde kaybolurdu, bal rengi saç (67) üzerinde okunur.
+**Aksesuar kontrastı:** Seçimler §2.7'deki ΔL 15 kuralına göre yapıldı. Örneğin Yay'ın çam yeşili kepi (L\* 47) kestane saç (40) üzerinde kaybolurdu, bal rengi saç (67) üzerinde okunur. Kaleci Teyze'nin lavanta saç bandı (73) beyaz saçta (92) okunur. Boyun aksesuarlarında temas yüzeyi formadır: Ayaz'ın petrol atkısı (~37) açık mavi formada (78), Şimşek'in hardal kulaklığı (60) sarı formada (83) okunur. Kor'un turkuaz ter bandı (63) kızıl saçta (47) ΔL 16 ile sınırda; model sayfasında kontrol edilir, yetmezse saç siyaha döner.
 
-**Forma notu:** Sarı ev formalı `kurye`nin koyu alternatifi lacivert değil antrasit veya patlıcan olur (sarı + lacivert yasak). Kırmızı ev formalı `yildiz`in açık alternatifinde sarı kullanılmaz (sarı + kırmızı yasak).
+**Forma notu:** Sarı ev formalı `simsek`in koyu alternatifi lacivert değil antrasit veya patlıcan olur (sarı + lacivert yasak). Kırmızı ev formalı `kor`un açık alternatifinde sarı kullanılmaz (sarı + kırmızı yasak). Antrasit ev formalı `kaya`nın açık alternatifi beyaz tabanlı olmaz (siyah + beyaz çağrışımı); nane ya da açık mavi tabanlı olur. Beyaz ev formalı `pamuk`un açık alternatifi şeftali ya da nane tabanlıdır.
 
-### 7.4 Kedi maskot
+**İlk model sayfaları ([Ek B](#ek-b--kararlar) karar 4):** Bakkal + 2 futbolcu tipi. Öneri: `kor` ve `bora`. İkisi de baştan açık karakter (GAME_DESIGN_MOBILE §9.3); cinsiyet, beden, ten ve forma bandı farklı olduğu için kadro testini (§7.5, §14.3) erken sınar. Bakkal ile Kor aynı forma bandında (orta) olduğu için forma çakışma kuralı da ilk partide denenir.
 
-Kedinin kafası (kulaklar, ağız yapısı) ortak kafa kemerine ve yüz ızgarasına uymaz. Oynanabilir olursa şapka, gözlük ve saç kozmetiklerinin hiçbiri ona oturmaz.
+**Kimlikler:** Futbolcu tiplerinin `id`'si koddaki karakter kimliğiyle aynıdır. Kodda `toprak` kimliği Bakkal'ın yeniden çiziminde `bakkal` olur; `dede` ve `kaleci_teyze` henüz kodda yok (Faz 7.6).
 
-**Öneri:** Kedi **sahne ve arayüz maskotu** olur. Golde kaçan, sonuç ekranında balkondan bakan, yükleme ekranında top kovalayan kedi. Oynanabilir olması istenirse ayrı bir "uyumsuz kozmetik" istisnası açılır (bkz. [Ek B](#ek-b--açık-kararlar)).
+### 7.4 Sürpriz karakterler
+
+Bakkal Amca, Fileli Dede ve Kaleci Teyze kadronun mizah tuzudur: futbolcuların arasında, sahada hiç beklenmeyen tipler.
+
+- **Aynı kurallar:** Aynı şablon, aynı kafa dairesi, aynı yüz kütüphanesi, aynı forma ve kozmetik kuralları. Onlar da forma giyer.
+- **Mizah nereden gelir:** Aksesuar, ifade, poz ve animasyondan (bakkalın pala bıyığı, dedenin hasır şapkası, teyzenin kocaman kaleci eldivenleri). Yaş ve cinsiyet şakanın konusu olmaz: dede yavaş ya da beceriksiz olduğu için değil, sahanın en hızlısı olduğu için şaşırtır; teyze "ev hanımı" kalıbıyla değil, kaleci tecrübesiyle tanımlanır (§7.2).
+- **Eşit güç:** İstatistikleri ve süperleri futbolcu tipleriyle aynı bütçededir; denge kuralları aynen geçerlidir (GAME_DESIGN_MOBILE §9).
+- **Oran:** Kadronun en fazla %25'i (§7.1).
+- **Kedi maskot kaldırıldı** ([Ek B](#ek-b--kararlar) karar 3): oynanabilir karakter, sahne öğesi ya da arayüz maskotu olarak kullanılmaz.
 
 ### 7.5 Yeni karakter için kontrol soruları
 
@@ -697,8 +716,9 @@ Kedinin kafası (kulaklar, ağız yapısı) ortak kafa kemerine ve yüz ızgaras
 2. Aksesuar rengi kadroda boşta mı?
 3. Kadro oranlarını (cinsiyet, yaş, ten, beden) bozuyor mu?
 4. Kişiliği meslek, aksesuar ve ifadeyle mi kuruldu? Aksan, köken veya din bir şaka unsuru mu?
-5. Gerçek bir kişiye benziyor mu? (İki kişiye "Bu kime benziyor?" diye sor.)
+5. Gerçek bir kişiye, özellikle gerçek bir futbolcuya benziyor mu? (İki kişiye "Bu kime benziyor?" diye sor.)
 6. Ev formasının ana + ikincil rengi yasaklı bir kombinasyon mu?
+7. Sürpriz karakterse kadronun %25 sınırını aşıyor mu?
 
 ---
 
@@ -740,7 +760,11 @@ jersey: {MAIN COLOR} body with {SECONDARY COLOR} {sleeves / collar},
 expression: {EXPRESSION}.
 ```
 
-**Örnek doldurma (bakkal):** `Character: friendly neighborhood grocer, man in his 50s, stocky, light warm skin, short brown hair under the cap, signature accessory: flat cap in charcoal grey, jersey: cream body with orange raglan sleeves, orange shorts, expression: warm confident smile.`
+**Örnek doldurma (futbolcu tipi, Kor):** `Character: fictional football striker, woman in her 20s, medium build, medium warm skin, short spiky red hair standing up like flames, signature accessory: terry-cloth headband in turquoise, jersey: red body with cream collar, red shorts, expression: confident grin.`
+
+**Örnek doldurma (sürpriz karakter, bakkal):** `Character: friendly corner-shop grocer playing football, man in his 50s, stocky, light warm skin, short brown hair under the cap, big brown handlebar moustache, signature accessory: flat cap in charcoal grey, jersey: cream body with orange raglan sleeves, orange shorts, expression: warm confident smile.`
+
+Futbolcu tiplerinde "fictional" kelimesi bilerek yazılır; gerçek oyuncu, kulüp, lig veya ülke adı yazılmaz (§7.2).
 
 ### 8.3 Model sayfası
 
@@ -770,18 +794,26 @@ Character: {...}
 
 ```text
 2D game background, flat orthographic side view, no perspective, wide 21:9,
-quiet residential street in a warm Mediterranean neighborhood at golden-hour sunset,
-low-rise apartment buildings with small balconies, laundry lines, potted plants,
-a small corner grocery shop with a blank sign and a striped awning, satellite dishes and roof antennas,
-facades backlit and in muted mauve-purple shadow, warm orange light only on the top edges,
+a small cozy fictional football stadium seen from the pitch, at golden-hour sunset,
+low stands with simple seat blocks, a cheerful crowd drawn as simple rounded faceless shapes,
+a stand roof with a few thin steel trusses, two floodlight towers switched off, a blank scoreboard,
+pitch-side boards left completely blank,
+stands backlit and in muted mauve-purple shadow, warm orange light only on the top edges,
 sky in four flat horizontal color bands from dusky violet to rose to peach to golden, no sun disc,
 flat vector shapes, very low detail and low contrast compared to game characters,
-thin colored outlines on the middle buildings, no outlines on distant buildings,
-an empty flat dark asphalt ground strip across the bottom with a light curb edge,
-no people, no cars, no text, no logos, no signs with letters.
+thin colored outlines on the stands, no outlines on distant shapes,
+an empty flat ground strip across the bottom with one light edge line,
+no players, no ball, no text, no logos, no letters, no numbers, no club colors, no crests.
 ```
 
-Yapay zekâ katmanları ayrı üretemez. Tek sahne konsepti üretilir; yeniden çizimde [§10.2](#102-parallax-katmanları)'deki katmanlara elle ayrılır.
+**Varyantlar:** İkinci satırdaki zaman ifadesi değiştirilir, gerisi aynı kalır:
+
+- Gündüz: `at bright midday, clear sky in four flat light blue bands`
+- Gece ışıklı: `at night under switched-on floodlights drawn as flat shapes, no glow, no light beams, no lens flare`
+- Karlı: `in light snowfall, snow only on the roof edges and board tops, flat snowflake shapes`
+- Yağmurlu: `in light rain, thin flat rain streaks only behind the pitch, umbrellas in the crowd`
+
+Yapay zekâ katmanları ayrı üretemez. Tek sahne konsepti üretilir; yeniden çizimde [§10.2](#102-parallax-katmanları)'deki katmanlara elle ayrılır. Konseptteki renkler referans değildir; varyant renkleri [§2.4](#24-arka-plan-paleti)'teki yolla eklenir.
 
 ### 8.6 Olumsuz prompt listesi
 
@@ -794,7 +826,7 @@ texture, noise, film grain, halftone, hatching, crosshatching, sketch lines, pen
 double lines, hair strands, individual hairs, stubble dots, pores, skin texture,
 detailed wrinkles, many wrinkles, three-quarter view, 3/4 view, front view,
 multiple characters, crowd, text, letters, words, numbers, logo, brand, watermark, signature,
-club crest, badge, sponsor, striped jersey, vertical stripes, team kit, famous footballer,
+club crest, badge, sponsor, striped jersey, vertical stripes, team kit, famous footballer, famous stadium,
 celebrity, real person likeness, anime, manga, big sparkly eyes, angry clenched-teeth face,
 muscular, extra fingers, missing fingers, extra limbs, deformed hands, asymmetrical eyes,
 floating accessories, hat brim through the ear, glasses merging into hair,
@@ -886,7 +918,7 @@ Her parça teslim edilmeden önce işaretlenir. Bir madde bile kalırsa görsel 
 **Kimlik ve bütünlük**
 
 - [ ] Gerçek bir kişiye benzemiyor (iki kişiye soruldu)
-- [ ] Gerçek kulüp veya marka çağrıştırmıyor
+- [ ] Gerçek kulüp, stadyum veya marka çağrıştırmıyor
 - [ ] Klişe içermiyor (§7.2)
 - [ ] Kadronun yanına konduğunda aynı elden çıkmış gibi duruyor (çizgi, doygunluk ve detay yoğunluğu aynı)
 - [ ] "Ortalama yüz" değil: tek bakışta bir kişiliği var
@@ -934,7 +966,7 @@ Telefonlar 16:9'dan 21:9'a kadar, tabletler 4:3'e kadar farklı en-boy oranları
 
 - **Tuval: 2560×1440 @1x.** Genişlik 21,3:9'a kadar telefonları (yükseklik 1080'e sığdırılınca), yükseklik 4:3 tabletleri (genişlik 1920'ye sığdırılınca) kapsar.
 - **Çekirdek: ortadaki 1920×1080.** Kaleler, zemin çizgisi ve tüm oynanış nesneleri çekirdeğin içindedir. Dışarıdaki alan yalnızca dekordur ve hiçbir cihazda oynanış bilgisi taşımaz.
-- **Zemin çizgisi:** Çekirdekte y = 880 (tuvalde y = 1060). Karakterlerin bastığı kaldırım kenarı. Tek, net ve açık bir ışık çizgisidir.
+- **Zemin çizgisi:** Çekirdekte y = 880 (tuvalde y = 1060). Karakterlerin bastığı saha zemininin üst kenarı. Tek, net ve açık bir ışık çizgisidir.
 - **Taşma payı:** Kamera sarsıntısı ve parallax kayması için her katman her kenardan **32 px** fazla çizilir (2624×1504).
 - **HUD ve butonlar** ekrana sabitlenir ve cihazın güvenli alanına (çentik, yuvarlak köşe) göre yerleşir. Arka plan güvenli alanın dışına da taşar.
 
@@ -942,14 +974,14 @@ Telefonlar 16:9'dan 21:9'a kadar, tabletler 4:3'e kadar farklı en-boy oranları
 
 Maç kamerası sabittir. Derinlik çarpanı kamera sarsıntısında, gol yakınlaştırmasında ve menü geçişlerinde kullanılır; bu, küçük ama "pahalı" görünen bir derinlik hissi verir.
 
-| Katman                        | İçerik                                                                             | Derinlik çarpanı | Kontur                  | Değer / doygunluk                           | Animasyon                                                                        | Dışa aktarma                           |
-| ----------------------------- | ---------------------------------------------------------------------------------- | ---------------- | ----------------------- | ------------------------------------------- | -------------------------------------------------------------------------------- | -------------------------------------- |
-| **K0 Gökyüzü**                | 4 düz bant, 2–3 düz bulut                                                          | 0,05             | Yok                     | Bantlar §2.4                                | Bulutlar çok yavaş kayar                                                         | 0,5x (ya da motorda düz renk bantları) |
-| **K1 Uzak silüet**            | Apartman siluetleri, su deposu, antenler, uzak tepe                                | 0,15             | Yok                     | Tek ton `#765A80`, üst kenarda ışık çizgisi | Yok                                                                              | 0,5x                                   |
-| **K2 Orta plan**              | Cepheler, balkonlar, çamaşır ipleri, saksılar, bakkal ve dükkân önleri, pencereler | 0,40             | İnce renkli (2 px)      | L\* 34–65, doygunluk karakterlerin ~%60'ı   | Çamaşırlar hafif sallanır; golde komşular pencereden alkışlar, çamaşırlar uçuşur | 1x, modüler parçalar                   |
-| **K3 Saha arkası**            | Duvar veya çit, kale arkası, tebeşir çizimleri                                     | 0,80             | Renkli (3 px)           | L\* 50–70                                   | Golde kedi duvarın üstünden kaçar                                                | 1x                                     |
-| **K4 Oyun düzlemi**           | Zemin, kaleler, karakterler, top                                                   | 1,00             | **Tam kontur**          | En yüksek kontrast                          | Oyun                                                                             | 1x                                     |
-| **K5 Ön plan** (isteğe bağlı) | Kaldırım kenarı, saksı, uyuyan kedi                                                | 1,15             | Tam kontur, koyu silüet | Koyu, düşük detay                           | Yok                                                                              | 1x                                     |
+| Katman                        | İçerik                                                                        | Derinlik çarpanı | Kontur                  | Değer / doygunluk                           | Animasyon                                                                                                   | Dışa aktarma                           |
+| ----------------------------- | ----------------------------------------------------------------------------- | ---------------- | ----------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| **K0 Gökyüzü**                | 4 düz bant, 2–3 düz bulut                                                     | 0,05             | Yok                     | Bantlar §2.4                                | Bulutlar çok yavaş kayar                                                                                    | 0,5x (ya da motorda düz renk bantları) |
+| **K1 Uzak silüet**            | Şehir silüeti ve uzak tepeler, karşı tribünün çatısı, projektör kuleleri      | 0,15             | Yok                     | Tek ton `#765A80`, üst kenarda ışık çizgisi | Yok                                                                                                         | 0,5x                                   |
+| **K2 Orta plan**              | Tribünler, koltuk blokları, kalabalık şeritleri, tribün çatısı, skor tabelası | 0,40             | İnce renkli (2 px)      | L\* 34–65, doygunluk karakterlerin ~%60'ı   | Kalabalık hafifçe dalgalanır, bayraklar sallanır; golde tribün ayağa fırlar, atkılar ve bayraklar havalanır | 1x, modüler parçalar                   |
+| **K3 Saha arkası**            | Saha kenarı panoları, kale arkası, yedek kulübesi                             | 0,80             | Renkli (3 px)           | L\* 50–70                                   | Golde panolarda oyunun kendi "GOL!" animasyonu (düz şekil, parlamasız)                                      | 1x                                     |
+| **K4 Oyun düzlemi**           | Zemin, kaleler, karakterler, top                                              | 1,00             | **Tam kontur**          | En yüksek kontrast                          | Oyun                                                                                                        | 1x                                     |
+| **K5 Ön plan** (isteğe bağlı) | Saha kenarı çizgisi, su şişeleri, yedek top filesi                            | 1,15             | Tam kontur, koyu silüet | Koyu, düşük detay                           | Yok                                                                                                         | 1x                                     |
 
 **K5 kuralı:** Maç sırasında ön plan yalnızca ekranın alt %5'inde ve kontrol butonlarının **arasında** yer alır. Oynanış alanını ve kontrolleri asla örtmez. Menülerde serbesttir.
 
@@ -957,24 +989,36 @@ Maç kamerası sabittir. Derinlik çarpanı kamera sarsıntısında, gol yakınl
 
 - **Arka plan karakterden sakindir:** daha düşük kontrast, daha düşük doygunluk, daha ince kontur, daha az detay. Gri tonlama testinde karakterler arka planın önünde açıkça okunmalıdır.
 - **Oyun yüksekliği bandı** (zemin çizgisi ile HUD arası) değer kurallarına uyar (§2.8). Ufuk bandı (Gök 4) binaların arkasında kalır.
-- **Tekrar gizleme:** Modüler parçalar yan yana aynı sırayla dizilmez. Her 3 cephede bir varyasyon kullanılır (pencere düzeni, balkon, saksı).
+- **Tekrar gizleme:** Modüler parçalar yan yana aynı sırayla dizilmez. Her 3 tribün modülünde bir varyasyon kullanılır (koltuk düzeni, bayrak, kalabalık yoğunluğu).
+- **Kalabalık:** Seyirciler yüzsüz, düz renkli, yuvarlak silüetlerdir; karakter yüz kütüphanesi kalabalıkta kullanılmaz (dikkati oyundan çeker, bellek bütçesini aşar). Taraf renkleri (mavi `#2A6AD8`, turuncu `#FFA54A`) kalabalıkta geniş alan olarak kullanılmaz (§2.6).
 - **Doku:** Yalnızca K1–K3'ün üstünde tek bir global kâğıt/grain katmanı, en fazla %6 opaklık. Karakter katmanının üstünde asla.
-- **Yazı:** Tabelalarda okunabilir harf kullanılmaz ya da yalnızca uydurma, nötr kelimeler kullanılır (BAKKAL, BERBER, MANAV). Gerçek marka adı yoktur.
+- **Yazı:** Tabelalarda okunabilir harf kullanılmaz ya da yalnızca uydurma, nötr kelimeler kullanılır (GOL, KAPI 3, TRİBÜN). Gerçek marka, kulüp veya stadyum adı yoktur.
+- **Gerçek stadyum yok:** Tanınmış bir stadyumun çatı biçimi, tribün düzeni, renk düzeni veya adı kullanılmaz. Şüphede "Bu hangi stadyuma benziyor?" diye sor.
 - **Gerçek reklam yok** (analiz §6.6). Panolar ve tabelalar oyunun kendi etkinlik ve sezon duyurularını gösterir. Bu yüzden duyuru panosu değiştirilebilir bir parça olarak tasarlanır.
 
 ### 10.4 Modüler saha kiti
 
 Tek kişilik üretimde en büyük risk arka plan yüküdür (NOTLAR.md, A'nın zayıf yanı). Çözüm: tek seferlik resim yerine **parça kiti.**
 
-- **Kit içeriği:** Gök seti · K1 silüet şeridi (tekrarlanabilir) · K2 modülleri (3 cephe tipi × 2 pencere düzeni, balkon, tente, dükkân önü, saksı, çamaşır ipi, elektrik direği, ağaç) · K3 duvar modülleri · zemin şeridi · kale · animasyonlu süsler.
-- **Yeni saha teması = aynı modüller + renk değişimi + 3 yeni süs.** Örnek: Kış (çatılarda ve duvar üstünde kar, soğuk gök bantları), Yaz (gölgelik, dondurma arabası), Bayram (süs ipleri, renkli bayraklar; dini sembol yok).
-- Her tema aynı değer kurallarından (§2.8) ve okunurluk testlerinden geçer. Kozmetik saha temaları da buna dahildir.
+- **Kit içeriği:** Gök seti · K1 silüet şeridi (tekrarlanabilir) · K2 modülleri (3 tribün bloğu × 2 koltuk düzeni, kalabalık şeritleri, tribün çatısı, skor tabelası, projektör kulesi, bayrak direği) · K3 pano modülleri · zemin şeridi · kale · animasyonlu süsler.
+- **Yeni stadyum varyantı = aynı modüller + renk değişimi + 3 yeni süs.** Varyant renkleri §2.4'teki yolla eklenir.
+
+| Varyant     | Ne değişir                                                                                       | Okunurluk notu                                                                                                    |
+| ----------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| Gündüz      | Açık gök bantları, daha az doygun tribün gölgesi                                                 | Gök açıldıkça topla fark azalır: oyun yüksekliği bandında L\* > 80 geniş alan yok (§2.8)                          |
+| Gece ışıklı | Koyu gök bantları, projektörler açık; ışık düz şekil, üst kenar ışık çizgileri daha belirgin     | Glow, ışık huzmesi, lens parlaması yok (§12.1); L\* < 25 geniş alan yok, kontur karışmasın (§2.8)                 |
+| Karlı       | Tribün çatısında ve pano üst kenarında kar, soğuk gök, kalabalıkta bere ve atkı                  | Kar beyazı topla karışır: kar yalnızca oyun yüksekliği bandının dışında ve ince şeritler hâlinde; top ile ΔL ≥ 25 |
+| Yağmurlu    | İnce, düz yağmur çizgileri yalnızca K1–K3'te; kalabalıkta şemsiyeler; zeminde düz su birikintisi | Yağmur oyun düzleminin önüne geçmez; ekranın %25'inden büyük yarı saydam katman yok (§12.3)                       |
+| İleride     | Kumsal, çatı gibi eğlenceli sahalar                                                              | Aynı kurallar; zemin ve kale görselleri fizik çerçevesine birebir oturur (§10.5)                                  |
+
+- **Karakter çizimi sahaya göre değişmez:** Kenar ışığı her sahada sıcak turuncu, gölge alttan kalır. Sahne ışığı farkı yalnızca arka planda verilir; bu, tek karakter görseliyle her sahada tutarlılığı sağlar.
+- Her varyant aynı değer kurallarından (§2.8) ve okunurluk testlerinden geçer. Kozmetik stadyum özelleştirmeleri (GAME_DESIGN_MOBILE §4.1, 12. kategori) de buna dahildir.
 
 ### 10.5 Oyun nesneleri: kale, zemin, duvar
 
-- **Kale:** Eski, boyası atmış metal çerçeve + yırtık file. Direkler ve üst direk tam konturlu ve topla aynı değerde okunur (L\* farkı en az 25). File, kontursuz ve yarı saydam olarak arkada kalır.
+- **Kale:** Boyalı metal çerçeve + file. Direkler ve üst direk tam konturlu ve topla aynı değerde okunur (L\* farkı en az 25). Bu yüzden gerçek kalelerdeki beyaz direk kullanılmaz (kırık beyaz topla karışır). File, kontursuz ve yarı saydam olarak arkada kalır.
 - **Kale görseli fizik çerçevesine birebir oturur.** Üst direğin görsel kalınlığı çarpışma kalınlığıyla aynıdır.
-- **Zemin:** Asfalt şeridi + kaldırım kenarı. Zemin çizgisi tek bir açık ışık çizgisidir (`#E9B88A`).
+- **Zemin:** Saha zemini şeridi + saha kenarı şeridi. Zemin çizgisi tek bir açık ışık çizgisidir (`#E9B88A`). Çim rengi ilk stadyumla eklenir (§2.4).
 - Oyuncunun çarpabileceği her yüzey tam konturludur (§3.6). Konturu olmayan hiçbir şey fizik nesnesi değildir.
 
 ---
@@ -983,17 +1027,17 @@ Tek kişilik üretimde en büyük risk arka plan yüküdür (NOTLAR.md, A'nın z
 
 ### 11.1 Malzeme dili
 
-Arayüz, mahallenin gerçek malzemelerinden yapılır. Hepsi düz renkli vektördür; malzeme hissi şekil ve kenarla verilir, dokuyla değil.
+Arayüz, stadyumun gerçek malzemelerinden yapılır. Hepsi düz renkli vektördür; malzeme hissi şekil ve kenarla verilir, dokuyla değil.
 
-| Malzeme                  | Nerede                                                                     | Görünüş                                                                              |
-| ------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| **Emaye sokak tabelası** | Ana paneller, başlık plakaları                                             | Emaye mavi dolgu, kırık beyaz iç çerçeve, köşelerde vida (yalnızca büyük panellerde) |
-| **Boyalı teneke tabela** | Butonlar                                                                   | Düz renk, alt kenarda kalınlık şeridi. Basınca aşağı iner.                           |
-| **Kâğıt**                | Görev listesi (bakkal alışveriş listesi gibi), dolap etiketleri, ödül fişi | Krem sıva, tek bir yırtık kenar şekli                                                |
-| **Kara tahta + tebeşir** | Maç içi skor ve süre                                                       | Kara tahta, ahşap çerçeve, temiz rakamlar                                            |
-| **Damga**                | Mağaza rozeti: "Gördüğünü alırsın · Güç satılmaz"                          | Krem üstünde emaye mavi lastik damga                                                 |
+| Malzeme                    | Nerede                                                                                    | Görünüş                                                                              |
+| -------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| **Emaye stadyum tabelası** | Ana paneller, başlık plakaları (tribün ve kapı yön levhaları gibi)                        | Emaye mavi dolgu, kırık beyaz iç çerçeve, köşelerde vida (yalnızca büyük panellerde) |
+| **Boyalı metal tabela**    | Butonlar                                                                                  | Düz renk, alt kenarda kalınlık şeridi. Basınca aşağı iner.                           |
+| **Kâğıt**                  | Görev listesi (antrenörün not kâğıdı gibi), dolap etiketleri, ödül fişi (maç bileti gibi) | Krem sıva, tek bir yırtık kenar şekli                                                |
+| **Kara tahta + tebeşir**   | Maç içi skor ve süre                                                                      | Taktik tahtası: kara tahta, ahşap çerçeve, temiz rakamlar                            |
+| **Damga**                  | Mağaza rozeti: "Gördüğünü alırsın · Güç satılmaz"                                         | Krem üstünde emaye mavi lastik damga (bilet damgası gibi)                            |
 
-**Mahalle kimliği:** Yumuşak para birimi = **şişe kapağı.** Mağaza = **bakkal vitrini** (turuncu-krem çizgili tente). Premium para birimi gerekirse öneri **misket** (bkz. [Ek B](#ek-b--açık-kararlar)).
+**Stadyum kimliği:** Para birimleri **Altın** (oynayarak kazanılır) ve **Elmas** (premium); kurallar GAME_DESIGN_MOBILE §2.1'de ([Ek B](#ek-b--kararlar) karar 2). Şişe kapağı ve misket kullanılmaz. Mağaza = **stadyum büfesi** (turuncu-krem çizgili tente ve vitrin). Dolap = **soyunma odası dolabı**.
 
 ### 11.2 Paneller ve butonlar (@1x)
 
@@ -1055,8 +1099,9 @@ Yatay ekranda 1080 piksellik yükseklik yaklaşık 360–411 dp'dir, yani **1 dp
 - **Rakamlar temizdir.** Tebeşir hissi yalnızca tahtada tek bir silinti şekliyle verilir, rakamların kendisinde doku yoktur. Skor ve süre için sabit genişlikli rakamlar kullanılır (§11.5), böylece sayı değiştikçe yazı yerinden oynamaz.
 - **Avatar:** Profil kafa, 96 px, taraf renginde çerçeve.
 - **İsim plakası:** Küçük emaye tabela; sol kenarda taraf renginde şerit. Misafir oyunculara rastgele eğlenceli isimler verilir ("GUEST_" asla, analiz §5.9).
+- **Taraflar:** Oyuncu her zaman soldadır ([Ek B](#ek-b--kararlar) karar 1): soldaki avatar, isim plakası ve mavi taraf rengi her cihazda o cihazın oyuncusunundur.
 - **"SEN" oku:** Kafanın 40 px üstünde, taraf mavisi dolgu, kırık beyaz "SEN" yazısı, tam kontur. Başlama vuruşunda ve her golden sonra 2 saniye görünür.
-- **Kontroller:** Teneke rozet görünümlü daireler, krem dolgu. Varsayılan opaklık **%75**, ayarlardan %40–100. **Kontur her zaman tam opaktır.** Boyut ve konum ayarlanabilir, sol el düzeni seçeneği vardır. (Head Basketball dersi: görünmez kontroller.)
+- **Kontroller:** Boyalı metal rozet görünümlü daireler, krem dolgu. Varsayılan opaklık **%75**, ayarlardan %40–100. **Kontur her zaman tam opaktır.** Boyut ve konum ayarlanabilir, sol el düzeni seçeneği vardır. (Head Basketball dersi: görünmez kontroller.)
 - **Duraklat:** Sol üst köşe, güvenli alanın içinde.
 
 ### 11.5 Tipografi
@@ -1111,25 +1156,26 @@ SIL Open Font License 1.1 şunlara izin verir: ticari kullanım, oyuna ve uygula
 
 - **Izgara:** 128 × 128 @1x (256 @2x), güvenli alan 112, kontur 4 px @1x.
 - **Stil:** Ön görünüm (düz, perspektifsiz), 2 ton (taban + gölge) + tek parlama, üst kenarda sıcak kenar ışığı. Tek nesne, aynı açı, aynı kontur.
-- **Anlam evrenseldir, malzeme mahalleden gelir.** Ayarlar yine çarktır ama teneke çark. İkonun anlamı tema uğruna değiştirilmez.
+- **Anlam evrenseldir, malzeme stadyumdan gelir.** Ayarlar yine çarktır ama boyalı metal çark. İkonun anlamı tema uğruna değiştirilmez.
 
-| İkon                                       | Görsel                                        |
-| ------------------------------------------ | --------------------------------------------- |
-| Mağaza                                     | Bakkal tentesi + vitrin                       |
-| Dolap                                      | Askılı dolap                                  |
-| Görevler                                   | Alışveriş listesi kâğıdı + tik                |
-| Sezon                                      | Duvar takvimi                                 |
-| Günlük ödül                                | Takvim yaprağı + şişe kapağı                  |
-| Yumuşak para                               | Şişe kapağı                                   |
-| Reklam izle (ödüllü)                       | Eski tüplü televizyon                         |
-| Arkadaşlar                                 | İki küçük kafa                                |
-| Rövanş                                     | İki ok halkası                                |
-| Paylaş                                     | Kâğıt uçak                                    |
-| Ayarlar, ses, titreşim, kilit, geri, kapat | Evrensel şekiller, teneke ve emaye malzemeyle |
+| İkon                                       | Görsel                                              |
+| ------------------------------------------ | --------------------------------------------------- |
+| Mağaza                                     | Büfe tentesi + vitrin                               |
+| Dolap                                      | Soyunma odası dolabı                                |
+| Görevler                                   | Antrenörün klipsli not kâğıdı + tik                 |
+| Sezon                                      | Duvar takvimi                                       |
+| Günlük ödül                                | Takvim yaprağı + Altın sikke                        |
+| Altın                                      | Altın sikke                                         |
+| Elmas                                      | Elmas taşı                                          |
+| Reklam izle (ödüllü)                       | Eski tüplü televizyon                               |
+| Arkadaşlar                                 | İki küçük kafa                                      |
+| Rövanş                                     | İki ok halkası                                      |
+| Paylaş                                     | Kâğıt uçak                                          |
+| Ayarlar, ses, titreşim, kilit, geri, kapat | Evrensel şekiller, boyalı metal ve emaye malzemeyle |
 
 ### 11.7 Uygulama ikonu
 
-- **Konsept** (§7.1): Turuncu gün batımı zemininde iki kafa alın alına (Bakkal + bir rakip), aralarında küçük yıldızlar. **Yazı yok.**
+- **Konsept** (§7.1): Turuncu gün batımı zemininde iki kafa alın alına (ör. Bakkal + bir futbolcu tipi; son seçim model sayfalarından sonra), aralarında küçük yıldızlar. **Yazı yok.**
 - **Master:** 1024 × 1024 katmanlı vektör: arka plan (gök bantları) / iki kafa / yıldızlar. Katmanlı tutulduğu için her platform biçimi buradan çıkar.
 - **Google Play:** 512 × 512, 32-bit PNG (alfa ile), en fazla 1024 KB. **Tam kare ve gölgesiz yüklenir;** Play köşe yuvarlamasını (%20) ve gölgeyi kendisi ekler.
 - **Android uyarlanabilir simge (adaptive icon):** Ön plan ve arka plan katmanları 108 × 108 dp. İki kafa ortadaki **66 dp'lik güvenli dairenin** içinde kalır. Tema simgeleri için tek renkli (monochrome) katman da hazırlanır.
@@ -1153,18 +1199,18 @@ SIL Open Font License 1.1 şunlara izin verir: ticari kullanım, oyuna ve uygula
 
 Değerler **üst sınırdır.** Test sonucuna göre düşürülebilir; artırmak için önce bu tablo güncellenir.
 
-| Olay                                       | Efekt                                                                                               | Süre     | Parçacık (en fazla) | Kamera                                 | Öncelik |
-| ------------------------------------------ | --------------------------------------------------------------------------------------------------- | -------- | ------------------- | -------------------------------------- | ------- |
-| **Kafa çarpışması** (imza an, analiz §6.4) | 90 ms donma (hit-stop), 5 yıldızlı halka, "TAK!", iki kafa birbirinden seker, sersem ifadesi        | 600 ms   | 12                  | 6 px sarsıntı, 150 ms                  | 1       |
-| **Gol**                                    | File dalgalanır, "GOL!", kâğıt konfeti, balkonda alkışlayan komşular, kaçan kedi, uçuşan çamaşırlar | 1.800 ms | 40                  | 10 px sarsıntı, 250 ms + %4 yakınlaşma | 1       |
-| Güçlü vuruş (eşik üstü hız)                | 3 hız çizgisi + "PAT!"                                                                              | 250 ms   | 6                   | 3 px, 80 ms                            | 2       |
-| Top direğe çarpar                          | "ÇAT!" (küçük) + 2 titreşim çizgisi                                                                 | 250 ms   | 4                   | 2 px, 60 ms                            | 2       |
-| Normal vuruş                               | 3 toz pufu                                                                                          | 200 ms   | 3                   | —                                      | 3       |
-| Top izi (hızlıyken)                        | Segmentli iz, opaklık ≤ %50, uzunluk ≤ 3 top çapı                                                   | Sürekli  | 6                   | —                                      | 3       |
-| Gol yiyen oyuncu                           | Ter damlası + yenilgi ifadesi                                                                       | 800 ms   | 2                   | —                                      | 3       |
-| İniş                                       | 2 toz pufu                                                                                          | 200 ms   | 2                   | —                                      | 4       |
-| Sonuç ekranı (kazanma)                     | Konfeti + kazanan pozu                                                                              | 2.000 ms | 60                  | —                                      | —       |
-| Arayüz ödülü                               | Parıltı yıldızları                                                                                  | 600 ms   | 8                   | —                                      | —       |
+| Olay                                       | Efekt                                                                                        | Süre     | Parçacık (en fazla) | Kamera                                 | Öncelik |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------- | -------- | ------------------- | -------------------------------------- | ------- |
+| **Kafa çarpışması** (imza an, analiz §6.4) | 90 ms donma (hit-stop), 5 yıldızlı halka, "TAK!", iki kafa birbirinden seker, sersem ifadesi | 600 ms   | 12                  | 6 px sarsıntı, 150 ms                  | 1       |
+| **Gol**                                    | File dalgalanır, "GOL!", kâğıt konfeti, tribün ayağa fırlar, atkılar ve bayraklar havalanır  | 1.800 ms | 40                  | 10 px sarsıntı, 250 ms + %4 yakınlaşma | 1       |
+| Güçlü vuruş (eşik üstü hız)                | 3 hız çizgisi + "PAT!"                                                                       | 250 ms   | 6                   | 3 px, 80 ms                            | 2       |
+| Top direğe çarpar                          | "ÇAT!" (küçük) + 2 titreşim çizgisi                                                          | 250 ms   | 4                   | 2 px, 60 ms                            | 2       |
+| Normal vuruş                               | 3 toz pufu                                                                                   | 200 ms   | 3                   | —                                      | 3       |
+| Top izi (hızlıyken)                        | Segmentli iz, opaklık ≤ %50, uzunluk ≤ 3 top çapı                                            | Sürekli  | 6                   | —                                      | 3       |
+| Gol yiyen oyuncu                           | Ter damlası + yenilgi ifadesi                                                                | 800 ms   | 2                   | —                                      | 3       |
+| İniş                                       | 2 toz pufu                                                                                   | 200 ms   | 2                   | —                                      | 4       |
+| Sonuç ekranı (kazanma)                     | Konfeti + kazanan pozu                                                                       | 2.000 ms | 60                  | —                                      | —       |
+| Arayüz ödülü                               | Parıltı yıldızları                                                                           | 600 ms   | 8                   | —                                      | —       |
 
 ### 12.3 Genel sınırlar
 
@@ -1213,21 +1259,21 @@ docs/ART_BIBLE.md
 docs/LICENSES_ART.md        font ve üçüncü taraf varlık lisansları
 ```
 
-Büyük ikili kaynak dosyalar (`.afdesign`, `.ai`, büyük PNG'ler) için **Git LFS** kullanılır; aksi halde depo hızla şişer.
+Kaynak dosyalar **Inkscape SVG**'sidir ([Ek B](#ek-b--kararlar) karar 5): metin dosyası olduğu için git farkı görünür. Büyük PNG'ler ve konsept görselleri için **Git LFS** kullanılır; aksi halde depo hızla şişer.
 
 ### 13.2 Formatlar
 
-| Tür                 | Kaynak                                        | Oyuna giren                                               | Not                                               |
-| ------------------- | --------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------- |
-| Karakter parçaları  | Vektör (programın kendi formatı) + SVG yedeği | PNG-32 (sRGB, alfa) → atlas                               | Her parçanın çevresinde 2 px şeffaf pay           |
-| Arka plan           | Vektör                                        | PNG-32 (K2–K5 @1x); K0–K1 @0,5x                           | Gök bantları istenirse motorda düz renkle çizilir |
-| Arayüz              | Vektör                                        | PNG-32 atlas + 9-dilim verisi                             |                                                   |
-| İkonlar ve efektler | Vektör                                        | PNG-32 atlas                                              |                                                   |
-| Fontlar             | TTF (OFL)                                     | TTF veya bitmap font (`.fnt` + PNG)                       | Lisans metni build'e eklenir                      |
-| Animasyon verisi    | Faz 3.2'de seçilecek araç                     | JSON                                                      | Pivotlar ve katman sırası                         |
-| Uygulama ikonu      | Katmanlı vektör 1024                          | 512 PNG (Play), adaptive katmanlar, iOS 1024              | §11.7                                             |
-| Pazarlama           | Vektör + PNG                                  | 1024×500 JPEG/PNG (alfa yok), ekran görüntüleri 1920×1080 |                                                   |
-| Palet               | `.ase` / `.gpl`                               | `palette.json`                                            | Tek kaynak                                        |
+| Tür                    | Kaynak                                    | Oyuna giren                                               | Not                                                                                               |
+| ---------------------- | ----------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Karakter parçaları     | Inkscape SVG (tek kaynak)                 | PNG-32 (sRGB, alfa) → atlas                               | Her parçanın çevresinde 2 px şeffaf pay. Parçalar şablon sayfası boyutunda dışa aktarılır (§13.6) |
+| Arka plan              | Vektör                                    | PNG-32 (K2–K5 @1x); K0–K1 @0,5x                           | Gök bantları istenirse motorda düz renkle çizilir                                                 |
+| Arayüz                 | Vektör                                    | PNG-32 atlas + 9-dilim verisi                             |                                                                                                   |
+| İkonlar ve efektler    | Vektör                                    | PNG-32 atlas                                              |                                                                                                   |
+| Fontlar                | TTF (OFL)                                 | TTF veya bitmap font (`.fnt` + PNG)                       | Lisans metni build'e eklenir                                                                      |
+| Pivot ve katman verisi | Şablondaki eklem noktaları (Inkscape SVG) | `kar_{id}_iskelet.json`                                   | §13.6. Animasyonun kendisi kodda (Faz 3.2); animasyon dosyası yok                                 |
+| Uygulama ikonu         | Katmanlı vektör 1024                      | 512 PNG (Play), adaptive katmanlar, iOS 1024              | §11.7                                                                                             |
+| Pazarlama              | Vektör + PNG                              | 1024×500 JPEG/PNG (alfa yok), ekran görüntüleri 1920×1080 |                                                                                                   |
+| Palet                  | `.ase` / `.gpl`                           | `palette.json`                                            | Tek kaynak                                                                                        |
 
 - **Web sürümü:** PNG ya da kayıpsız WebP. **Mobil:** Motorun doku sıkıştırması (ASTC veya ETC2). Sıkıştırmadan sonra kontur kenarlarında bozulma olup olmadığı test edilir; karakter ve arayüz atlasları yüksek kaliteyle sıkıştırılır.
 - **Alfa:** Atlas aracının "premultiplied alpha" ayarı motorun beklentisiyle eşleşmelidir. Test: Parçaları açık ve koyu zemin önünde göster; kenarlarda beyaz veya siyah hale olmamalı.
@@ -1269,15 +1315,59 @@ Büyük ikili kaynak dosyalar (`.afdesign`, `.ai`, büyük PNG'ler) için **Git 
 | Ortak yüz        | `yuz_`  | `yuz_goz_mutlu_buyuk@1x.png` · `yuz_kas_catik_kalin@1x.png` · `yuz_agiz_kahkaha@1x.png`                                        |
 | Kozmetik         | `koz_`  | `koz_sapka_kasket_antrasit@1x.png` · `koz_sac_dalgali_sapka_alti@1x.png` · `koz_ayakkabi_klasik_kirmizi@1x.png`                |
 | Top              | `top_`  | `top_klasik@1x.png` · `top_klasik_isik@1x.png` (dönmeyen katman)                                                               |
-| Saha             | `saha_` | `saha_mahalle_k2_cephe_03@1x.png` · `saha_mahalle_k0_gok@0.5x.png`                                                             |
+| Saha             | `saha_` | `saha_gece_k2_tribun_03@1x.png` · `saha_gece_k0_gok@0.5x.png`                                                                  |
 | Arayüz           | `ui_`   | `ui_buton_birincil_basili@1x.png` · `ui_panel_emaye_vidali@1x.png`                                                             |
-| İkon             | `ikon_` | `ikon_magaza@1x.png` · `ikon_sise_kapagi@1x.png`                                                                               |
+| İkon             | `ikon_` | `ikon_magaza@1x.png` · `ikon_elmas@1x.png`                                                                                     |
 | Efekt            | `fx_`   | `fx_yildiz_01@1x.png` · `fx_onomatope_tak@1x.png`                                                                              |
 | Pazarlama        | `paz_`  | `paz_uygulama_ikonu_512.png` · `paz_one_cikan_1024x500.jpg`                                                                    |
-| Kaynak           | —       | `art/karakter/bakkal/kar_bakkal.afdesign`                                                                                      |
+| Kaynak           | —       | `art/karakter/bakkal/kar_bakkal.svg`                                                                                           |
+| İskelet          | —       | `kar_bakkal_iskelet.json` (§13.6)                                                                                              |
 | Konsept          | —       | `art/_konsept/bakkal/2026-11-20_01.png` + `2026-11-20_01.txt`                                                                  |
 
 **Durum ekleri:** `_normal`, `_basili`, `_pasif` · **İfade ekleri:** `notr`, `sevinc`, `efor`, `yenilgi`, `saskin`, `sersem` · **Forma ekleri:** `ev`, `alt_acik`, `alt_koyu`.
+
+### 13.6 Pivot ve katman verisi (kod tabanlı animasyon)
+
+Animasyon kodla yazılır (Faz 3.2; [Ek B](#ek-b--kararlar) karar 6). Motor her karakter için yalnızca iki şey bekler: atlastaki **parça görselleri** ve tek bir **iskelet dosyası** (`kar_{id}_iskelet.json`). Animasyon aracı, anahtar kare ya da zaman çizelgesi dosyası yoktur; yürüme, vuruş, yaylı kafa ve ifade değişimleri kodda.
+
+**Koordinat sistemi** (§6.1'deki eklem sistemiyle aynı):
+
+- Birim **@2x**; motor @1x için 2'ye böler.
+- Orijin (0, 0) = zemin çizgisi ile gövde merkezinin kesiştiği nokta.
+- x öne doğru (+), y **yukarı** doğru (+); karakter sağa bakar. Motor y'yi ekran yönüne çevirir, rakip için x'i aynalar.
+- Pivot her zaman bu sistemde yazılır, görselin kendi köşesine göre değil. Atlas boşluğu kırpsa da pivot değişmez (§13.4).
+
+**Dışa aktarma kuralı:** Her parça, dışa aktarma alanı şablon sayfasının tamamı olacak şekilde ayrı bir PNG olarak verilir (Inkscape: dışa aktarma alanı "Sayfa", diğer katmanlar gizli). Böylece parçanın sayfadaki yeri korunur; atlas aracı boşluğu kırpar ve kırpma payını (orijinal boyut + konum) kaydeder. Motor parçanın yerini bu kayıttan, dönme noktasını iskelet dosyasından bulur. Kozmetik parçalar (saç, şapka, forma, ayakkabı) ve ortak yüz parçaları aynı şablon sayfasında çizildiği için aynı sistemi kullanır ve her karaktere oturur.
+
+**İskelet dosyasının alanları:**
+
+| Alan       | İçerik                                                                                                                                                                                                                                                           |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `surum`    | Biçim sürümü (şu an `1`). Biçim değişince artar; motor tanımadığı sürümü yüklemez.                                                                                                                                                                               |
+| `kimlik`   | Karakter `id`'si (§7.3)                                                                                                                                                                                                                                          |
+| `beden`    | `ince` · `orta` · `genis`                                                                                                                                                                                                                                        |
+| `sayfa`    | Şablon sayfasının @2x genişliği, yüksekliği ve orijinin sayfadaki konumu. Tüm karakterlerde aynıdır; şablondan kopyalanır.                                                                                                                                       |
+| `eklemler` | Eklem adı → `[x, y]`. Değerler §6.1'deki tablodan; beden varyantında yalnızca omuz ve kalça x'i ±10 kayar.                                                                                                                                                       |
+| `parcalar` | Arkadan öne sıralı liste: `ad` (dosya adındaki parça adı, §13.5), `katman` (§6.1 numarası, metin olarak: `"8.10"` sayı olsa `8.1` ile karışır), `eklem` (parçanın döndüğü eklem; gövde için `null`). Kafa grubundaki parçalar (8.x) hep `kafa` ekleminden döner. |
+| `soketler` | Efekt soketleri (§6.1, 8.15): ter damlası ve yıldız halkası noktaları                                                                                                                                                                                            |
+
+Örnek (kısaltılmış; gerçek dosyada `sayfa`, bütün eklemler ve bütün parçalar yazılır):
+
+```json
+{
+  "surum": 1,
+  "kimlik": "bakkal",
+  "beden": "genis",
+  "eklemler": { "kafa": [-11, 262], "on_omuz": [30, 230], "arka_omuz": [-30, 230] },
+  "parcalar": [
+    { "ad": "arka_kol", "katman": "1", "eklem": "arka_omuz" },
+    { "ad": "govde_ev", "katman": "3", "eklem": null },
+    { "ad": "biyik", "katman": "8.9", "eklem": "kafa" }
+  ]
+}
+```
+
+**Kim üretir, kim denetler:** Eklem noktaları şablonun kilitli "eklemler" katmanında, `eklem_kafa`, `eklem_on_omuz` gibi kimlikli küçük dairelerdir (Inkscape: kimlik Nesne Özellikleri'nden verilir); parça katmanlarının kimliği dosya adındaki parça adıdır. İskelet dosyası başta elle yazılır; Faz 3.1'in varlık aracı bu kimliklerden otomatik üretebilir. Faz 3.2'de bir test her iskelet dosyasındaki eklemleri §6.1'deki standart değerlerle karşılaştırır; beden payı (±10) dışındaki fark hata verir.
 
 ---
 
@@ -1324,14 +1414,14 @@ Bir görsel **yalnızca** bu listenin tamamı işaretliyse oyuna girer.
 **Teknik**
 
 - [ ] @1x ve @2x dışa aktarıldı, ölçüler doğru
-- [ ] Pivot ve katman sırası verisi var
+- [ ] İskelet dosyası (§13.6) var; parçalar şablon sayfası boyutunda dışa aktarıldı
 - [ ] Atlas bütçesine sığıyor (§13.4)
 - [ ] Kenarlarda hale yok (açık ve koyu zemin testi)
 - [ ] Yaylı kafa ±18° testinde boşluk yok (karakter ve kafa kozmetikleri için)
 
 **Hukuk ve etik**
 
-- [ ] Gerçek bir kişiye, kulübe veya markaya benzemiyor
+- [ ] Gerçek bir kişiye, kulübe, stadyuma veya markaya benzemiyor
 - [ ] Klişe içermiyor (§7.2)
 - [ ] Kullanılan font ve üçüncü taraf varlıklar `LICENSES_ART.md` dosyasında kayıtlı
 
@@ -1354,7 +1444,7 @@ Bir görsel **yalnızca** bu listenin tamamı işaretliyse oyuna girer.
 | **Aynalama**               | Sağdaki oyuncu olarak aynala                                                                                                                      | Yazı, asimetri veya ışık sorunu yok                                          |
 | **Yaylı kafa**             | Kafa grubunu ±18° döndür                                                                                                                          | Kafa ile gövde arasında boşluk yok                                           |
 | **Mağaza ızgarası** (ikon) | Rakip ikonlarının yanına koy                                                                                                                      | 1 saniyede ayrışıyor                                                         |
-| **Ünlü ve klişe**          | İki kişiye "Bu kime/neye benziyor?" diye sor                                                                                                      | Gerçek kişi, kulüp veya klişe adı geçmiyor                                   |
+| **Ünlü ve klişe**          | İki kişiye "Bu kime/neye benziyor?" diye sor                                                                                                      | Gerçek kişi, kulüp, stadyum veya klişe adı geçmiyor                          |
 | **Swatch denetimi**        | Dosyadaki tüm renkleri listele                                                                                                                    | Palet dışı renk yok; karakter başına ≤ 18 swatch                             |
 | **Türkçe metin** (arayüz)  | Test cümlesi ve en uzun etiketler                                                                                                                 | Eksik glif yok, taşma yok, büyük harf dönüşümü doğru                         |
 
@@ -1365,7 +1455,7 @@ Aşağıdakilerden biri varsa görsel tartışmasız geri döner:
 - Yapay zekâ çıktısı veya otomatik iz doğrudan kullanılmış
 - Palet dışı renk
 - Formada yazı, rakam, arma veya logo; yasaklı forma kombinasyonu
-- Gerçek kişi, kulüp veya marka çağrışımı
+- Gerçek kişi, kulüp, stadyum veya marka çağrışımı
 - Taşma payını aşan kozmetik (D'nin %10'undan fazla)
 - Karakterde gradyan veya doku
 - Oyunda 3/4 görünüm
@@ -1481,23 +1571,32 @@ Oyun kodu ve araçlar için tek kaynak. Vektör paletindeki her değişiklik bur
 
 ---
 
-## Ek B — Açık kararlar
+## Ek B — Kararlar
 
-| #   | Karar                                                                 | Öneri                                                                                                           | Etkilediği yer |
-| --- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | -------------- |
-| 1   | "Sen" her zaman solda mı? (Çevrim içi maçta ekran yerelde aynalanır.) | Evet. Kimlik okunurluğunu ve taraf renklerini sadeleştirir.                                                     | §2.6, §11.4    |
-| 2   | Premium para birimi olacak mı, olacaksa ne?                           | Olacaksa **misket** (mahalle teması, evrensel)                                                                  | §11.1, ikonlar |
-| 3   | Kedi oynanabilir mi?                                                  | Hayır; sahne ve arayüz maskotu                                                                                  | §7.4           |
-| 4   | İlk kadro (§7.3) onayı                                                | Model sayfalarına Bakkal + 2 karakterle başla (ör. Muhtar Hanım ve Mahallenin Yıldızı); kadro testini erken yap | §7.3           |
-| 5   | Vektör programı                                                       | Seçilen programın genişlik profili ve global swatch desteğini doğrula                                           | §3.5, §13      |
-| 6   | Animasyon aracı (Faz 3.2)                                             | Parçalı animasyon + yaylı kafa için kod tabanlı mı, araç tabanlı mı? Pivot formatı buna göre kesinleşir.        | §6.4, §13.2    |
+v1.0'ın açık soruları 26 Kasım 2026'da karara bağlandı (v1.1). Bağlayıcıdır; değişiklik gerekiyorsa önce bu tablo güncellenir.
+
+| #   | Soru                                                                  | Karar                                                                                                                                                                                                         | Yansıdığı yer                 |
+| --- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| 1   | "Sen" her zaman solda mı? (Çevrim içi maçta ekran yerelde aynalanır.) | **Evet.** Her cihazda oyuncu solda; forma çakışmasında sağdaki (rakip) alternatife geçer, oyuncu kendini hep ev formasıyla görür.                                                                             | §2.6, §11.4                   |
+| 2   | Premium para birimi olacak mı, olacaksa ne?                           | **Elmas.** Para birimleri Altın + Elmas (GAME_DESIGN_MOBILE §2.1). Misket iptal; şişe kapağı da kullanılmaz.                                                                                                  | §11.1, §11.6, §13.5           |
+| 3   | Kedi oynanabilir mi?                                                  | **Kedi maskot kaldırıldı:** oynanabilir karakter, sahne öğesi ya da arayüz maskotu olarak kullanılmaz.                                                                                                        | §1.2, §7.4, §10.2, §12.2      |
+| 4   | İlk kadro (§7.3) onayı                                                | **Model sayfalarına Bakkal + 2 futbolcu tipiyle başlanır** (öneri: Kor ve Bora); kadro testi erken yapılır.                                                                                                   | §7.3                          |
+| 5   | Vektör programı                                                       | **Inkscape.** Genişlik profili: Power Stroke yol efekti. Global renk: Dolgu ve Kontur penceresindeki "Swatch" boya türü (palet çubuğundan tıklanan renk bağlı değildir). İkisi Faz 1.5 provasında doğrulanır. | §3.5, §13.1, §13.2, §13.5     |
+| 6   | Animasyon aracı (Faz 3.2)                                             | **Kod tabanlı.** Parçalı animasyon ve yaylı kafa kodda; animasyon aracı ve animasyon dosyası yok. Pivot formatı: karakter başına bir iskelet dosyası, §6.1 eklem sisteminde.                                  | §6, §6.4, §13.2, §13.6, §14.2 |
+
+**v1.1'de açık kalanlar:**
+
+- Stadyum varyantlarının (gündüz, gece ışıklı, karlı, yağmurlu) renkleri ve çim zemin rengi (§2.4) → Faz 4.1 ve 7.2.
+- İlk stadyumun ışığı (§2.4) → Faz 4.1.
+- Çalışma adı "Kafa Kafaya: Futbol Arenası" için marka araştırması → Faz 0.2.
 
 ---
 
 ## Ek C — Değişiklik günlüğü
 
-| Sürüm | Tarih         | Değişiklik                                                                                                                                                                                                                      |
-| ----- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1.0   | 20 Kasım 2026 | İlk sürüm. Yön A + dev kafa oranları. §7.1'deki font önerileri (Lilita One, Titan One) Türkçe glif eksikliği nedeniyle Paytone One + Nunito ile değiştirildi. Palet renk körlüğü ve kontrast açısından hesaplanarak doğrulandı. |
+| Sürüm | Tarih         | Değişiklik                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ----- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.0   | 20 Kasım 2026 | İlk sürüm. Yön A + dev kafa oranları. §7.1'deki font önerileri (Lilita One, Titan One) Türkçe glif eksikliği nedeniyle Paytone One + Nunito ile değiştirildi. Palet renk körlüğü ve kontrast açısından hesaplanarak doğrulandı.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| 1.1   | 26 Kasım 2026 | **Dünya ve kadro değişikliği; çizim tarzı aynı.** Oyun mahallede değil stadyumlarda geçer (gündüz, gece ışıklı, karlı, yağmurlu; ileride kumsal, çatı). Kadro: 9 kurgusal futbolcu tipi + 3 sürpriz karakter (Bakkal Amca, Fileli Dede, Kaleci Teyze); oyundaki 12 slotun istatistik ve süperleri aynı, Toprak → Bakkal, Yankı → Dede, Kauçuk → Kaleci Teyze (GAME_DESIGN_MOBILE K2). Çalışma adı "Kafa Kafaya: Futbol Arenası". Güncellenen bölümler: §1, §2.2 ve §2.4 (yalnızca kullanım metinleri), §2.6, §2.8 ve §3.1 (katman adları), §3.5, §3.6, §6, §6.3, §6.4, §7.1–7.5, §8.2, §8.5, §8.6, §9.3, §10, §11.1, §11.4, §11.6, §11.7, §12.2, §13, §14. §7.1'de yaş kuralı futbolcu kadrosuna uyarlandı (çocuk yok; 60+ en az %15) ve futbolcu/sürpriz oranı eklendi. Ek B kararlara dönüştü; yeni §13.6 (pivot formatı). Çizim kuralları, ölçüler ve palet değerleri değişmedi. |
 
 **Dış kaynaklar:** [Google Play varlık gereksinimleri](https://support.google.com/googleplay/android-developer/answer/9866151) · [Google Play ikon tasarım özellikleri](https://developer.android.com/google-play/resources/icon-design-specifications) · [Android uyarlanabilir simgeler](https://developer.android.com/develop/ui/views/launch/icon_design_adaptive) · [SIL Open Font License](https://openfontlicense.org) · [Google Fonts deposu](https://github.com/google/fonts)

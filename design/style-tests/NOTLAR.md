@@ -2,6 +2,8 @@
 
 Tüm görseller yapay zekâ ile üretilmiş test görselleridir. Oyuna girmez; Faz 1.4 (sanat rehberi) için referanstır.
 
+> **Güncelleme (2026-11-26):** Seçilen çizim tarzı (Yön A'nın sıcak el çizimi, dev kafa oranları, yaylı kafa animasyonu) aynen geçerli. Değişen dünya ve kadro: oyun mahallede değil stadyumlarda geçer; kadronun çoğunluğu kurgusal futbolcu tipleri, aralarında birkaç sürpriz karakter (bakkal amca, dede, kaleci teyze). Aşağıdaki "Mahalle Maçı" yalnızca testteki çalışma adıdır; görsellerdeki sokak sahneleri ve kostümler tema referansı değildir. Güncel kurallar: [ART_BIBLE.md](../../docs/ART_BIBLE.md) v1.1.
+
 ## Kabul edilenler
 
 - C_01_sapkali_cocuk_karakter_sayfasi.jpg — çok açılı karakter sayfası; stilin ilk başarılı örneği.
@@ -13,7 +15,7 @@ Sonuç: C yönü tutarlılık, çeşitlilik ve yetişkin karakter testlerini ge�
 ## Sanat rehberine (Faz 1.4) taşınacak dersler
 
 - Her karakterin kendine ait bir aksesuar rengi olmalı (C_02'de hepsi turkuaz/sarıydı; C_03'te düzeldi).
-- Kadroda çocuk, yetişkin ve yaşlı karakterler bulunmalı; "çocuk oyunu" algısından kaçınılır.
+- Kadroda çocuk, yetişkin ve yaşlı karakterler bulunmalı; "çocuk oyunu" algısından kaçınılır. (v1.1: futbolcu kadrosunda çocuk karakter yok; en genç 17, yaşlılar sürpriz karakterlerden. ART_BIBLE §7.1.)
 - Kişilik aksesuar ve ifadeyle verilir; etnik veya bölgesel klişe kullanılmaz.
 - Detay sınırı: kırışıklık en fazla 2–3 temiz çizgi; sakal ve kirli sakal doku değil düz renk tonu (C_03'te detay fazlaydı).
 - Yapay zekâ hataları yeniden çizimde düzeltilir: arka görünümde görünen sakal, tutarsız saç ve gözlük sapları, kulaktan geçen şapka siperi.
@@ -22,7 +24,7 @@ Sonuç: C yönü tutarlılık, çeşitlilik ve yetişkin karakter testlerini ge�
 
 - C_red_01, C_red_02 — gerçekçi yüz (gerçek bir kişiye benzeme riski), gerçek bir kulübü çağrıştıran çizgili forma ve 10 numara, 3/4 açı, fotoğraf arka planı.
 
-## A — "Mahalle Maçı"
+## A — sıcak el çizimi (test adı: "Mahalle Maçı")
 
 - A/A_01_bakkal_karakter_sayfasi.jpg
 - Güçlü: sıcak, karakterli, mizahi; rakiplerden çok farklı; temiz çizgi, vektöre çevrilebilir.
@@ -66,6 +68,6 @@ Not: Yaylı kafa hissi çizime yay eklemeden de verilebilir: Faz 3.2'deki parça
 
 ## Öneri (güncel)
 
-A_02 (A stili, dev kafa oranları) + yaylı kafa animasyonu. Final testinin sonucu bekleniyor.
+A_02 (A stili, dev kafa oranları) + yaylı kafa animasyonu.
 
-Karar: kullanıcı onayı bekliyor.
+Karar (2026-11-20): A_02 seçildi → [ART_BIBLE.md](../../docs/ART_BIBLE.md). 2026-11-26: çizim tarzı aynı kaldı, dünya mahalleden stadyuma, kadro futbolcu tiplerine geçti (ART_BIBLE v1.1). Bakkal, kadroda sürpriz karakter olarak kalıyor; A_02 tüm kadronun çizim referansı.
