@@ -36,6 +36,12 @@ Tüm görseller kodla çiziliyor (`src/art`), tüm sesler Web Audio ile sentezle
 fontlar sistem fontları (pakete gömülü font yok). PWA simgeleri derlemede kodla üretiliyor
 (`scripts/pwa`). `docs/screenshots` oyunun kendi ekran görüntüleri; derlemeye girmez.
 
+**Android simgesi ve açılış ekranı (Faz 2.1) — yer tutucu:**
+`android/app/src/main/res/mipmap-*/ic_launcher*.png` ve `drawable*/splash.png`, PWA simgesiyle aynı
+kodla çizilip `@capacitor/assets` ile yoğunluklara bölünür (`npm run assets:placeholder`); dış kaynak
+yok, kural 6 gereği satır olarak yazılmaz. Faz 4'te final ikon (ART_BIBLE §11.7) ve açılış ekranıyla
+değiştirilir; o dosyalar bu tabloya işlenir.
+
 ## Araç ve abonelik kaydı
 
 Ticari kullanım izni veren araçlar (Faz 0.1): araç, plan, ticari kullanım şartının bağlantısı ya da

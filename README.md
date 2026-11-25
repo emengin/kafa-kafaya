@@ -83,7 +83,7 @@ npm run dev          # geliştirme sunucusu (http://localhost:5173)
 | `npm run build`       | Tip denetimi + üretim derlemesi (`dist/`, PWA dosyaları dahil)           |
 | `npm run preview`     | Derlenmiş sürümü yerelde sun (`/kafa-kafaya/` altında)                   |
 | `npm test`            | Vitest birim testleri                                                    |
-| `npm run test:e2e`    | Playwright duman testi (önce `npm run build`)                            |
+| `npm run test:e2e`    | Playwright duman testi, web ve mobil derlemede (önce iki derleme de)     |
 | `npm run screenshots` | README ekran görüntülerini yeniden al (`docs/screenshots/`)              |
 | `npm run lint`        | ESLint (tip denetimli, sihirli sayı yasağı) + Prettier denetimi          |
 | `npm run format`      | Prettier ile biçimlendir                                                 |
@@ -97,6 +97,81 @@ kaya` karakterleri, `--seed N` tohumu seçer.
 `?cpu=easy|medium|hard` (doğrudan CPU maçı), `?cpu1=…` (AI vs AI), `?c1=kor&c2=kaya` (karakterler),
 `?seed=N`, `?duration=N`, `?quality=low|medium|high`, `?unlock=all`, `?touch=1`.
 Karakter kimlikleri: `kor ayaz simsek sis kaya bora yay demir pamuk toprak`.
+
+## Android'de çalıştırma
+
+Oyun, [Capacitor](https://capacitorjs.com/) ile Android uygulaması olarak paketlenir: aynı oyun
+kodu, telefonda uygulamanın kendi tarayıcı penceresinde (WebView) çalışır. Şimdilik yalnızca
+**hata ayıklama (debug) derlemesi** var: telefona USB kablosuyla yüklenir, Play Store'a gönderilemez.
+
+### Bir kez yapılacaklar
+
+1. **Android Studio'yu kur:** [developer.android.com/studio](https://developer.android.com/studio).
+   İlk açılışta "Standard" kurulumu seç; Android SDK'yı kendisi indirir. Ayrıca Java kurmana gerek
+   yok, Android Studio kendi Java'sıyla gelir.
+2. **Telefonda geliştirici seçeneklerini aç:** Ayarlar → Telefon hakkında → **Derleme numarası**na
+   art arda 7 kez dokun ("Artık geliştiricisiniz" yazısı çıkar). Samsung'da: Ayarlar → Telefon
+   hakkında → Yazılım bilgileri → Derleme numarası. Xiaomi'de: MIUI / HyperOS sürümüne 7 kez dokun.
+3. **USB hata ayıklamayı aç:** Ayarlar → Sistem → Geliştirici seçenekleri → **USB hata ayıklama**.
+   Xiaomi'de ayrıca **USB üzerinden yükle** seçeneği de açık olmalı.
+4. **Telefonu bağla:** USB kablosuyla bilgisayara tak. Telefonda "USB hata ayıklamaya izin verilsin
+   mi?" penceresi çıkar → **Bu bilgisayara her zaman izin ver** kutusunu işaretle → **İzin ver**.
+   Pencere çıkmazsa bildirim panelinden USB modunu "Dosya aktarımı" yap.
+
+### Oyunu telefona yükleme
+
+Proje klasöründe bir terminal aç (VS Code'da: Terminal → New Terminal) ve sırayla çalıştır:
+
+```bash
+npm install          # yalnızca ilk seferde ve package.json değiştiğinde
+npm run cap:sync     # oyunu mobil için derler ve Android projesine kopyalar
+npm run cap:open     # Android Studio'da android/ klasörünü açar
+```
+
+Android Studio açılınca:
+
+1. Sağ altta **Gradle sync** bitene kadar bekle. İlk seferde gereken dosyaları internetten indirir;
+   birkaç dakika sürebilir.
+2. Üst araç çubuğundaki cihaz listesinden telefonunu seç (telefonun model adı görünür).
+3. Yeşil **▶ Run** düğmesine bas (kısayol: Shift+F10). Uygulama telefona yüklenir ve açılır;
+   telefonun uygulama listesinde **Kafa Kafaya** adıyla kalır.
+
+Kodda değişiklik yaptıktan sonra yalnızca `npm run cap:sync` çalıştır ve Android Studio'da yeniden
+▶'ye bas; Android Studio'yu kapatmana gerek yok.
+
+| Komut                        | Ne yapar                                                                  |
+| ---------------------------- | ------------------------------------------------------------------------- |
+| `npm run build:mobile`       | Mobil derleme → `dist-mobile/` (web derlemesine, `dist/`'e dokunmaz)      |
+| `npm run cap:sync`           | `build:mobile` + derlenen dosyaları Android projesine kopyalar            |
+| `npm run cap:open`           | Android projesini Android Studio'da açar                                  |
+| `npm run assets:placeholder` | Geçici uygulama simgesini ve açılış ekranını yeniden üretir (kodla çizer) |
+
+**Web ve mobil derleme neden ayrı?** Web sürümü GitHub Pages'te `/kafa-kafaya/` alt yolunda yayınlanır
+ve çevrimdışı çalışmak için service worker kullanır. Uygulamada oyun kök yoldan açılır ve service
+worker yoktur (güncelleme mağazadan gelir). İki derleme ayrı klasöre yazıldığı için biri ötekini
+bozmaz; web derlemesi yanlışlıkla uygulamaya kopyalanamaz.
+
+**Sorun giderme**
+
+- **Telefon listede yok ya da "unauthorized" yazıyor:** Kabloyu çıkarıp tak, telefondaki izin
+  penceresini onayla. Olmazsa Geliştirici seçenekleri → **USB hata ayıklama yetkilerini iptal et** →
+  kabloyu yeniden tak. Yalnızca şarj eden kablolar veri taşımaz; başka bir kablo dene.
+- **"adb server version doesn't match this client":** Bilgisayarda eski bir `adb` daha var (ör.
+  `C:\Windows\adb.exe`). Bu dosyanın adını değiştir (ör. `adb_eski.exe`); Android Studio kendi
+  `adb`'sini kullanır.
+- **"Unsupported Java" ya da Gradle JDK hatası:** Android Studio → Settings → Build, Execution,
+  Deployment → Build Tools → Gradle → **Gradle JDK**: Android Studio'nun kendi JDK'sını seç
+  ("jbr-…").
+- **Uygulama açılıyor ama ekran siyah kalıyor:** `npm run cap:sync` çalıştırılmamış olabilir. Hata
+  ayrıntısı için bilgisayardaki Chrome'da `chrome://inspect` adresini aç; telefondaki oyunun
+  konsolunu orada görürsün (yalnızca debug derlemesinde).
+- **Durum ve gezinme çubukları:** oyun tam ekran açılır; ekranın kenarından kaydırınca çubuklar
+  geçici görünür ve kendiliğinden kaybolur.
+
+APK dosyası olarak paylaşmak için: Android Studio → Build → Generate App Bundles or APKs →
+**Generate APKs**; dosya `android/app/build/outputs/apk/debug/app-debug.apk`. Mağaza için imzalı
+sürüm derlemesi daha sonra (yol haritası Faz 12.1); imza anahtarları (`*.jks`, `*.keystore`) asla
+depoya girmez.
 
 ## Mimari
 
@@ -142,9 +217,11 @@ src/
   fx/         parçacık havuzu, ağ dalgası, animasyon, hit-stop, sarsıntı, kamera, kalite
   audio/      Web Audio motoru, efektler, kalabalık, prosedürel müzik
   save/       localStorage kaydı (alan alan doğrulama)
-  platform/   dokunmatik algılama, tam ekran, dikey ekran uyarısı, PWA kaydı
+  platform/   dokunmatik algılama, tam ekran, dikey ekran uyarısı, PWA kaydı, derleme hedefi (web / mobil)
   i18n/       TR/EN metinler
-scripts/      simulate.ts, bench/ (derleme karşılaştırma), pwa/ (manifest, simgeler, SW), phaser/ (özel derleme)
+scripts/      simulate.ts, bench/ (derleme karşılaştırma), pwa/ (manifest, simgeler, SW), phaser/ (özel derleme),
+              mobile/ (Capacitor derleme ayarları, geçici simge ve açılış ekranı)
+android/      Capacitor Android projesi (capacitor.config.ts)
 e2e/          Playwright duman testi ve ekran görüntüleri
 docs/         GAME_DESIGN.md, ROADMAP_MOBILE.md, PROGRESS.md (durum), archive/ (faz günlükleri)
 ```
@@ -156,8 +233,8 @@ denge tabloları: [docs/archive/PROGRESS_WEB.md](docs/archive/PROGRESS_WEB.md) �
 
 Katkılar memnuniyetle karşılanır. Bir değişiklik göndermeden önce:
 
-1. **`npm run lint`, `npm test` ve `npm run build && npm run test:e2e` yeşil olmalı** (CI aynı
-   adımları çalıştırır).
+1. **`npm run lint`, `npm test` ve `npm run build && npm run build:mobile && npm run test:e2e`
+   yeşil olmalı** (CI aynı adımları çalıştırır).
 2. **Sihirli sayı yok:** yeni bir değer `src/config/gameConfig.ts`'e (ya da dosya sonunda adlandırılmış
    bir sabite) girer; lint bunu zorlar.
 3. **Metinler `src/i18n/strings.ts`'te**, iki dilde birden; anahtar eşitliği testle denetlenir.
@@ -176,8 +253,9 @@ Hata bildirimi ve öneriler için [Issues](https://github.com/emengin/kafa-kafay
 
 ## Yayın
 
-`main` dalına her push'ta GitHub Actions lint + birim test + derleme + Playwright duman testi
-çalıştırır ve `dist/` klasörünü GitHub Pages'e yayınlar. `v*` etiketi GitHub Release'i oluşturur.
+`main` dalına her push'ta GitHub Actions lint + birim test + web ve mobil derleme + iki derlemede
+Playwright duman testi çalıştırır ve `dist/` klasörünü GitHub Pages'e yayınlar. `v*` etiketi GitHub
+Release'i oluşturur. Android uygulaması şimdilik yerelde derlenir (yukarıdaki bölüm).
 
 ## Lisans
 
