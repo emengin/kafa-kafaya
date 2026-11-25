@@ -2,6 +2,7 @@ import type Phaser from 'phaser';
 import { addPanel, goldFill, textStyle } from '../art/uiArt';
 import { DISPLAY, HUD, OVERLAY } from '../config/gameConfig';
 import { t } from '../i18n';
+import { screenLayout } from './ScreenLayout';
 import type { KeyTracker } from '../input/KeyboardInput';
 import { TextMenu, type TextMenuItem } from './TextMenu';
 
@@ -31,9 +32,8 @@ export class MenuOverlay {
 
     // Perde: tüm ekranı kaplar ve alttaki tıklamaları yutar.
     this.objects.push(
-      scene.add
-        .rectangle(0, 0, width, height, OVERLAY.dimColor, OVERLAY.dimAlpha)
-        .setOrigin(0)
+      screenLayout(scene)
+        .cover(scene.add.rectangle(0, 0, width, height, OVERLAY.dimColor, OVERLAY.dimAlpha))
         .setDepth(depth)
         .setInteractive(),
     );

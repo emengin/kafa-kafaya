@@ -57,6 +57,7 @@ var Phaser = {
     Components: require('phaser/src/gameobjects/components'),
     GetCalcMatrix: require('phaser/src/gameobjects/GetCalcMatrix'),
     BuildGameObject: require('phaser/src/gameobjects/BuildGameObject'),
+    Events: require('phaser/src/gameobjects/events'),
     GameObject: require('phaser/src/gameobjects/GameObject'),
     Graphics: require('phaser/src/gameobjects/graphics/Graphics'),
     Image: require('phaser/src/gameobjects/image/Image'),

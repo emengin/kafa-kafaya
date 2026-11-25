@@ -8,6 +8,8 @@ coverage/
 .idea/
 test-results/
 playwright-report/
+# Faz 2.2 en-boy oranı test matrisi görüntüleri (npm run screens)
+ekran-matrisi/
 
 # Mobil (Capacitor / Android) — Faz 2.1
 dist-mobile/

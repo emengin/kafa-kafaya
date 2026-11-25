@@ -9,6 +9,7 @@ import { t } from '../i18n';
 import { generateIconTextures } from '../ui/icons';
 import { wantsDirectMatch } from './devFlags';
 import { SceneKeys } from './sceneKeys';
+import { screenLayout } from '../ui/ScreenLayout';
 
 /** Sık kullanılan renk. */
 const WHITE = 0xffffff;
@@ -27,10 +28,12 @@ export class PreloadScene extends Phaser.Scene {
   create(): void {
     const { width, height } = DISPLAY;
     const { bar } = PRELOAD;
+    // Zemin tüm görünür alanı kaplar (geniş ekran / tablet; Faz 2.2).
+    const { view } = screenLayout(this).frame;
     this.add
       .graphics()
       .fillGradientStyle(COLORS.skyTop, COLORS.skyTop, COLORS.skyBottom, COLORS.skyBottom, 1)
-      .fillRect(0, 0, width, height);
+      .fillRect(view.x, view.y, view.width, view.height);
     const title = this.add
       .text(
         width / 2,

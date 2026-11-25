@@ -35,6 +35,7 @@ import type { RenderFrame } from './renderFrame';
 import { StadiumView } from './StadiumView';
 import { SuperFx } from './SuperFx';
 import { LiteGraphics } from './LiteGraphics';
+import { screenLayout } from './ScreenLayout';
 
 /** Sık kullanılan renk. */
 const GOLD = 0xffd23f;
@@ -178,7 +179,9 @@ export class MatchRenderer {
     this.fxG = new LiteGraphics(scene);
     l.trail.add(this.fxG);
 
-    this.vignette = add.image(0, 0, STAGE_KEYS.vignette).setOrigin(0).setDepth(VIGNETTE_DEPTH);
+    this.vignette = screenLayout(scene).cover(
+      add.image(0, 0, STAGE_KEYS.vignette).setDepth(VIGNETTE_DEPTH),
+    );
     this.setQuality(quality);
   }
 

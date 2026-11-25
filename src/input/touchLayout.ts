@@ -1,4 +1,12 @@
 import { TOUCH, TOUCH_CODES } from '../config/gameConfig';
+import {
+  anchorShift,
+  BOTTOM_LEFT,
+  BOTTOM_RIGHT,
+  TOP_LEFT,
+  type Anchor,
+  type ScreenFrame,
+} from '../platform/screenFrame';
 
 export type TouchButtonId = keyof typeof TOUCH.buttons;
 
@@ -14,9 +22,33 @@ export interface TouchButton {
 const GAME_IDS: readonly TouchButtonId[] = ['left', 'right', 'jump', 'kick', 'super', 'pause'];
 const TRAINING_IDS: readonly TouchButtonId[] = ['reset', 'fill'];
 
-export function touchButtons(training: boolean): TouchButton[] {
+/**
+ * Butonların sabitlendiği kenar (Faz 2.2): hareket sol alta, zıpla/şut/süper sağ alta, duraklat ve
+ * antrenman butonları sol üste. `TOUCH.buttons` konumları tasarım çerçevesinde (16:9, çentiksiz);
+ * her ekranda butonun güvenli alan kenarına uzaklığı aynı kalır.
+ */
+export const TOUCH_ANCHORS: Record<TouchButtonId, Anchor> = {
+  left: BOTTOM_LEFT,
+  right: BOTTOM_LEFT,
+  jump: BOTTOM_RIGHT,
+  kick: BOTTOM_RIGHT,
+  super: BOTTOM_RIGHT,
+  pause: TOP_LEFT,
+  reset: TOP_LEFT,
+  fill: TOP_LEFT,
+};
+
+/**
+ * Moda göre butonlar; `frame` verilirse konumlar o ekran çerçevesine göre (dünya koordinatı),
+ * verilmezse tasarım çerçevesine göre.
+ */
+export function touchButtons(training: boolean, frame?: ScreenFrame): TouchButton[] {
   const ids = training ? [...GAME_IDS, ...TRAINING_IDS] : GAME_IDS;
-  return ids.map((id) => ({ id, code: TOUCH_CODES[id], ...TOUCH.buttons[id] }));
+  return ids.map((id) => {
+    const b = TOUCH.buttons[id];
+    const s = frame ? anchorShift(frame, TOUCH_ANCHORS[id]) : { x: 0, y: 0 };
+    return { id, code: TOUCH_CODES[id], x: b.x + s.x, y: b.y + s.y, r: b.r };
+  });
 }
 
 /**

@@ -26,6 +26,25 @@ export const DISPLAY = {
   letterboxColor: '#000000',
   /** Phaser'ın hedeflediği kare hızı (render). Fizik bundan bağımsızdır. */
   targetFps: 60,
+  /**
+   * Ekran çerçevesi (Faz 2.2). Oyun alanı her cihazda yukarıdaki 1280×720 çekirdektir (fizik ve
+   * oynanış koordinatları değişmez). Ekran 16:9'dan genişse görünür alan yanlara, darsa (tablet)
+   * üste ve alta genişler; genişleyen kısım yalnızca stadyum dekorudur (ART_BIBLE §10.1: 2560×1440
+   * tuval / 1920×1080 çekirdek = bu değerlerin 1,5 katı). Bu sınırların ötesi (21,3:9'dan geniş,
+   * 4:3'ten dar ekran) letterbox. Değerler çift: çekirdeğin iki yanındaki pay tam sayı.
+   */
+  frame: { maxWidth: 1708, maxHeight: 960 },
+  /**
+   * Güvenli alan (çentik) yoklama aralığı (ms). Telefon 180° döndürülünce pencere boyutu
+   * değişmez, yalnızca çentik öbür kenara geçer; yön olayı kaçarsa bu yoklama yakalar.
+   */
+  safeAreaPollMs: 1000,
+  /**
+   * Dokunmatik cihazda kenar başına en az güvenli alan payı (CSS px). Telefonların yuvarlak
+   * köşeleri güvenli alana sayılmaz (Android bildirmez); ~40 px yarıçaplı köşe, köşeye bu kadar
+   * yakın bir noktayı keser: yarıçap × (1 − 1/√2) ≈ 12 px.
+   */
+  touchEdgeMarginPx: 12,
 } as const;
 
 /** Sabit adımlı (fixed timestep) oyun döngüsü. */

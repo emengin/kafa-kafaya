@@ -22,6 +22,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "screenshots": "playwright test -c playwright.screenshots.config.ts",
+    "screens": "playwright test -c playwright.screens.config.ts",
     "simulate": "node scripts/run-ts.js scripts/simulate.ts",
     "bench": "node scripts/run-ts.js scripts/bench/bench.ts"
   },

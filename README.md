@@ -78,16 +78,17 @@ npm install
 npm run dev          # geliştirme sunucusu (http://localhost:5173)
 ```
 
-| Komut                 | Ne yapar                                                                 |
-| --------------------- | ------------------------------------------------------------------------ |
-| `npm run build`       | Tip denetimi + üretim derlemesi (`dist/`, PWA dosyaları dahil)           |
-| `npm run preview`     | Derlenmiş sürümü yerelde sun (`/kafa-kafaya/` altında)                   |
-| `npm test`            | Vitest birim testleri                                                    |
-| `npm run test:e2e`    | Playwright duman testi, web ve mobil derlemede (önce iki derleme de)     |
-| `npm run screenshots` | README ekran görüntülerini yeniden al (`docs/screenshots/`)              |
-| `npm run lint`        | ESLint (tip denetimli, sihirli sayı yasağı) + Prettier denetimi          |
-| `npm run format`      | Prettier ile biçimlendir                                                 |
-| `npm run simulate`    | AI vs AI headless maçlar: skor dağılımı, süperler, sıkışma raporu, denge |
+| Komut                 | Ne yapar                                                                  |
+| --------------------- | ------------------------------------------------------------------------- |
+| `npm run build`       | Tip denetimi + üretim derlemesi (`dist/`, PWA dosyaları dahil)            |
+| `npm run preview`     | Derlenmiş sürümü yerelde sun (`/kafa-kafaya/` altında)                    |
+| `npm test`            | Vitest birim testleri                                                     |
+| `npm run test:e2e`    | Playwright duman testi, web ve mobil derlemede (önce iki derleme de)      |
+| `npm run screenshots` | README ekran görüntülerini yeniden al (`docs/screenshots/`)               |
+| `npm run screens`     | En-boy oranı test matrisi (Faz 2.2) → `ekran-matrisi/` (önce iki derleme) |
+| `npm run lint`        | ESLint (tip denetimli, sihirli sayı yasağı) + Prettier denetimi           |
+| `npm run format`      | Prettier ile biçimlendir                                                  |
+| `npm run simulate`    | AI vs AI headless maçlar: skor dağılımı, süperler, sıkışma raporu, denge  |
 
 `npm run simulate -- --characters --matches 40 --jobs 10` 45 karakter eşleşmesini iki tarafta da
 oynatır; `--matrix` zorluk eşleşmelerini, `--p1 hard --p2 easy` belirli seviyeleri, `--c1 kor --c2

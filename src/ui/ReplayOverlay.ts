@@ -2,7 +2,9 @@ import Phaser from 'phaser';
 import { textStyle } from '../art/uiArt';
 import { DISPLAY, HUD, REPLAY } from '../config/gameConfig';
 import { t, upper } from '../i18n';
+import { BOTTOM_RIGHT, TOP_LEFT } from '../platform/screenFrame';
 import { PillButton } from './PillButton';
+import { screenLayout } from './ScreenLayout';
 
 /** Kırmızı "kayıt" noktası. */
 const RED = 0xff3b3b;
@@ -12,6 +14,9 @@ const BLACK = 0x000000;
  * Gol tekrarı kaplaması (Faz 7): üstte ve altta sinema şeritleri (skor tabelasının altında kalır),
  * sol üstte yanıp sönen kırmızı nokta + "TEKRAR", sağ altta "Atla ▶▶" butonu (dokunmatik/fare;
  * klavyede Enter/Space, gamepad'de A da atlar). Şeritler kısa bir kayma animasyonuyla girer.
+ *
+ * Yerleşim (Faz 2.2): şeritler ekranın (görünür alanın) üst ve alt kenarında, tam genişlikte;
+ * rozet sol üste, "Atla" sağ alta sabitli (güvenli alanın içinde).
  */
 export class ReplayOverlay {
   private readonly bars: [Phaser.GameObjects.Rectangle, Phaser.GameObjects.Rectangle];
@@ -19,6 +24,9 @@ export class ReplayOverlay {
   private readonly label: Phaser.GameObjects.Text;
   private readonly skip: PillButton;
   private visible = false;
+  /** Şeritlerin oturduğu y (görünür alanın üst ve alt kenarı). */
+  private topY = 0;
+  private bottomY: number = DISPLAY.height;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -59,7 +67,17 @@ export class ReplayOverlay {
       s.fontSizePx,
       onSkip,
       HUD.depth + 1,
-    );
+    ).anchorTo(BOTTOM_RIGHT);
+    const layout = screenLayout(scene);
+    layout.place(this.dot, TOP_LEFT);
+    layout.place(this.label, TOP_LEFT);
+    layout.onChange(({ view }) => {
+      this.topY = view.y;
+      this.bottomY = view.y + view.height;
+      const [top, bottom] = this.bars;
+      top.setPosition(view.x, this.topY).setSize(view.width, h);
+      bottom.setPosition(view.x, this.bottomY).setSize(view.width, h);
+    });
     this.setVisible(false);
   }
 
@@ -71,12 +89,17 @@ export class ReplayOverlay {
     this.setVisible(true);
     const h = REPLAY.letterboxPx;
     const [top, bottom] = this.bars;
-    top.setY(-h);
-    bottom.setY(DISPLAY.height + h);
-    this.scene.tweens.add({ targets: top, y: 0, duration: REPLAY.fadeMs, ease: 'Quad.easeOut' });
+    top.setY(this.topY - h);
+    bottom.setY(this.bottomY + h);
+    this.scene.tweens.add({
+      targets: top,
+      y: this.topY,
+      duration: REPLAY.fadeMs,
+      ease: 'Quad.easeOut',
+    });
     this.scene.tweens.add({
       targets: bottom,
-      y: DISPLAY.height,
+      y: this.bottomY,
       duration: REPLAY.fadeMs,
       ease: 'Quad.easeOut',
     });

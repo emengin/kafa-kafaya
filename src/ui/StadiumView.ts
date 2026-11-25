@@ -6,6 +6,8 @@ import {
   generateBoardTextures,
   generateCrowdTextures,
   STAGE_KEYS,
+  STAGE_PAD_X,
+  STAGE_PAD_Y,
   STAGE_WIDTH,
   STANDS_TOP_Y,
 } from '../art/stadiumArt';
@@ -31,7 +33,8 @@ interface Cloud {
 }
 
 const TWO_PI = Math.PI * 2;
-const B = STADIUM.bleedPx;
+/** Dokuların sol kenarı dünyada x = −B (geniş ekranlar için çekirdeğin dışına taşar). */
+const B = STAGE_PAD_X;
 
 /**
  * Stadyum görünümü: gökyüzü, parallax bulutlar (iki katman, farklı hızlarda), ışık kuleleri ve
@@ -68,7 +71,7 @@ export class StadiumView {
     generateBoardTextures(scene, opts.title, opts.goalText);
     const add = scene.add;
     const parts: Phaser.GameObjects.GameObject[] = [];
-    parts.push(add.image(-B, -B, STAGE_KEYS.sky).setOrigin(0));
+    parts.push(add.image(-B, -STAGE_PAD_Y, STAGE_KEYS.sky).setOrigin(0));
 
     // Bulutlar: uzak katman yavaş ve küçük, yakın katman hızlı ve büyük.
     const rand = artRandom(STADIUM.clouds.seed);

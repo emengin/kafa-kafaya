@@ -37,6 +37,7 @@ import { StadiumView } from '../ui/StadiumView';
 import { TextMenu, type TextMenuItem } from '../ui/TextMenu';
 import { sessionQuality, type QualityLevel } from '../fx/feel';
 import { SceneKeys } from './sceneKeys';
+import { screenLayout } from '../ui/ScreenLayout';
 
 interface TournamentData {
   /** Az önce oynanan maçın sonucu ağaçta belirsin (kısa animasyon). */
@@ -94,6 +95,7 @@ export class TournamentScene extends Phaser.Scene {
       this.tracker.detach();
     });
 
+    const layout = screenLayout(this);
     const world = this.add.container(0, 0);
     const me = getCharacter(this.slotId(PLAYER_SLOT));
     this.stadium = new StadiumView(this, world, {
@@ -103,10 +105,10 @@ export class TournamentScene extends Phaser.Scene {
       title: t('game.title'),
       goalText: t('board.goal'),
     });
-    this.add
-      .rectangle(0, 0, DISPLAY.width, DISPLAY.height, SELECT.dimColor, BRACKET.dimAlpha)
-      .setOrigin(0);
-    this.add.image(0, 0, STAGE_KEYS.vignette).setOrigin(0);
+    layout.cover(
+      this.add.rectangle(0, 0, DISPLAY.width, DISPLAY.height, SELECT.dimColor, BRACKET.dimAlpha),
+    );
+    layout.cover(this.add.image(0, 0, STAGE_KEYS.vignette));
     const title = this.add
       .text(
         DISPLAY.width / 2,

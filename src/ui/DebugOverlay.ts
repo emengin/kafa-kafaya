@@ -3,6 +3,8 @@ import { DEBUG, KICK } from '../config/gameConfig';
 import type { AiDebugInfo } from '../game/ai/AiController';
 import type { GameSim } from '../game/GameSim';
 import type { Player, PlayerPart } from '../game/entities/Player';
+import { TOP_LEFT } from '../platform/screenFrame';
+import { screenLayout } from './ScreenLayout';
 
 export interface FrameStats {
   /** Phaser'ın ölçtüğü render FPS'i. */
@@ -42,6 +44,7 @@ export class DebugOverlay {
       })
       .setDepth(DEBUG.depth)
       .setVisible(false);
+    screenLayout(scene).place(this.text, TOP_LEFT);
   }
 
   get isVisible(): boolean {

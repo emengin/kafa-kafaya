@@ -31,6 +31,8 @@ import { HelpPanel, type HelpPage } from '../ui/HelpPanel';
 import { volumeMenuItems } from '../ui/settingsMenu';
 import { TextMenu, type TextMenuItem } from '../ui/TextMenu';
 import { SceneKeys } from './sceneKeys';
+import { BOTTOM_CENTER, BOTTOM_LEFT, BOTTOM_RIGHT } from '../platform/screenFrame';
+import { screenLayout } from '../ui/ScreenLayout';
 
 /** Menünün açılacağı görünüm (dil değişince ya da alt ekrandan dönüşte). */
 export interface MenuData {
@@ -87,10 +89,10 @@ export class MenuScene extends Phaser.Scene {
     this.heading = null;
     setInMatch(false);
 
+    const layout = screenLayout(this);
     this.demo = new DemoMatch(this, randomPair());
-    this.add
-      .rectangle(0, 0, width, height, MENU.demo.dimColor, MENU.demo.dimAlpha)
-      .setOrigin(0)
+    layout
+      .cover(this.add.rectangle(0, 0, width, height, MENU.demo.dimColor, MENU.demo.dimAlpha))
       .setDepth(MENU.uiDepth - 1);
 
     // Başlık: altın gradyan, kalın kontur, nefes alır.
@@ -380,10 +382,14 @@ export class MenuScene extends Phaser.Scene {
     goldFill(this.heading);
   }
 
-  /** Alt bilgi: gezinme ipucu hapı, istatistikler (sol alt), sürüm (sağ alt). */
+  /**
+   * Alt bilgi: gezinme ipucu hapı (alt orta), istatistikler (sol alt), sürüm (sağ alt); üçü de
+   * ekranın alt kenarına sabitli (Faz 2.2).
+   */
   private createFooter(): void {
     const { width, height } = DISPLAY;
     const d = MENU.uiDepth;
+    const layout = screenLayout(this);
     const hint = this.add
       .text(
         width / 2,
@@ -393,7 +399,7 @@ export class MenuScene extends Phaser.Scene {
       )
       .setOrigin(0.5)
       .setDepth(d + 1);
-    this.add
+    const hintBack = this.add
       .image(
         hint.x,
         hint.y,
@@ -401,6 +407,8 @@ export class MenuScene extends Phaser.Scene {
       )
       .setAlpha(MENU.navHint.alpha)
       .setDepth(d);
+    layout.place(hint, BOTTOM_CENTER);
+    layout.place(hintBack, BOTTOM_CENTER);
     const st = MENU.stats;
     const s = getProgress().stats;
     const stats = this.add
@@ -412,7 +420,7 @@ export class MenuScene extends Phaser.Scene {
       )
       .setOrigin(0, 0.5)
       .setDepth(d + 1);
-    this.add
+    const statsBack = this.add
       .image(
         st.marginPx + (stats.width + st.padX * 2) / 2,
         stats.y,
@@ -420,7 +428,9 @@ export class MenuScene extends Phaser.Scene {
       )
       .setAlpha(st.alpha)
       .setDepth(d);
-    this.add
+    layout.place(stats, BOTTOM_LEFT);
+    layout.place(statsBack, BOTTOM_LEFT);
+    const footer = this.add
       .text(
         width - MENU.footer.marginPx,
         height - MENU.footer.marginPx,
@@ -430,6 +440,7 @@ export class MenuScene extends Phaser.Scene {
       .setOrigin(1, 1)
       .setAlpha(MENU.footer.alpha)
       .setDepth(d);
+    layout.place(footer, BOTTOM_RIGHT);
   }
 
   // ───────────────────────────── Geçişler ─────────────────────────────

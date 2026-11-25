@@ -79,7 +79,7 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
 - **Bölüm 2 — Mobil temel [CC]** (Bölüm 1 ile paralel)
   - [x] 2.0 Phaser 4'e geçiş — 2026-11-20 → Phaser 4.2.1, karşılaştırma aşağıda
   - [x] 2.1 Capacitor ve Android derleme — 2026-11-26 → gerçek telefonda açılıp oynandı (aşağıda)
-  - [ ] 2.2 Ekran ve ölçekleme
+  - [ ] 2.2 Ekran ve ölçekleme — kod bitti (2026-11-26), telefonda kontrol bekliyor (aşağıda)
   - [ ] 2.3 Dokunmatik kontroller v2
   - [ ] 2.4 Performans (rollback ≤ 4 ms dahil)
   - [ ] 2.5 Uygulama yaşam döngüsü
@@ -167,7 +167,7 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
   - [ ] 13.2 Sunucu taraflı yeniden simülasyon (opsiyonel)
 
 Faz ayrıntıları: 0.3 ve 0.4 → [archive/PROGRESS_MOBILE_0.md](archive/PROGRESS_MOBILE_0.md); 1.1 →
-[archive/PROGRESS_MOBILE_1.md](archive/PROGRESS_MOBILE_1.md); 2.0 ve 2.1 →
+[archive/PROGRESS_MOBILE_1.md](archive/PROGRESS_MOBILE_1.md); 2.0, 2.1 ve 2.2 →
 [archive/PROGRESS_MOBILE_2.md](archive/PROGRESS_MOBILE_2.md). 0.1 ve 0.2 [SEN] fazları; yapıldıysa
 kutuları sen işaretle. 1.3'ün stil testi görselleri ve karşılaştırması `design/style-tests/`
 altında (seçilen çizim tarzı: Yön A'nın sıcak el çizimi, dev kafa oranlarıyla; testteki "Mahalle
@@ -214,6 +214,38 @@ kararlar ve bilinen sorunlar: [archive/PROGRESS_MOBILE_2.md](archive/PROGRESS_MO
 | QUALITY_BAR B1 (indirme ≤ 100 MB)                           | ✅ debug APK 5,0 MB                                                                   |
 | QUALITY_BAR B3 (ağ yokken açılış)                           | ✅ tasarım gereği (tüm dosyalar APK içinde); cihazda ağsız açılış ayrıca kaydedilmedi |
 | QUALITY_BAR A1–A3 (açılış süreleri), D5 (güvenli alan)      | ölçülmedi (telefon testi açılış ve oynanışı kapsadı); A1–A3 Faz 2.4, D5 Faz 2.2       |
+
+### Faz 2.2 — Ekran ve ölçekleme (2026-11-26, telefonda kontrol bekliyor)
+
+Oyun alanı ve fizik değişmedi: 1280×720 çekirdek her cihazda tam görünür ve ortadadır (`DISPLAY`
+aynı, determinizm testleri yeşil). Yalnızca çerçeve ve arayüz yerleşimi uyum sağlar. Yapılanlar,
+kararlar ve test matrisi: [archive/PROGRESS_MOBILE_2.md](archive/PROGRESS_MOBILE_2.md).
+
+**Karar — geniş ekranda boş kenarlar stadyum dekoruyla dolar (siyah şerit değil).** Phaser `FIT`
+yerine `EXPAND`: ekran 16:9'dan genişse görünür alan yanlara (21:9'da 1680×720), tablette üste ve
+alta (4:3'te 1280×960) uzar; taşan kısımda gökyüzü, tribün, kalabalık, panolar ve çim sürer.
+Gerekçe: (1) ART_BIBLE §10.1 bunu zaten öngörüyor (2560×1440 tuval, 1920×1080 çekirdek; dışı
+"yalnızca dekor"), Faz 4'teki çizimler bu düzene göre gelecek; (2) 19,5–20:9 telefonlarda siyah
+şerit ekranın %10–20'sini boşa harcar, oyun küçük ve ucuz görünür; (3) dekor oynanış bilgisi
+taşımaz, rekabet adaletini bozmaz (saha her ekranda zaten tamamen görünür); (4) kenara sabitlenen
+arayüz geniş ekranda oyun alanından uzaklaşır, kontroller oyunu daha az örter. Sınırlar: 21,3:9'dan
+geniş ve 4:3'ten dar ekranlarda kalan kısım siyah şerit. Çentikli 16:9 telefonda (çekirdeğin yanında
+pay yok) tuval çentikten uzaklaşır, çentik tarafı siyah kalır; oyun alanı hiçbir cihazda çentiğin
+altına düşmez.
+
+**Bitti kriterleri**
+
+| Kriter                                                      | Durum                                                                                              |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| 1. Sabit yatay ekran                                        | ✅ uygulama `userLandscape` (2.1); mobil tarayıcıda dikey → "telefonu çevir" + maç duraklar (test) |
+| 2. Çentik ve güvenli alan                                   | ✅ benzetimde (CSS değişkeni); telefonda kontrol bekliyor                                          |
+| 3. 16:9–21:9 telefon, 4:3 ve 16:10 tablet; kenara sabitleme | ✅ `ScreenLayout`: menüler, maç HUD'u, tekrar kaplaması, dokunmatik butonlar                       |
+| 4. Oran test matrisi ve ekran görüntüleri                   | ✅ `npm run screens` → `ekran-matrisi/` (7 oran × çentikli/çentiksiz × 4 ekran)                    |
+| **Faz: hiçbir oranda kesilen veya taşan arayüz yok**        | benzetimde ✅ (birim testi + görüntüler); **gerçek telefonda kontrol edilmeden işaretlenmedi**     |
+| Determinizm ve tüm testler                                  | ✅ 382 birim testi (determinizm dahil), duman testi web + mobil                                    |
+| Web yayını bozulmadı                                        | ✅ masaüstü 16:9'da yerleşim birebir eskisi gibi (birim testiyle sabit); duman testi yeşil         |
+| QUALITY_BAR D5 (çentik/yuvarlak köşe)                       | benzetimde ✅; dokunmatikte her kenarda en az 12 CSS px köşe payı; telefonda kontrol bekliyor      |
+| QUALITY_BAR §6 (16:9, 19,5:9, 21:9, 4:3 görüntüleri)        | ✅ `ekran-matrisi/`                                                                                |
 
 ## Sonraki fazlar için notlar
 
@@ -286,11 +318,15 @@ sonra hâlâ görülen riskler:
 - **3.2 / 3.3 — ART_BIBLE bağımlılığı:** bağımlılık notu yalnızca 3.4 için, ama parçalı iskelet
   (3.2) ve kozmetik slotları (3.3) ART_BIBLE'ın katman yapısına (1.4) dayanıyor; 1.4'ten önce
   başlanırsa yeniden iş çıkabilir.
-- **2.2 — Güvenli alan (2.1'den):** uygulamada sistem çubukları gizli, yatayda çentik kısa kenarda;
-  16:9 tuval geniş telefonlarda letterbox içinde kalıyor, ama kenara sabitlenecek arayüz çentiği
-  hesaba katmalı. Capacitor 8 `SystemBars` (`insetsHandling: 'css'`, varsayılan) WebView'a
-  `--safe-area-inset-*` CSS değişkenlerini veriyor; Chromium ≥ 140'ta `env(safe-area-inset-*)` da
-  doğru. targetSdk 36 → Android 15+'ta kenardan kenara çizim zorunlu.
+- **2.3 — Kontrol düzenleyici ve yerleşim (2.2'den):** dokunmatik butonlar `TOUCH_ANCHORS` ile
+  kenara sabitli (`src/input/touchLayout.ts`); düzenleyicide kaydedilen konum tasarım çerçevesinde
+  (16:9) + çapa olarak saklanmalı, yoksa geniş ekranda kaydedilen düzen dar ekranda taşar. Yeni
+  arayüz `screenLayout(scene)` ile yerleşir (`place` / `group` / `cover`); tam ekran perdeler
+  `cover` kullanmalı, yoksa geniş ekranda kenarlar açık kalır.
+- **3.x / 4.1 — Arka plan genişliği (2.2'den):** stadyum dokuları artık çekirdeğin iki yanında 214,
+  üstünde ve altında 120 px dekor + 48 px sarsıntı payı çiziyor (`STAGE_PAD_X/Y`). Final stadyum
+  çizimi ART_BIBLE §10.1'in 2560×1440 (@1,5x) tuvaline göre gelmeli; ışık kuleleri şimdilik
+  çekirdeğin içinde, 21:9'da dış kenarlarda kule yok.
 - **2.5 — Yaşam döngüsü ve açılış (2.1'den):** arka planda maçı duraklatma ve sesi kesme
   `@capacitor/app` (`appStateChange`) ile. `MainActivity` odak dönüşünde çubukları zaten gizliyor.
   Açılış ekranını oyun hazır olana kadar tutmak için `@capacitor/splash-screen` (QUALITY_BAR A1/A2).

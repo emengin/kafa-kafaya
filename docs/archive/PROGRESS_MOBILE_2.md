@@ -257,3 +257,72 @@ kodla üretilmiş yer tutucu. Final ikon (ART_BIBLE §11.7, §13.2) ve açılı�
   notlarında (12.1, 8.1).
 - `npm audit`: 7 orta düzey uyarı typescript-eslint → minimatch zincirinden (Faz 2.1'den önce de
   vardı; Capacitor'dan değil).
+
+## Faz 2.2 — Ekran ve ölçekleme (2026-11-26, telefonda kontrol bekliyor)
+
+Özet ve "boş kenarlar" kararı: [PROGRESS.md § Faz 2.2](../PROGRESS.md).
+
+### Yapılanlar
+
+- **Ölçekleme:** Phaser `FIT` → `EXPAND`. Tuvalin kabı (`#game`) pencereyi kaplar, en-boy oranı
+  4:3 ile 21,3:9 arasına kırpılır (`fitParent`, `src/platform/screenFrame.ts`); ötesi siyah şerit.
+  Kamera 1280×720 çekirdeği ortalar (`ScreenLayout`): dünya koordinatları, fizik ve sahne yerleşim
+  değerleri değişmedi.
+- **Güvenli alan:** `src/platform/safeArea.ts`, `#safe-area-probe` öğesiyle
+  `max(env(safe-area-inset-*), var(--safe-area-inset-*))` okur (tarayıcı + Capacitor `SystemBars`).
+  Boyut, yön değişimi ve 1 sn'lik yoklama ile güncellenir (180° dönüşte pencere boyutu değişmez).
+  Dokunmatikte her kenar en az 12 CSS px (yuvarlak köşe; Android bildirmez). Tuval yerleşimi yalnızca
+  çentiği sayar: oyun alanı güvenli alana sığmıyorsa (çentikli 16:9) tuval çentikten uzaklaşır.
+- **Kenara sabitleme:** `src/ui/ScreenLayout.ts` — `screenLayout(scene)`; `place(obj, çapa)`,
+  `group(çapa)` (kap; HUD gibi kendi içinde tween'lenen arayüz), `cover(obj)` (perde, flaş, vinyet),
+  `onChange(fn)`. Konumlar tasarım çerçevesinde (16:9, çentiksiz) yazılı, öğe kenara uzaklığını her
+  ekranda korur; `center` çapası çentikten etkilenmez (simetri).
+- **Kullananlar:** maç HUD'u (skor tabelası üstte, ipucu altta), dokunmatik butonlar (hareket sol
+  alt, zıpla/şut/süper sağ alt, duraklat/antrenman sol üst), gol tekrarı (şeritler tam genişlik,
+  "TEKRAR" sol üst, "Atla" sağ alt), ana menü (ipucu, istatistik, sürüm), karakter seçimi ("Geri",
+  ipucu), duraklatma/maç sonu perdesi, vinyet ve flaşlar, yükleme ekranı zemini, debug katmanı.
+- **Stadyum dokuları** en geniş/uzun çerçeveyi kaplar; çekirdekteki görünüm korunur (gökyüzü
+  gradyanı, çatı dikmeleri, saha perspektifi ve şeritleri eski ölçüye göre).
+- **Android:** temaya `windowLayoutInDisplayCutoutMode=shortEdges` (9–14'te de 15+ gibi içerik
+  çentik kenarına uzanır).
+- **Özel Phaser paketi:** `GameObjects.Events` eklendi (`DESTROY` olayı).
+- **Testler:** `src/platform/screenFrame.test.ts` (çerçeve, güvenli alan, her oran × çentik
+  yok/sol/sağ için butonların güvenli alanda kalması ve çakışmaması, oyun alanının çentikte
+  kalmaması, 16:9'da eski konumların aynen korunması). `e2e/screens.spec.ts` (`npm run screens`):
+  ekran görüntüsü matrisi + 180° dönüş testi + dikey ekran testi.
+
+### Test matrisi
+
+CSS px, DPR 2, mobil benzetim (dokunmatik). Çentik: telefonda sol kısa kenarda 32 px, tablette
+üst uzun kenarda 24 px (`--safe-area-inset-*`). Görüntüde çentik ve yuvarlak köşeler siyah test
+kaplaması. Her biri için menü, karakter seçimi, maç, gol tekrarı.
+
+| Oran         | Pencere  | Oyun boyutu | Görünür alan (dünya) |
+| ------------ | -------- | ----------- | -------------------- |
+| 16:9         | 640×360  | 1280×720    | 0…1280 × 0…720       |
+| 18:9         | 720×360  | 1440×720    | −80…1360 × 0…720     |
+| 19,5:9       | 780×360  | 1560×720    | −140…1420 × 0…720    |
+| 20:9         | 800×360  | 1600×720    | −160…1440 × 0…720    |
+| 21:9         | 840×360  | 1680×720    | −200…1480 × 0…720    |
+| 4:3 tablet   | 1024×768 | 1280×960    | 0…1280 × −120…840    |
+| 16:10 tablet | 1280×800 | 1280×800    | 0…1280 × −40…760     |
+
+Çentikli 16:9'da tuval çentik kadar daralır (608×360 → 1280×758, üstte ve altta biraz dekor).
+Ek: 20:9'da çentik soldan sağa geçince (pencere boyutu aynı) butonlar ≤ 1 sn içinde yer
+değiştiriyor (otomatik test); dikey telefonda (390×844, web) "telefonu çevir" ekranı ve maç duruyor.
+
+### Kararlar
+
+- Boş kenarlar: stadyum dekoru (gerekçe PROGRESS.md'de).
+- Sınır 21,3:9 ve 4:3: ART_BIBLE §10.1 tuvali; daha geniş/dar ekran pazarda çok az.
+- Köşe payı yalnızca dokunmatikte: masaüstü web yerleşimi birebir aynı kalsın.
+- Menü başlığı, menü listesi, karakter kartları ve paneller kenara değil ortaya göre kalır (içerik,
+  kenar arayüzü değil); tablette üstte/altta dekor görünür.
+- Çentikli 16:9: dekor yerine siyah şerit (oyun alanı çentiğin altına düşmesin).
+
+### Bilinen sorunlar
+
+- Gerçek telefonda henüz denenmedi (çentik tarafı, iki yatay yön, sistem çubukları).
+- Kenardan kaydırınca geçici görünen sistem çubukları güvenli alanı değiştirirse arayüz bir an
+  kayabilir; telefonda gözlenmeli.
+- 21:9'da dış kenarlarda ışık kulesi yok (dekor sade); final stadyum çizimiyle (Faz 4.1) kapanır.

@@ -35,6 +35,7 @@ import { StadiumView } from '../ui/StadiumView';
 import { TextMenu } from '../ui/TextMenu';
 import { sessionQuality } from '../fx/feel';
 import { SceneKeys } from './sceneKeys';
+import { screenLayout } from '../ui/ScreenLayout';
 
 /** Sık kullanılan renkler. */
 const GOLD = 0xffd23f;
@@ -102,6 +103,7 @@ export class TrophyScene extends Phaser.Scene {
       this.tracker.detach();
     });
 
+    const layout = screenLayout(this);
     const world = this.add.container(0, 0);
     const c = this.championDef.palette;
     this.stadium = new StadiumView(this, world, {
@@ -119,7 +121,7 @@ export class TrophyScene extends Phaser.Scene {
     const fxAdd = this.add.container(0, 0);
     world.add([shadows, actors, fxNormal, fxAdd]);
     this.particles = new ParticleLayer(this, fxNormal, fxAdd, sessionQuality());
-    this.add.image(0, 0, STAGE_KEYS.vignette).setOrigin(0);
+    layout.cover(this.add.image(0, 0, STAGE_KEYS.vignette));
 
     const title = this.add
       .text(

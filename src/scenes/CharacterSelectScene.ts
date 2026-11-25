@@ -36,6 +36,8 @@ import { StadiumView } from '../ui/StadiumView';
 import { SuperPreview } from '../ui/SuperPreview';
 import { sessionQuality, type QualityLevel } from '../fx/feel';
 import { SceneKeys } from './sceneKeys';
+import { BOTTOM_CENTER, TOP_LEFT } from '../platform/screenFrame';
+import { screenLayout } from '../ui/ScreenLayout';
 
 /** Sık kullanılan renk. */
 const WHITE = 0xffffff;
@@ -190,6 +192,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       this.tracker.detach();
     });
 
+    const layout = screenLayout(this);
     const world = this.add.container(0, 0);
     this.stadium = new StadiumView(this, world, {
       leftColors: [],
@@ -198,10 +201,10 @@ export class CharacterSelectScene extends Phaser.Scene {
       title: t('game.title'),
       goalText: t('board.goal'),
     });
-    this.add
-      .rectangle(0, 0, DISPLAY.width, DISPLAY.height, SELECT.dimColor, SELECT.dimAlpha)
-      .setOrigin(0);
-    this.add.image(0, 0, STAGE_KEYS.vignette).setOrigin(0);
+    layout.cover(
+      this.add.rectangle(0, 0, DISPLAY.width, DISPLAY.height, SELECT.dimColor, SELECT.dimAlpha),
+    );
+    layout.cover(this.add.image(0, 0, STAGE_KEYS.vignette));
 
     const title = this.add
       .text(
@@ -225,7 +228,7 @@ export class CharacterSelectScene extends Phaser.Scene {
         if (!this.leaving) this.back();
       },
       1,
-    );
+    ).anchorTo(TOP_LEFT);
     this.createCards();
     this.cursors = this.add.graphics().setDepth(2);
     this.panels = [this.createPanel(0), this.createPanel(1)];
@@ -240,13 +243,15 @@ export class CharacterSelectScene extends Phaser.Scene {
       )
       .setOrigin(0.5)
       .setDepth(1);
-    this.add
+    const hintBack = this.add
       .image(
         hint.x,
         hint.y,
         panelTexture(this, hint.width + HINT_PAD * 2, HINT_H, 'dark', HINT_H / 2),
       )
       .setAlpha(MENU.navHint.alpha);
+    layout.place(hint, BOTTOM_CENTER);
+    layout.place(hintBack, BOTTOM_CENTER);
     this.refresh();
     this.cameras.main.fadeIn(MENU.startFadeMs);
   }
@@ -274,7 +279,7 @@ export class CharacterSelectScene extends Phaser.Scene {
   /** Kartlardaki ve panellerdeki karakterler: göz kırpma, fareyi izleme, imleç nabzı. */
   private animate(dt: number, seconds: number): void {
     const pointer = this.input.activePointer;
-    const look = { x: pointer.x, y: pointer.y };
+    const look = { x: pointer.worldX, y: pointer.worldY };
     const { cellW, cellH } = SELECT.grid;
     this.cards.forEach((card, i) => {
       const def = CHARACTERS[i];

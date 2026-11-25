@@ -10,6 +10,8 @@ import { gamepads } from './input/Gamepads';
 import { initDeviceDetection } from './platform/device';
 import { installPlatformUi, refreshPlatformTexts } from './platform/fullscreen';
 import { registerServiceWorker } from './platform/pwa';
+import { cutoutInsets, installSafeArea, onSafeAreaChange } from './platform/safeArea';
+import { fitParent } from './platform/screenFrame';
 import { BootScene } from './scenes/BootScene';
 import { CharacterSelectScene } from './scenes/CharacterSelectScene';
 import { MatchScene } from './scenes/MatchScene';
@@ -45,6 +47,21 @@ const TOUCH_POINTERS = 3;
 const lowPower = isLowPowerDevice(navigator);
 if (lowPower) rememberQuality(1);
 
+// Ekran çerçevesi (Faz 2.2): tuvalin kabı pencereyi kaplar, en-boy oranı 4:3 ile 21,3:9 arasına
+// kırpılır (ötesi letterbox); güvenli alan (çentik) okunmaya başlar.
+// Oyun alanı çentiğin altına düşecekse kap çentikten uzaklaşır (fitParent).
+const parent = document.getElementById('game');
+const fitGameParent = (): void => {
+  if (!parent) return;
+  const box = fitParent(globalThis.innerWidth, globalThis.innerHeight, cutoutInsets());
+  parent.style.left = `${box.x}px`;
+  parent.style.top = `${box.y}px`;
+  parent.style.width = `${box.width}px`;
+  parent.style.height = `${box.height}px`;
+};
+installSafeArea();
+fitGameParent();
+
 const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
@@ -54,8 +71,9 @@ const game = new Phaser.Game({
   backgroundColor: DISPLAY.letterboxColor,
   banner: false,
   scale: {
-    // 1280x720 mantıksal çözünürlük; en-boy oranı korunarak sığdırılır, kalan alan letterbox.
-    mode: Phaser.Scale.FIT,
+    // 1280×720 çekirdek her ekranda tam görünür; ekran 16:9'dan genişse görünür alan yanlara,
+    // darsa üste/alta uzar (EXPAND). Kamera çekirdeği ortalar (`ScreenLayout`), taşan kısım dekor.
+    mode: Phaser.Scale.EXPAND,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   fps: { target: DISPLAY.targetFps },
@@ -74,13 +92,21 @@ const game = new Phaser.Game({
 
 // Telefon döndürülünce tuval yeni boyuta oturmayabiliyor: kısa gecikmelerle ölçeği yenile.
 const refreshScale = (): void => {
+  fitGameParent();
+  game.scale.refresh();
   for (const ms of PLATFORM.scaleRefreshMs) {
     setTimeout(() => {
+      fitGameParent();
       game.scale.refresh();
     }, ms);
   }
 };
 window.addEventListener('resize', refreshScale);
+// Çentik öbür kenara geçti (180° dönüş; pencere boyutu aynı): kap yeniden yerleşir.
+onSafeAreaChange(() => {
+  fitGameParent();
+  game.scale.refresh();
+});
 window.addEventListener('orientationchange', refreshScale);
 
 // Gamepad API: her karenin başında kollar yoklanır; düğmeler sanal tuş olarak sahnelere düşer.

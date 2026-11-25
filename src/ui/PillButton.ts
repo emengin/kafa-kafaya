@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import { sfx } from '../audio/Sfx';
 import { panelTexture, textStyle } from '../art/uiArt';
 import { UI_THEME } from '../config/gameConfig';
+import type { Anchor } from '../platform/screenFrame';
+import { screenLayout } from './ScreenLayout';
 
 /**
  * Tek başına duran yuvarlak buton (Geri, sayfa okları…): fare/dokunmatikle tıklanır; üzerine
@@ -52,6 +54,14 @@ export class PillButton {
         this.setActive(false);
         onClick();
       });
+  }
+
+  /** Butonu ekranın bir kenarına sabitler (Faz 2.2; konumu tasarım çerçevesinde verilmiş sayılır). */
+  anchorTo(anchor: Anchor): this {
+    const layout = screenLayout(this.bg.scene);
+    layout.place(this.bg, anchor);
+    layout.place(this.text, anchor);
+    return this;
   }
 
   setVisible(visible: boolean): this {

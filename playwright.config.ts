@@ -16,7 +16,7 @@ const MOBILE_URL = `http://localhost:${MOBILE_PORT}/`;
 const SERVER_TIMEOUT = 60_000;
 
 export const webProject: Project = { name: 'web', use: { baseURL: WEB_URL } };
-const mobileProject: Project = { name: 'mobil', use: { baseURL: MOBILE_URL } };
+export const mobileProject: Project = { name: 'mobil', use: { baseURL: MOBILE_URL } };
 
 export const webServer = {
   command: `npm run preview -- --port ${WEB_PORT} --strictPort`,
@@ -24,7 +24,7 @@ export const webServer = {
   reuseExistingServer: !process.env.CI,
   timeout: SERVER_TIMEOUT,
 };
-const mobileServer = {
+export const mobileServer = {
   command: `npm run preview -- --mode ${MOBILE.mode} --port ${MOBILE_PORT} --strictPort`,
   url: MOBILE_URL,
   reuseExistingServer: !process.env.CI,

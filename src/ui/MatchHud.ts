@@ -24,6 +24,8 @@ import { displayedSecond, formatClock } from './format';
 import { ICON_RADIUS, iconKey, strokeRing } from './icons';
 import { css, makeCanvasTexture } from '../art/canvas';
 import { LiteGraphics } from './LiteGraphics';
+import { BOTTOM_CENTER, TOP_CENTER } from '../platform/screenFrame';
+import { screenLayout } from './ScreenLayout';
 
 /** Sık kullanılan renk. */
 const GOLD = 0xffd23f;
@@ -39,6 +41,9 @@ type Text = Phaser.GameObjects.Text;
  * üzülür), isimler ve güç barları; ortada skor kutuları (değişimde eski rakam yukarı kayar,
  * yenisi sekerek iner) ve saat hapı. Ortada büyük duyuru (GOL!, ALTIN GOL!, MAÇ BİTTİ!) dönen
  * ışınlarla; altta kontrol ipucu hapı. Durumu `MatchFlow`'dan ve oyunculardan okur.
+ *
+ * Yerleşim (Faz 2.2): skor tabelası üst kenara sabitli bir kapta (`ScreenLayout.group`), içindeki
+ * her şey tasarım koordinatıyla; ipucu hapı alt kenara sabitli, duyuru ekranın ortasında.
  */
 export class MatchHud {
   private readonly scores: [Text, Text];
@@ -82,7 +87,14 @@ export class MatchHud {
     const cx = this.cx;
     const b = HUD.board;
     const d = HUD.depth;
-    addPanel(scene, cx, b.y, b.width, b.height, 'panel', b.height / 2).setDepth(d);
+    const layout = screenLayout(scene);
+    // Skor tabelasının parçaları, oluşturma sırasıyla (kap içinde çizim sırası = ekleme sırası).
+    const boardItems: Phaser.GameObjects.GameObject[] = [];
+    const onBoard = <T extends Phaser.GameObjects.GameObject>(obj: T): T => {
+      boardItems.push(obj);
+      return obj;
+    };
+    onBoard(addPanel(scene, cx, b.y, b.width, b.height, 'panel', b.height / 2).setDepth(d));
 
     // Portreler: rozet + karakterin canlı kafası.
     const sides = [-1, 1] as const;
@@ -104,17 +116,17 @@ export class MatchHud {
         ctx.arc(c, c, R - PORTRAIT_RING / 2, 0, Math.PI * 2);
         ctx.stroke();
       });
-      scene.add.image(x, b.y, key).setDepth(d);
+      onBoard(scene.add.image(x, b.y, key).setDepth(d));
       const def = characters[i as PlayerIndex];
       const rig = new CharacterRig(scene, def, { headOnly: true, face: faces[i as PlayerIndex] });
-      rig.root.setDepth(d);
+      onBoard(rig.root.setDepth(d));
       return rig;
     }) as [CharacterRig, CharacterRig];
 
     // İsimler.
     for (const i of [0, 1] as const) {
       const side = sides[i];
-      scene.add
+      const name = scene.add
         .text(
           cx + side * b.nameX,
           b.nameY,
@@ -123,21 +135,27 @@ export class MatchHud {
         )
         .setOrigin(i === 0 ? 0 : 1, 0.5)
         .setDepth(d);
+      onBoard(name);
     }
 
     // Skor kutuları.
     const scoreKey = panelTexture(scene, b.scoreW, b.scoreH, 'dark', SCORE_RADIUS);
     const scoreText = (x: number): Text =>
-      scene.add
-        .text(x, b.y, '0', textStyle(HUD.score.fontSizePx, '#ffffff', HUD.score.strokePx))
-        .setOrigin(0.5)
-        .setDepth(d);
+      onBoard(
+        scene.add
+          .text(x, b.y, '0', textStyle(HUD.score.fontSizePx, '#ffffff', HUD.score.strokePx))
+          .setOrigin(0.5)
+          .setDepth(d),
+      );
     const flash = (x: number): Phaser.GameObjects.Rectangle =>
-      scene.add
-        .rectangle(x, b.y, b.scoreW - FLASH_INSET, b.scoreH - FLASH_INSET, WHITE, 0)
-        .setDepth(d)
-        .setBlendMode(Phaser.BlendModes.ADD);
-    for (const side of sides) scene.add.image(cx + side * b.scoreX, b.y, scoreKey).setDepth(d);
+      onBoard(
+        scene.add
+          .rectangle(x, b.y, b.scoreW - FLASH_INSET, b.scoreH - FLASH_INSET, WHITE, 0)
+          .setDepth(d)
+          .setBlendMode(Phaser.BlendModes.ADD),
+      );
+    for (const side of sides)
+      onBoard(scene.add.image(cx + side * b.scoreX, b.y, scoreKey).setDepth(d));
     this.scoreFlash = [flash(cx - b.scoreX), flash(cx + b.scoreX)];
     this.scores = [scoreText(cx - b.scoreX), scoreText(cx + b.scoreX)];
     this.ghosts = [
@@ -148,11 +166,13 @@ export class MatchHud {
     // Saat hapı.
     this.clockKey = panelTexture(scene, b.clockW, b.clockH, 'dark', b.clockH / 2);
     this.clockWarnKey = panelTexture(scene, b.clockW, b.clockH, 'active', b.clockH / 2);
-    this.clockBack = scene.add.image(cx, b.y, this.clockKey).setDepth(d);
-    this.clock = scene.add
-      .text(cx, b.y, '', textStyle(HUD.clock.fontSizePx, HUD.clock.color, HUD.clock.strokePx))
-      .setOrigin(0.5)
-      .setDepth(d);
+    this.clockBack = onBoard(scene.add.image(cx, b.y, this.clockKey).setDepth(d));
+    this.clock = onBoard(
+      scene.add
+        .text(cx, b.y, '', textStyle(HUD.clock.fontSizePx, HUD.clock.color, HUD.clock.strokePx))
+        .setOrigin(0.5)
+        .setDepth(d),
+    );
 
     // Güç barları ve süper etiketleri (barın dış ucunda).
     const pw = HUD.power;
@@ -160,9 +180,9 @@ export class MatchHud {
     for (const i of [0, 1] as const) {
       const outer = cx + sides[i] * b.nameX;
       const mid = i === 0 ? outer + pw.width / 2 : outer - pw.width / 2;
-      scene.add.image(mid, pw.y, trackKey).setDepth(d);
+      onBoard(scene.add.image(mid, pw.y, trackKey).setDepth(d));
     }
-    this.power = new LiteGraphics(scene).setDepth(d);
+    this.power = onBoard(new LiteGraphics(scene).setDepth(d));
     const superLabel = (i: PlayerIndex): Text =>
       scene.add
         .text(
@@ -175,7 +195,7 @@ export class MatchHud {
         .setDepth(d)
         .setVisible(false);
     // Etiket barın dışında değil, isim satırının sonunda: bar `nameX`'ten ortaya doğru uzanır.
-    this.superLabels = [superLabel(0), superLabel(1)];
+    this.superLabels = [onBoard(superLabel(0)), onBoard(superLabel(1))];
     this.superLabels[0].setPosition(cx - b.nameX, pw.y + LABEL_BELOW).setOrigin(0, 0.5);
     this.superLabels[1].setPosition(cx + b.nameX, pw.y + LABEL_BELOW).setOrigin(1, 0.5);
     this.powerUpIcons = new LiteGraphics(scene).setDepth(d + 1);
@@ -215,6 +235,16 @@ export class MatchHud {
           .setVisible(false),
       })),
     );
+
+    // Rozet zeminleri, üstlerinde geri sayım halkaları ve ikonlar (eski derinlik sırası: d, d+1).
+    layout
+      .group(TOP_CENTER, d)
+      .add([
+        ...boardItems,
+        ...this.badges.flat().map((x) => x.bg),
+        this.powerUpIcons,
+        ...this.badges.flat().map((x) => x.icon),
+      ]);
 
     // Duyuru: dönen ışınlar + altın gradyanlı yazı + hap içinde alt yazı.
     const gb = HUD.goalBanner;
@@ -273,7 +303,7 @@ export class MatchHud {
       .setOrigin(0.5)
       .setDepth(d)
       .setAlpha(h.alpha);
-    scene.add
+    const hintBack = scene.add
       .image(
         cx,
         hintText.y,
@@ -282,6 +312,8 @@ export class MatchHud {
       .setDepth(d)
       .setAlpha(h.alpha);
     hintText.setDepth(d + 1);
+    layout.place(hintBack, BOTTOM_CENTER);
+    layout.place(hintText, BOTTOM_CENTER);
   }
 
   /** Her karede: skorlar, saat (yalnızca değiştiğinde yeniden yazılır), barlar, portreler. */

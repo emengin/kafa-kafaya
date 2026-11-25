@@ -10,11 +10,13 @@ import {
   type TouchButtonId,
 } from '../input/touchLayout';
 import { releaseVirtual, setVirtual } from '../input/virtualKeys';
+import { screenLayout, type ScreenLayout } from './ScreenLayout';
 
 type Ctx = CanvasRenderingContext2D;
 
 interface ButtonView {
-  readonly def: TouchButton;
+  /** Şimdiki ekran çerçevesindeki konum (çerçeve değişince yenilenir). */
+  def: TouchButton;
   readonly img: Phaser.GameObjects.Image;
   readonly label: Phaser.GameObjects.Text;
 }
@@ -82,6 +84,9 @@ const LABELS: Partial<Record<TouchButtonId, 'touch.jump' | 'touch.kick' | 'touch
  * değil, tuvalin ham dokunma olaylarından okunur: her olayda tüm etkin parmaklar yeniden
  * değerlendirilir (çoklu dokunuş, parmak kaydırma, kaybolan `touchend`'e dayanıklı). Basılı
  * butonlar sanal tuş olarak yollanır; oyuncu girdisi klavyeyle aynı yoldan okunur.
+ *
+ * Yerleşim (Faz 2.2): butonlar ekranın kenarlarına sabitli (`TOUCH_ANCHORS`) ve güvenli alanın
+ * içinde; ekran oranı, boyutu ya da çentiğin tarafı değişince yeniden yerleşir.
  */
 export class TouchControls {
   private readonly views: ButtonView[];
@@ -89,13 +94,23 @@ export class TouchControls {
   private enabled = true;
   private superReady = false;
   private readonly canvas: HTMLCanvasElement;
+  private readonly layout: ScreenLayout;
 
   constructor(
     private readonly scene: Phaser.Scene,
     training: boolean,
   ) {
     this.canvas = scene.game.canvas;
+    this.layout = screenLayout(scene);
     this.views = touchButtons(training).map((def) => this.createButton(def));
+    this.layout.onChange((frame) => {
+      const defs = touchButtons(training, frame);
+      this.views.forEach((v, i) => {
+        v.def = defs[i] ?? v.def;
+        v.img.setPosition(v.def.x, v.def.y);
+        v.label.setPosition(v.def.x, v.def.y);
+      });
+    });
     for (const type of TOUCH_EVENTS)
       this.canvas.addEventListener(type, this.onTouch, { passive: false });
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -139,7 +154,9 @@ export class TouchControls {
     const scale = this.scene.scale;
     const points: { x: number; y: number }[] = [];
     for (const touch of Array.from(e.touches)) {
-      points.push({ x: scale.transformX(touch.pageX), y: scale.transformY(touch.pageY) });
+      points.push(
+        this.layout.toWorld(scale.transformX(touch.pageX), scale.transformY(touch.pageY)),
+      );
     }
     const now = pressedButtons(
       points,

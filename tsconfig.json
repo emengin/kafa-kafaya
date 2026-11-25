@@ -28,6 +28,7 @@
     "vite.config.ts",
     "capacitor.config.ts",
     "playwright.config.ts",
-    "playwright.screenshots.config.ts"
+    "playwright.screenshots.config.ts",
+    "playwright.screens.config.ts"
   ]
 }

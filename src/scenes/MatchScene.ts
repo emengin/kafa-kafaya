@@ -55,6 +55,7 @@ import { MatchHud } from '../ui/MatchHud';
 import { MatchRenderer } from '../ui/MatchRenderer';
 import { MenuOverlay } from '../ui/MenuOverlay';
 import { RenderFrame } from '../ui/renderFrame';
+import { screenLayout } from '../ui/ScreenLayout';
 import { playerColorHex, playerMark } from '../ui/identity';
 import { ReplayOverlay } from '../ui/ReplayOverlay';
 import { volumeMenuItems } from '../ui/settingsMenu';
@@ -176,6 +177,8 @@ export class MatchScene extends Phaser.Scene {
     this.replayPlan = null;
     this.pendingGoalTick = -1;
     this.replayLoop.reset();
+    // Kamera çekirdeği ortalar, kenara sabitli arayüz ekran oranına ve çentiğe göre yerleşir.
+    screenLayout(this);
 
     const fromMenu = typeof data === 'object' && data !== null && 'mode' in data;
     const dev = devAiFlags();
@@ -275,9 +278,8 @@ export class MatchScene extends Phaser.Scene {
       training ? t('match.trainingClock') : null,
     );
     this.hud.update(this.sim.match, this.sim.players);
-    this.screenFlash = this.add
-      .rectangle(0, 0, DISPLAY.width, DISPLAY.height, WHITE, 0)
-      .setOrigin(0)
+    this.screenFlash = screenLayout(this)
+      .cover(this.add.rectangle(0, 0, DISPLAY.width, DISPLAY.height, WHITE, 0))
       .setDepth(HUD.depth - 1);
     this.replayOverlay = new ReplayOverlay(this, () => {
       this.endReplay();

@@ -34,11 +34,26 @@ export const STAGE_KEYS = {
 
 const TWO_PI = Math.PI * 2;
 const B = STADIUM.bleedPx;
+/**
+ * Arka planın çekirdeğin (1280×720) dışına taşma payı (Faz 2.2): en geniş / en uzun desteklenen
+ * ekranın çekirdek dışında kalan kısmı (DISPLAY.frame) + sarsıntı payı. Dokuların sol üst köşesi
+ * dünyada (−STAGE_PAD_X, −STAGE_PAD_Y)'dedir.
+ */
+export const STAGE_PAD_X = (DISPLAY.frame.maxWidth - DISPLAY.width) / 2 + B;
+export const STAGE_PAD_Y = (DISPLAY.frame.maxHeight - DISPLAY.height) / 2 + B;
 /** Arka plan dokularının genişliği (taşma payıyla). */
-export const STAGE_WIDTH = DISPLAY.width + B * 2;
+export const STAGE_WIDTH = DISPLAY.width + STAGE_PAD_X * 2;
+/**
+ * Faz 2.2 öncesi doku genişliği (yalnızca sarsıntı payı). Çatı dikmeleri, saha şeritleri ve
+ * perspektif bu ölçüyle çizilir: çekirdekteki görünüm genişletmeden önceki gibi kalır.
+ */
+const REF_WIDTH = DISPLAY.width + B * 2;
+/** Dokunun eski (Faz 2.2 öncesi) dokuya göre yatay kayması. */
+const SHIFT_X = STAGE_PAD_X - B;
+const SHIFT_Y = STAGE_PAD_Y - B;
 
 export function generateStadiumTextures(scene: Phaser.Scene): void {
-  makeCanvasTexture(scene, STAGE_KEYS.sky, STAGE_WIDTH, STADIUM.sky.bottomY + B, drawSky);
+  makeCanvasTexture(scene, STAGE_KEYS.sky, STAGE_WIDTH, STADIUM.sky.bottomY + STAGE_PAD_Y, drawSky);
   for (let i = 0; i < STADIUM.clouds.variants; i++) {
     makeCanvasTexture(
       scene,
@@ -70,7 +85,7 @@ export function generateStadiumTextures(scene: Phaser.Scene): void {
     scene,
     STAGE_KEYS.field,
     STAGE_WIDTH,
-    DISPLAY.height + B - STADIUM.field.top,
+    DISPLAY.height + STAGE_PAD_Y - STADIUM.field.top,
     drawField,
   );
   makeCanvasTexture(scene, STAGE_KEYS.vignette, DISPLAY.width, DISPLAY.height, drawVignette);
@@ -80,28 +95,31 @@ export function generateStadiumTextures(scene: Phaser.Scene): void {
 
 function drawSky(ctx: Ctx, w: number, h: number): void {
   const s = STADIUM;
-  const g = ctx.createLinearGradient(0, 0, 0, h);
+  // Gradyan dünyada eskisiyle aynı yerde (y = −B'den ufka); üstteki ek şerit ilk renkte.
+  const g = ctx.createLinearGradient(0, SHIFT_Y, 0, h);
   for (const [at, color] of s.sky.stops) g.addColorStop(at, css(color));
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, h);
   // Ufukta güneş parıltısı.
   ctx.fillStyle = radial(
     ctx,
-    s.sun.x + B,
-    s.sun.y + B,
+    s.sun.x + STAGE_PAD_X,
+    s.sun.y + STAGE_PAD_Y,
     0,
     s.sun.radius,
     css(s.sun.color, s.sun.alpha),
     css(s.sun.color, 0),
   );
   ctx.fillRect(0, 0, w, h);
-  // Soluk yıldızlar (üstte).
+  // Soluk yıldızlar (üstte); yoğunluk genişleyen alanda da aynı.
   const rand = artRandom(s.stars.seed);
-  for (let i = 0; i < s.stars.count; i++) {
+  const band = s.stars.maxY + STAGE_PAD_Y;
+  const count = Math.round((s.stars.count * w * band) / (REF_WIDTH * (s.stars.maxY + B)));
+  for (let i = 0; i < count; i++) {
     const x = rand() * w;
-    const y = rand() * (s.stars.maxY + B);
+    const y = rand() * band;
     const r = s.stars.minSize + rand() * (s.stars.maxSize - s.stars.minSize);
-    const fade = 1 - y / (s.stars.maxY + B);
+    const fade = Math.min(1, 1 - (y - SHIFT_Y) / (s.stars.maxY + B));
     ctx.fillStyle = css(
       WHITE,
       s.stars.alpha * fade * (STAR_MIN_ALPHA + rand() * (1 - STAR_MIN_ALPHA)),
@@ -241,10 +259,11 @@ function drawStands(ctx: Ctx, w: number, h: number): void {
   ctx.fillStyle = css(s.rail);
   ctx.fillRect(0, toLocal(s.concourseY), w, 2);
   ctx.fillRect(0, toLocal(s.concourseY + s.concourseH) - 2, w, 2);
-  // Çatı: kalın kiriş + kenar ışığı + dikmeler + altında gölge.
+  // Çatı: kalın kiriş + kenar ışığı + dikmeler + altında gölge. Dikme aralığı eski genişlikten
+  // (çekirdekte yerleri değişmesin), genişleyen kısımda aynı aralıkla sürer.
   ctx.fillStyle = css(roof.supportColor);
-  for (let i = 0; i <= roof.supports; i++) {
-    const x = (w / roof.supports) * i;
+  const step = REF_WIDTH / roof.supports;
+  for (let x = SHIFT_X - Math.ceil(SHIFT_X / step) * step; x <= w; x += step) {
     ctx.fillRect(x - ROOF_SUPPORT / 2, 0, ROOF_SUPPORT, s.top - y0 + ROOF_SUPPORT * 2);
   }
   ctx.fillStyle = css(roof.color);
@@ -464,11 +483,15 @@ function drawField(ctx: Ctx, w: number, h: number): void {
   const vpX = w / 2;
   const vpY = f.vanishY - top;
   const bottom = h;
-  // Kaçış noktasından geçen doğru üzerinde, alt kenardaki x'e karşılık gelen x (yerel y'de).
+  // Perspektif Faz 2.2 öncesi dokunun alt kenarına göre (genişleyen saha aynı şeritlerle sürer).
+  const refBottom = bottom - SHIFT_Y;
+  // Kaçış noktasından geçen doğru üzerinde, eski alt kenardaki x'e karşılık gelen x (yerel y'de).
   const project = (xBottom: number, y: number): number =>
-    vpX + ((xBottom - vpX) * (y - vpY)) / (bottom - vpY);
-  const stripeW = (w * FIELD_SPREAD) / f.stripes;
-  const startX = vpX - (w * FIELD_SPREAD) / 2;
+    vpX + ((xBottom - vpX) * (y - vpY)) / (refBottom - vpY);
+  const stripeW = (REF_WIDTH * FIELD_SPREAD) / f.stripes;
+  const startX = vpX - (REF_WIDTH * FIELD_SPREAD) / 2;
+  ctx.fillStyle = css(f.a);
+  ctx.fillRect(0, 0, w, h);
   for (let i = 0; i < f.stripes; i++) {
     const xa = startX + stripeW * i;
     const xb = xa + stripeW;
@@ -476,18 +499,19 @@ function drawField(ctx: Ctx, w: number, h: number): void {
     ctx.beginPath();
     ctx.moveTo(project(xa, 0), 0);
     ctx.lineTo(project(xb, 0), 0);
-    ctx.lineTo(xb, bottom);
-    ctx.lineTo(xa, bottom);
+    ctx.lineTo(project(xb, bottom), bottom);
+    ctx.lineTo(project(xa, bottom), bottom);
     ctx.closePath();
     ctx.fill();
   }
-  // Çim dokusu: küçük açık/koyu lekeler.
+  // Çim dokusu: küçük açık/koyu lekeler (yoğunluk genişleyen alanda da aynı).
   const rand = artRandom(f.seed);
-  for (let i = 0; i < f.noiseCount; i++) {
+  const noise = Math.round((f.noiseCount * w * h) / (REF_WIDTH * refBottom));
+  for (let i = 0; i < noise; i++) {
     const y = rand() * h;
     const x = rand() * w;
     ctx.fillStyle = rand() < 0.5 ? 'rgba(255,255,255,0.05)' : 'rgba(0,30,0,0.08)';
-    ctx.fillRect(x, y, NOISE_W + rand() * NOISE_W, 1 + (y / h) * NOISE_H);
+    ctx.fillRect(x, y, NOISE_W + rand() * NOISE_W, 1 + Math.min(1, y / refBottom) * NOISE_H);
   }
   // Çizgiler.
   const groundLocal = PITCH.groundY - top;
@@ -512,14 +536,14 @@ function drawField(ctx: Ctx, w: number, h: number): void {
   ctx.fill();
   // Kale çizgileri ve ceza sahaları (kaçış noktasına yakınsar).
   for (const side of [-1, 1]) {
-    const lineX = side < 0 ? B + PITCH.goal.depth : w - B - PITCH.goal.depth;
-    const xBottomGoal = vpX + (lineX - vpX) * ((bottom - vpY) / (groundLocal - vpY));
+    const lineX = side < 0 ? STAGE_PAD_X + PITCH.goal.depth : w - STAGE_PAD_X - PITCH.goal.depth;
+    const xBottomGoal = vpX + (lineX - vpX) * ((refBottom - vpY) / (groundLocal - vpY));
     ctx.beginPath();
     ctx.moveTo(project(xBottomGoal, FAR_LINE), FAR_LINE);
-    ctx.lineTo(xBottomGoal, bottom);
+    ctx.lineTo(project(xBottomGoal, bottom), bottom);
     ctx.stroke();
     const boxX = lineX - side * f.boxDepth;
-    const xBottomBox = vpX + (boxX - vpX) * ((bottom - vpY) / (groundLocal - vpY));
+    const xBottomBox = vpX + (boxX - vpX) * ((refBottom - vpY) / (groundLocal - vpY));
     const yFar = groundLocal - BOX_HALF;
     const yNear = groundLocal + BOX_HALF;
     ctx.beginPath();
@@ -535,7 +559,7 @@ function drawField(ctx: Ctx, w: number, h: number): void {
   far.addColorStop(1, css(f.far, 0));
   ctx.fillStyle = far;
   ctx.fillRect(0, 0, w, groundLocal);
-  const near = ctx.createLinearGradient(0, groundLocal, 0, bottom);
+  const near = ctx.createLinearGradient(0, groundLocal, 0, refBottom);
   near.addColorStop(0, css(f.near, 0));
   near.addColorStop(1, css(f.near, NEAR_ALPHA));
   ctx.fillStyle = near;
