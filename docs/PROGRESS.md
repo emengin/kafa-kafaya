@@ -81,7 +81,8 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
   - [x] 2.1 Capacitor ve Android derleme — 2026-11-26 → gerçek telefonda açılıp oynandı (aşağıda)
   - [x] 2.2 Ekran ve ölçekleme — 2026-11-26 → gerçek telefonda kontrol edildi (aşağıda)
   - [x] 2.3 Dokunmatik kontroller v2 — 2026-11-26 → telefonda denendi, geri bildirim işlendi (aşağıda)
-  - [ ] 2.4 Performans (rollback ≤ 4 ms dahil)
+  - [ ] 2.4 Performans (rollback ≤ 4 ms dahil) — telefonda ölçüldü: 30 → 60 FPS, rollback p99 1,1 ms;
+        pil (USB'siz) ve kamera gecikmesi ölçümü geliştiricide bekliyor (aşağıda)
   - [ ] 2.5 Uygulama yaşam döngüsü
   - [ ] 2.6 Sürekli derleme hattı
   - [ ] 2.7 Determinizm sertleştirme
@@ -167,7 +168,7 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
   - [ ] 13.2 Sunucu taraflı yeniden simülasyon (opsiyonel)
 
 Faz ayrıntıları: 0.3 ve 0.4 → [archive/PROGRESS_MOBILE_0.md](archive/PROGRESS_MOBILE_0.md); 1.1 →
-[archive/PROGRESS_MOBILE_1.md](archive/PROGRESS_MOBILE_1.md); 2.0, 2.1, 2.2 ve 2.3 →
+[archive/PROGRESS_MOBILE_1.md](archive/PROGRESS_MOBILE_1.md); 2.0, 2.1, 2.2, 2.3 ve 2.4 →
 [archive/PROGRESS_MOBILE_2.md](archive/PROGRESS_MOBILE_2.md). 0.1 ve 0.2 [SEN] fazları; yapıldıysa
 kutuları sen işaretle. 1.3'ün stil testi görselleri ve karşılaştırması `design/style-tests/`
 altında (seçilen çizim tarzı: Yön A'nın sıcak el çizimi, dev kafa oranlarıyla; testteki "Mahalle
@@ -193,8 +194,8 @@ kalite. Ayrıntı, ikinci koşular ve yöntem: [archive/PROGRESS_MOBILE_2.md](ar
 | Bellek ayırma / kare                            | ~123 kB               | ~157–161 kB           | +%28               |
 
 Görünüm: menü, seçim, maç, gol, tekrar, duraklatma ve telefon görünümünün piksel karşılaştırması
-— zamana bağlı öğeler dışında birebir aynı. Bütçe 16,7 ms/kare; artışların kaynağı ve çözüm önerileri
-aşağıdaki 2.4 notunda.
+— zamana bağlı öğeler dışında birebir aynı. Bütçe 16,7 ms/kare; artışların kaynağı ve Faz 2.4'teki
+çözümleri aşağıda (§ Faz 2.4).
 
 ### Faz 2.1 — Capacitor ve Android derleme (2026-11-26, tamamlandı)
 
@@ -283,10 +284,87 @@ oynanabilir.
 | Determinizm ve tüm testler                                | ✅ 431 birim testi (determinizm dahil), duman testi web + mobil (dokunmatik dahil), matris |
 | QUALITY_BAR D1 / D3 (48 / 72 dp)                          | ✅ dokunma alanı ve varsayılan ◀ ▶ görseli ekranın dp ölçeğiyle; birim testi 0,8–3 px/dp   |
 | QUALITY_BAR D2 (butonlar arası ≥ 8 dp)                    | ✅ varsayılan, büyütülmüş, solak, 2 oyuncu ve düzenleyicide (çakışan konum reddedilir)     |
-| QUALITY_BAR D6 (≤ 1 adım; dokunuştan ekrana ≤ 80 ms)      | kısmen: tarayıcıda oyun payı ✅ (medyan ~10 ms); telefonda ölçülmedi → 2.4 notu            |
+| QUALITY_BAR D6 (≤ 1 adım; dokunuştan ekrana ≤ 80 ms)      | kısmen: tarayıcıda oyun payı ✅ (medyan ~10 ms); telefonda 2.4'te ölçüldü (5,6 ms)         |
 | QUALITY_BAR D7 (iki parmak hareket + şut + zıplama)       | ✅ Zıpla ile Şut arasına basmak ikisini birden basar                                       |
 | QUALITY_BAR A4 (basılı durum aynı kare, titreşim ≤ 50 ms) | ✅ basılı görünüm olay anında; titreşim süresi ölçülmedi                                   |
 | Web yayını bozulmadı                                      | ✅ web paketinde Capacitor yok; masaüstü yerleşim aynı; duman testi yeşil                  |
+
+### Faz 2.4 — Performans (2026-11-27; telefonda ölçüldü, pil ve kamera ölçümü bekliyor)
+
+Referans cihaz: **realme 12 kite (RMX3890)**, Snapdragon 685, Android 15, WebView 158 (QUALITY_BAR §0).
+Ölçümler telefon USB'deyken uygulamanın WebView'ında (`npm run bench -- --device`); dokunuşlar
+`adb` ile gerçek dokunma olayı. Profil, tüm önce/sonra tabloları, 15 dk dakika dakika kayıt ve
+telefonda ölçüm rehberi: [archive/PROGRESS_MOBILE_2.md § Faz 2.4](archive/PROGRESS_MOBILE_2.md).
+
+**Asıl bulgu:** oyun bu telefonda **30 FPS'e kilitliydi** (ana iş parçacığı yalnızca ~7 ms
+çalışırken). Karışım kipi her değiştiğinde Phaser 4 toplu çizim tamponunu yeniden yüklüyor;
+varsayılan tampon 16.384 dörtgen (~1,8 MB) ve mobil sürücü her seferinde tamamını kopyalıyor.
+Tampon 1.024 dörtgene inince **60 FPS**.
+
+| Cihaz, Yüksek kalite, AI vs AI (3 × 15 sn) | FPS      | > 20 ms aralık | > 50 ms | Aralık p99 | Çizim/kare |
+| ------------------------------------------ | -------- | -------------- | ------- | ---------- | ---------- |
+| HEAD (`90babcc`)                           | 30,4     | 1364 / 1370    | 6       | 45,7 ms    | 83,5       |
+| + toplu çizim tamponu 1024 + `solidRect`   | **59,9** | 8 / 2695       | 0       | 18,7 ms    | 81,3       |
+| + ADD sırası + Canvas 2D ikonlar           | 59,9     | 6 / 2695       | 0       | 17,8 ms    | 79,3       |
+| + kalabalık atlası                         | 59,8     | 13–40 / 2690   | 0–1     | 18,5–19 ms | 72,5       |
+
+Masaüstünde çizim/kare 21,5 → 14,4 (Phaser 3 düzeyi). Cihazda en uzun küçük GC 9,6 → 3,1 ms.
+**15 dk stres testi** (hedef boyutlu sahne + her karede 8 adımlık rollback): 59,7 FPS, işin %99,91'i
+bütçede, aralık p99 19,6 ms, ısınmayla düşüş yok (son dakika +0,8 FPS), kalite hep Yüksek, termal
+durum hep 0. **Rollback** ort. 0,51 ms, p99 1,1 ms, p99,9 2,1 ms (≤ 4 ms ✅), 3.457 denetimde 0 durum
+farkı. Determinizm: HEAD ile 2 × 119 durum özeti birebir aynı.
+
+**Faz 2.0'daki Phaser 4 maliyet notları:** (1) Rectangle → `solidRect` ✅; (2) ADD nesneleri
+gruplandı (stadyumda 8 → 4 geçiş) ✅; (3) kutulanan sayılar: Phaser içinde, ölçüldü (P7), kalabalık
+atlası ve `hypot` düzeltmesi yapıldı; (4) tek seferlik takılma: yalnızca yüklemede ve maç
+açılışında, ısıtma gerekmedi; (5) ikonlar Canvas 2D ✅, Canvas çizicisi 3 kB gzip'lik yedek olarak
+kaldı (karar); (6) tezgâh cihaza genişletildi ✅.
+
+**Kararlar:** `DISPLAY.batchQuads = 1024`; mobilde toplu çizim başına tek doku (Phaser varsayılanı;
+16 doku FPS kazandırmadı); Canvas çizicisi yedek; maç içinde `Rectangle` yerine `solidRect`; P1'in
+"%99 ≤ 16,7 ms"i kare işi, "p99 ≤ 20 ms"i kare aralığı için; ekran maç boyunca açık
+(`ScreenAwake`); kare süresi grafiği ve testler yalnızca geliştirici derlemesinde
+(`npm run cap:sync:dev`), yayın derlemesinde hiç yok (duman testi denetliyor).
+
+**Bitti kriterleri**
+
+| Kriter                                                         | Durum                                                                                                                        |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| 1. Düşük-orta seviye Android'de profil                         | ✅ realme 12 kite: 30 FPS'in kök nedeni bulundu (katman, karışım kipi, GL çağrı kaydı, tampon taraması)                      |
+| 2. Nesne havuzları, texture atlas, kare başına ayırma, WebView | ✅ havuzlar vardı (doğrulandı); kalabalık atlası; ayırma ölçüldü ve azaltıldı (Phaser içi kalan ~%85, not); WebView ayarları |
+| 3. Isınma ve pil (15 dk'da FPS düşüşü yok)                     | ◐ ısınma ✅ (15 dk, düşüş yok); **pil ölçülmedi** (test USB'de şarjdayken) → geliştirici                                     |
+| 4. Kare süresi grafiği (geliştirici katmanı)                   | ✅ yalnızca geliştirici derlemesinde; yayın derlemesinde yok (duman testi)                                                   |
+| 5. Rollback ölçümü (kayıt + 8 adım)                            | ✅ ort. 0,51 ms, p99 1,1 ms, p99,9 2,1 ms; canlı durumla 0 fark                                                              |
+| 6. Hedef boyutta sentetik stres sahnesi                        | ✅ ART_BIBLE §10.2 / §6.1 / §12.3 boyutlarında (`?devtest=stress`); 4.6 ve 12.3'te tekrar                                    |
+| 7. Sonuçlar QUALITY_BAR'da                                     | ✅ P1–P9, A1, A2, D6                                                                                                         |
+| **Faz: 15 dk sabit 60 FPS; kayıt + 8 adım ≤ 4 ms**             | ✅ telefonda (stres sahnesinde bile 59,7 FPS); seyrek GC takılması P2'de açık                                                |
+| Determinizm testleri; optimizasyonlar simülasyonu değiştirmez  | ✅ 440 birim testi; tarayıcıda HEAD ↔ Faz 2.4 durum özetleri birebir aynı                                                    |
+| 2.3'ten kalan: telefonda gecikme ölçümü                        | ◐ uygulama içi ölçer ✅ (oyun payı 5,6 ms); **kamera ölçümü** → geliştirici                                                  |
+| 2.3'ten kalan: hareket bölgesi telefonda                       | ✅ gerçek dokunuşla: sol kenar, ◀ altı (kenardan 6 px'e kadar), ▶ sağı                                                       |
+| Web yayını bozulmadı                                           | ✅ duman testi web + mobil; web paketinde Capacitor ve geliştirici araçları yok                                              |
+
+**QUALITY_BAR satırları**
+
+| Satır                   | Sonuç                                                                                         |
+| ----------------------- | --------------------------------------------------------------------------------------------- |
+| P1 kare hızı            | ✅ 59,7 FPS, %99,91 bütçede, aralık p99 19,6 ms (15 dk stres)                                 |
+| P2 takılma              | ❌ oyun akarken ~1–2 dk'da bir 50–75 ms; nedeni V8 büyük GC (~25 ms) → 3.x notu               |
+| P3 ısınma               | ✅ son dakika ilk dakikadan hızlı                                                             |
+| P4 kalite kademesi      | ✅ hep Yüksek                                                                                 |
+| P5 pil                  | ölçülmedi (USB'de şarjda) → geliştirici                                                       |
+| P6 bellek               | ◐ normal maç 366–371 MB ✅; hedef boyutlu stres 428–452 MB ❌; büyüme yok ✅ → 3.1 / 4.5 notu |
+| P7 ayırma / GC          | ◐ bizim kod havuzlu, küçük GC ≤ 3,1 ms; Phaser içi kutulama ve büyük GC (P2)                  |
+| P8 yüksek yenileme hızı | ✅                                                                                            |
+| P9 rollback             | ✅ p99,9 2,1 ms                                                                               |
+| A1 / A2 açılış          | ◐ uygulamanın ilk karesi 1,1–1,3 sn (sistem açılış ekranı anında) / ✅ menü 2,65 sn           |
+| D6 giriş gecikmesi      | ◐ oyun payı 5,6 ms ✅; dokunuştan ekrana (kamera) → geliştirici                               |
+
+**Geliştiriciden beklenen (faz bunlardan sonra tamamlandı işaretlenir):** (1) **Pil:** telefon
+USB'siz, parlaklık %50, Ayarlar → Kontroller → Stres testi (15 dk); başta ve sonda pil yüzdesi
+(hedef ≤ %5) ve sondaki "15 dk BİTTİ" satırının ekran görüntüsü. (2) **Kamera ile gecikme**
+(Faz 2.3 yöntemi B): 10 dokunuşun medyanı (hedef ≤ 80 ms). Adımlar:
+[archive § Faz 2.4 → Telefonda ölçüm](archive/PROGRESS_MOBILE_2.md). Telefona şu an geliştirici
+derlemesi kurulu.
 
 ## Sonraki fazlar için notlar
 
@@ -321,9 +399,9 @@ sonra hâlâ görülen riskler:
   12.4'ün kayıt altyapısıyla Bölüm 6 ya da 11'e eklenmeli.
 - **12.6 — Günlük sıfırlama saati:** 00:00 TSİ uzak bölgelerde günün ortasına denk gelir; bölgesel
   sıfırlama kararı test lansmanından önce.
-- **2.4 / 2.7 — Ölçüm sırası:** rollback ≤ 4 ms ölçümü, 2.7'de gelecek kendi
-  `sin/cos/atan2/exp/pow` fonksiyonlarından önce yapılıyor; bunlar yavaşsa bütçe kayar. Öneri: ölçüm
-  2.7 sonunda da tekrarlansın (şu an yalnızca 4.6 ve 12.3'te).
+- **2.7 — Rollback ölçümünü tekrarla (2.4'ten):** Faz 2.4'te telefonda kayıt + 8 adım p99 1,1–1,2 ms,
+  p99,9 2,1 ms (bütçe 4 ms) — 2.7'nin kendi `sin/cos/atan2/exp/pow` fonksiyonlarından önce. 2.7
+  sonunda geliştirici derlemesinde `?devtest=rollback` (ya da Stres testi) ile tekrarlanmalı.
 - **2.7 / 3.6 — Sunum katmanında hit-stop:** simülasyon akarken görüntüyü 40–60 ms dondurmak,
   ardından 2–4 karelik sıçrama ya da geçici görsel gecikme demek; rollback düzeltmeleriyle üst üste
   binince his bozulabilir. 2.7'de prototiplenmeli. Ağır çekimin doğal yeri gol sonrası deterministik
@@ -362,9 +440,6 @@ sonra hâlâ görülen riskler:
 - **2.9 / 3.6 — Hit-stop ve giriş gecikmesi (2.3'ten):** vuruş anındaki hit-stop simülasyonu
   40–60 ms bekletiyor; o arada basılan tuş da bekliyor (tarayıcıda p95 ~100 ms). Hit-stop yalnızca
   sunuma taşınınca (2.7 notu) bu gecikme kalkar; his ayarında ölçer açık denenmeli.
-- **2.4 — Gecikme ölçümü referans cihazda (2.3'ten):** QUALITY_BAR D6 telefonda ölçülmedi;
-  yöntem [archive/PROGRESS_MOBILE_2.md § Faz 2.3](archive/PROGRESS_MOBILE_2.md). Referans cihaz
-  gelince ölçer + kamera ölçümü tekrarlanmalı.
 - **3.4 — Dokunmatik buton ve düzenleyici görselleri (2.3'ten):** butonlar, halka ve düzenleyici
   araç çubuğu kodla çizilmiş yer tutucu (`src/ui/touchButtonArt.ts`, `PillButton`); tasarım
   sistemi gelince değişir; ◀ ▶ ikonları ve ZIPLA/ŞUT/SÜPER yazıları ikon setine geçmeli.
@@ -396,8 +471,8 @@ sonra hâlâ görülen riskler:
   test 3.2'de.
 - **4.7 — Yerel 2 oyuncu (2.3'ten):** dikey dilim testinde iki kişiyle telefonda dokunmatik 2 oyuncu
   denenmeli; rahat değilse `TOUCH.twoPlayer.minDiagonalInch = 7` (yalnızca tablet).
-- **2.3 düzeltmeleri telefonda (2.3'ten):** hareket bölgesi ve iPhone'da otomatik büyütme telefon
-  testinden sonra eklendi, cihazda ayrıca denenmedi; 2.4'teki cihaz turunda bakılmalı.
+- **iPhone'da otomatik büyütme (2.3'ten):** hareket bölgesi 2.4'te telefonda gerçek dokunuşla
+  doğrulandı; iPhone'da (Safari) varsayılan düzenin otomatik büyümesi henüz denenmedi.
 - **4.x — Geçici ikon ve açılış ekranı (2.1'den):** `android/app/src/main/res/mipmap-*` ve
   `drawable*/splash.png` kodla üretilmiş yer tutucu. Final ikon (ART_BIBLE §11.7, §13.2) ve açılış
   ekranı gelince: `npx capacitor-assets generate --android --assetPath <klasör>`, ASSET_LOG kaydı,
@@ -405,24 +480,40 @@ sonra hâlâ görülen riskler:
 - **Capacitor 9 (2.1'den):** 9.0 RC şablonu AGP 9.4 + Gradle 9.8, minSdk 26, compileSdk 37. Geçişte
   Gradle 10 uyarıları da kapanır; `android/` şablon farkı elle birleştirilir (`MainActivity`, manifest,
   `styles.xml`, `colors.xml` özelleştirildi).
-- **2.4 — Phaser 4 maliyetleri (Faz 2.0 ölçümü):** (1) Maçtaki 18 `Rectangle` şekli `FillRect` →
-  `BatchHandlerTriFlat` yolundan çiziliyor: resimlerle arasında her geçiş toplu çizim boşaltması
-  (kare başına ~7) ve üçgen başına geçici diziler; `__WHITE` dokulu tonlu resim ya da LiteGraphics'e
-  çevrilirse çizim çağrısı Phaser 3 düzeyine (~14) iner. (2) Kap içinde karışım kipi her değiştiğinde
-  Phaser 4 yeni bir `DrawingContext` kurup toplu çizimi boşaltıyor; stadyumdaki ADD parlamaları ve
-  parçacıklar normal resimlerle iç içe — ADD nesneleri gruplanmalı. (3) Resim gönderim yolu
-  (`SubmitterQuad`) Phaser 3'teki gibi kutulanan sayılar üretiyor (~5,6 MB/sn); 127 görünür resmin
-  çoğu kalabalık — durağan katmanlar tek dokuya pişirilebilir ya da `SpriteGPULayer` denenebilir.
-  (4) 1× koşularda tek seferlik ~23 ms kare: muhtemelen shader çeşidinin ilk kullanımda derlenmesi;
-  yükleme ekranında ısıtma. (5) Canvas çiziciyi paketten çıkarmak için ikon dokuları
-  (`src/ui/icons.ts`, `generateTexture`) doğrudan Canvas 2D ile çizilmeli; WebGL'siz yedek kararı da
-  verilmeli (Android WebView'da WebGL var). (6) Ölçüm aracı hazır: `npm run bench`; değişiklik öncesi
-  derlemeyi bir klasöre kopyalayıp `--dirs eski,dist` ile karşılaştır. Ölçüm sırasında makinede başka
-  iş koşturma (bir koşu bu yüzden atıldı).
+- **2.5 — Ekran açık bayrağı (2.4'ten):** `setScreenAwake` maç boyunca açık, duraklatma menüsünde de.
+  Duraklatmada (ve maç sonu ekranında bir süre sonra) kapatılmalı; arka planda sistem zaten kapatır.
+- **2.7 — Simülasyonda ayırma (2.4'ten):** `collideStatic`/`circleVsCircle` her temasta yeni temas
+  nesnesi, `resolveContact` yeni sonuç nesnesi döndürüyor; `loadState` yanılsamalar için yeni `Ball`
+  kuruyor (rollback'te her geri sarmada). Masaüstünde kare başına ~6 kB; 2.7 denetiminde ön ayrılmış
+  sonuç nesnelerine çevrilebilir (aritmetik aynı, determinizm testleri doğrular).
+- **3.1 / 4.5 — Bellek bütçesi (2.4'ten):** normal maçta toplam PSS ~366–371 MB (P6 sınırı 400),
+  hedef boyutlu stres sahnesinde ~428–452 MB. Kodla çizilen dokular WebView'da iki kez yer tutuyor
+  (çizici süreçte tuval, GPU'da doku); final görseller PNG olarak gelince de çözülmüş görüntü
+  önbelleği benzer. 3.1'de: doku sıkıştırma (ETC2/ASTC, KTX2) ya da yüklemeden sonra kaynak tuvali
+  bırakma denenmeli; 4.6'da stres sahnesi yerine final görsellerle P6 yeniden ölçülmeli.
+- **3.x — Çizim kuralları (2.4'ten):** mobilde toplu çizim başına tek doku; doku değişimi ucuz ama
+  karışım kipi ve çizici değişimi pahalı (toplu çizim boşaltma). Toplamalı (ADD) nesneler art arda ya
+  da tek ADD kapta; maç içinde `Rectangle` yerine `solidRect`; saydamlığı 0 olan nesne görünür
+  bırakılmaz (gizlenir ya da `alpha 0`). Phaser 4 filtreleri (3.6) de toplu çizimi böler. Yeni
+  sahne/efekt eklenince `npm run bench -- --device` ile çizim/kare ve FPS kontrol edilmeli.
+- **4.6 / 12.3 — Ölçümleri tekrarla (2.4'ten):** stres sahnesi final görsellerin vekili; 4.6'da
+  final görsellerle aynı tezgâh ve 15 dk test (`?devtest=stress` yerine gerçek maç + rollback:
+  `?devtest=rollback`), 12.3'te cihaz matrisiyle.
+- **12.5 — Canvas çizicisi (2.4'ten):** yedek olarak pakette (3 kB gzip); kapalı testte WebGL'siz
+  cihaz oranı görülünce kaldırma kararı.
 - **Phaser güncellemeleri:** `LiteGraphics` hızlı yolu `BatchHandlerQuad`'ın iç alanlarına, paket
   eklentisi `BatchHandler`'ın `Renderer` kullanımına dayanıyor. İkisi de korumalı (yedek yola
-  düşüşte duman testi, `Renderer` kullanımı değişirse derleme kırılır); güncellemeden sonra
-  `npm run bench` ile karşılaştır.
+  düşüşte duman testi, `Renderer` kullanımı değişirse derleme kırılır). Güncellemeden sonra
+  `npm run bench` (masaüstü) ve `npm run bench -- --device` (telefon) ile karşılaştır; `batchSize`
+  (`DISPLAY.batchQuads`, 1024) ayarı korunmalı — Phaser varsayılanı mobilde 30 FPS demek.
+- **3.x — Seyrek GC takılması (P2, 2.4'ten):** oyun akarken ~1–2 dakikada bir V8'in büyük GC'si
+  (~25 ms) 2–3 vsync kaçırtıyor (50–75 ms'lik kare). Ayırma kare başına ~265 kB, ~%85'i Phaser'ın
+  içinde: kap çizicisi her çocuk için her karede iki kez `setAlpha` çağırıyor (iç içe kaplar),
+  `SubmitterQuad` ve `finalizeTextureCount` sayı kutuluyor, karışım geçişinde `DrawingContext`
+  kuruluyor. Seçenekler: dünya kaplarını düzleştirmek (kalabalık, parçacıklar doğrudan sahnede),
+  Phaser'a yama ya da sorun bildirimi. 3.2'deki parçalı karakterler (karakter başına ~22 resim) bu yükü
+  artıracak; geliştirici derlemesindeki takılma günlüğüyle (`__KAFA_PERF__.report().hitches`)
+  doğrulanmalı.
 - **2.7 — Durum özeti:** tezgâhın determinizm bölümü `JSON.stringify(saveState())` özetini
   kullanıyor; bu kanonik değil (`-0` → `0`, `NaN` → `null`, alan sırası nesne kurulum sırasına bağlı).
   2.7'nin checksum'ı için alan sırası sabit, ikili (Float64) bir serileştirme gerekir; tezgâhtaki

@@ -646,7 +646,9 @@ export class LiteGraphics extends Phaser.GameObjects.Graphics {
   private quad(x1: number, y1: number, x2: number, y2: number): void {
     const dx = x2 - x1;
     const dy = y2 - y1;
-    const len = Math.hypot(dx, dy);
+    // `Math.hypot` yerine kök (Faz 2.4): mobil JIT'te yerleşik çağrı sayıları kutulayıp kare başına
+    // çöp üretiyordu. Yalnızca çizim; simülasyon değil.
+    const len = Math.sqrt(dx * dx + dy * dy);
     if (len < Number.EPSILON) return;
     const h = this.strokeWidth / 2;
     const ux = dx / len;

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { artRandom } from '../art/canvas';
 import { FX_KEYS } from '../art/fxArt';
 import {
+  crowdFrame,
   FIELD_TOP_Y,
   generateBoardTextures,
   generateCrowdTextures,
@@ -14,12 +15,15 @@ import {
 import { DISPLAY, STADIUM } from '../config/gameConfig';
 import type { QualityLevel } from '../fx/feel';
 import { approach } from '../fx/Spring';
+import { solidRect } from './solidRect';
 
 type Image = Phaser.GameObjects.Image;
 
 interface CrowdSegment {
   readonly img: Image;
   readonly row: number;
+  /** Sıradaki parça (atlas karesi). */
+  readonly segment: number;
   readonly baseY: number;
   readonly phase: number;
   /** 0 = sol yarı (P1 taraftarı), 1 = sağ yarı. */
@@ -47,7 +51,7 @@ export class StadiumView {
   private readonly glows: Image[] = [];
   private readonly beams: Image[] = [];
   private readonly boards: Phaser.GameObjects.TileSprite;
-  private readonly boardGlow: Phaser.GameObjects.Rectangle;
+  private readonly boardGlow: Phaser.GameObjects.Image;
   private excitement = 0;
   private excitementTarget = 0;
   private readonly cheerTimers: [number, number] = [0, 0];
@@ -92,10 +96,12 @@ export class StadiumView {
       }
     });
 
-    // Işık kuleleri ve parlamaları.
+    // Işık kuleleri ve parlamaları. Toplamalı (ADD) nesneler art arda çizilir: Phaser 4'te karışım
+    // kipi her değiştiğinde toplu çizim boşalır (Faz 2.4). Parlamalar diğer kuleyle, pano ışıması
+    // panolarla örtüşmez; toplamalı karışım kendi arasında sıradan bağımsız → görüntü aynı.
     const t = STADIUM.towers;
+    for (const x of t.xs) parts.push(add.image(x, t.top, STAGE_KEYS.tower).setOrigin(0.5, 0));
     for (const x of t.xs) {
-      parts.push(add.image(x, t.top, STAGE_KEYS.tower).setOrigin(0.5, 0));
       const glow = add
         .image(x, t.top + t.panelH / 2, FX_KEYS.glow)
         .setTint(t.glowColor)
@@ -114,10 +120,18 @@ export class StadiumView {
       for (let s = 0; s < c.segments; s++) {
         const baseY = row.y - c.rowHeight;
         const img = add
-          .image(-B + Math.floor(segW * s), baseY, STAGE_KEYS.crowd(ri, false), s)
+          .image(-B + Math.floor(segW * s), baseY, STAGE_KEYS.crowd, crowdFrame(ri, false, s))
           .setOrigin(0);
         const side: 0 | 1 = segW * (s + 0.5) < STAGE_WIDTH / 2 ? 0 : 1;
-        this.crowd.push({ img, row: ri, baseY, phase: rand() * TWO_PI, side, cheering: false });
+        this.crowd.push({
+          img,
+          row: ri,
+          segment: s,
+          baseY,
+          phase: rand() * TWO_PI,
+          side,
+          cheering: false,
+        });
         parts.push(img);
       }
     });
@@ -136,11 +150,19 @@ export class StadiumView {
 
     const bd = STADIUM.boards;
     this.boards = add.tileSprite(-B, bd.y, STAGE_WIDTH, bd.height, STAGE_KEYS.boards).setOrigin(0);
-    this.boardGlow = add
-      .rectangle(-B, bd.y + bd.height, STAGE_WIDTH, BOARD_GLOW_H, bd.colors[0], bd.glowAlpha)
+    // Pano ışıması panoların hemen altında (örtüşmez): hüzmelerle aynı toplamalı grupta.
+    this.boardGlow = solidRect(
+      scene,
+      -B,
+      bd.y + bd.height,
+      STAGE_WIDTH,
+      BOARD_GLOW_H,
+      bd.colors[0],
+      bd.glowAlpha,
+    )
       .setOrigin(0)
       .setBlendMode(Phaser.BlendModes.ADD);
-    parts.push(this.boards, this.boardGlow);
+    parts.push(this.boardGlow, this.boards);
     parts.push(add.image(-B, FIELD_TOP_Y, STAGE_KEYS.field).setOrigin(0));
     layer.add(parts);
     this.setQuality(opts.quality);
@@ -193,7 +215,7 @@ export class StadiumView {
       const cheering = this.cheerTimers[seg.side] > 0;
       if (cheering !== seg.cheering) {
         seg.cheering = cheering;
-        seg.img.setTexture(STAGE_KEYS.crowd(seg.row, cheering), seg.img.frame.name);
+        seg.img.setFrame(crowdFrame(seg.row, cheering, seg.segment));
       }
       if (!animate) {
         seg.img.y = seg.baseY;

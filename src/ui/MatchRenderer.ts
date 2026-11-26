@@ -188,6 +188,16 @@ export class MatchRenderer {
   private readonly balloonIcon: Phaser.GameObjects.Image;
   private readonly vignette: Phaser.GameObjects.Image;
 
+  /** Dünya kabı (sarsıntı ve zoom'la hareket eder; geliştirici stres sahnesi buraya ekler). */
+  get worldLayer(): Container {
+    return this.layers.world;
+  }
+
+  /** Stadyum katmanı (stres sahnesi kendi hedef boyutlu katmanlarını çizerken gizler). */
+  get stageLayer(): Container {
+    return this.layers.stage;
+  }
+
   private makeTag(label: string, i: PlayerIndex): Tag {
     const t = CHARACTER_ART.tag;
     const text = this.scene.add

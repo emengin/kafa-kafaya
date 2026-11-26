@@ -16,7 +16,7 @@ export function encodeInput(s: InputState): number {
   );
 }
 
-interface MutableInput {
+export interface MutableInput {
   left: boolean;
   right: boolean;
   jump: boolean;
@@ -24,7 +24,8 @@ interface MutableInput {
   super: boolean;
 }
 
-function decodeInto(bits: number, out: MutableInput): InputState {
+/** `encodeInput` bitlerini `out` nesnesine çözer (yeni nesne ayırmaz). */
+export function decodeInput(bits: number, out: MutableInput): InputState {
   out.left = (bits & BIT.left) !== 0;
   out.right = (bits & BIT.right) !== 0;
   out.jump = (bits & BIT.jump) !== 0;
@@ -99,8 +100,8 @@ export class ReplayRecorder {
     const i = tick % this.capacity;
     if (tick < 0 || this.inputTicks[i] !== tick) return null;
     const [a, b] = this.decoded;
-    decodeInto(this.inputs[i * 2] ?? 0, a);
-    decodeInto(this.inputs[i * 2 + 1] ?? 0, b);
+    decodeInput(this.inputs[i * 2] ?? 0, a);
+    decodeInput(this.inputs[i * 2 + 1] ?? 0, b);
     return this.decoded;
   }
 

@@ -27,7 +27,10 @@ const { version } = JSON.parse(
 export default defineConfig(({ command, mode, isPreview }) => {
   // Mobil derleme (`npm run build:mobile`, Capacitor): WebView'da kökten açılır, PWA yok, ayrı
   // klasör. Ayrıntı: scripts/mobile/target.ts.
-  const mobile = mode === MOBILE.mode;
+  const mobile = mode === MOBILE.mode || mode === MOBILE.devMode;
+  // Geliştirici araçları (Faz 2.4) yalnızca geliştirme sunucusunda, testlerde ve geliştirici
+  // mobil derlemesinde; yayın derlemelerinde (`build`, `build:mobile`) dal ve modül paketten atılır.
+  const devTools = (command === 'serve' && isPreview !== true) || mode === MOBILE.devMode;
   // `vite preview` da command === 'serve' ile çalışır; derlenmiş web dosyaları depo alt yolunu
   // beklediği için önizlemede de aynı base kullanılmalı (yoksa varlıklar 404 verir).
   const webBase = command === 'build' || isPreview === true ? `/${repoName}/` : '/';
@@ -35,16 +38,21 @@ export default defineConfig(({ command, mode, isPreview }) => {
     define: {
       __APP_VERSION__: JSON.stringify(version),
       __NATIVE_APP__: JSON.stringify(mobile),
+      __DEV_TOOLS__: JSON.stringify(devTools),
     },
     base: mobile ? '/' : webBase,
-    // Titreşim eklentisi (Faz 2.3) yalnızca uygulamada: web derlemesinde ve testlerde boş bir
-    // modüle yönlenir; Capacitor çekirdeği web paketine (ve PWA önbelleğine) girmez.
+    // Titreşim eklentisi (Faz 2.3) ve Capacitor çekirdeği yalnızca uygulamada: web derlemesinde ve
+    // testlerde boş modüllere yönlenir; Capacitor web paketine (ve PWA önbelleğine) girmez.
     resolve: mobile
       ? {}
       : {
           alias: {
             '@capacitor/haptics': fileURLToPath(
               new URL('./src/platform/hapticsWebStub.ts', import.meta.url),
+            ),
+            // Ekran-açık eklentisi (Faz 2.4) gibi yerel eklenti kayıtları yalnızca uygulamada.
+            '@capacitor/core': fileURLToPath(
+              new URL('./src/platform/capacitorWebStub.ts', import.meta.url),
             ),
           },
         },

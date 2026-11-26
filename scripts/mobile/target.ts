@@ -10,6 +10,12 @@
 export const MOBILE = {
   /** `vite build --mode mobile` → `import.meta.env.MODE` ve `__NATIVE_APP__` bayrağı. */
   mode: 'mobile',
+  /**
+   * Geliştirici derlemesi (Faz 2.4; `npm run build:mobile:dev`, `npm run cap:sync:dev`): mobil
+   * derlemeyle aynı, ek olarak geliştirici araçları (`__DEV_TOOLS__`: kare süresi grafiği, stres
+   * sahnesi, rollback ölçer, `?gl=` deney bayrakları). Yayına giden derleme `mode`'dur.
+   */
+  devMode: 'mobile-dev',
   /** Mobil derlemenin çıktı klasörü = Capacitor `webDir`. */
   outDir: 'dist-mobile',
   appId: 'com.emengin.kafakafaya',

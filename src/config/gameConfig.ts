@@ -45,6 +45,15 @@ export const DISPLAY = {
    * yakın bir noktayı keser: yarıçap × (1 − 1/√2) ≈ 12 px.
    */
   touchEdgeMarginPx: 12,
+  /**
+   * WebGL toplu çizim tamponu (dörtgen; Faz 2.4). Phaser varsayılanı 16384 (~1,8 MB köşe
+   * tamponu). Toplu çizim her boşaltıldığında (karışım kipi ya da çizici değişimi) tampon
+   * `bufferSubData` ile yeniden yazılır; mobil GPU sürücüleri aynı karede hâlâ okunan tamponun
+   * üstüne yazılınca tamponun tamamını kopyalar. Referans cihazda (Adreno 610) 16384'te maç
+   * 30 FPS'e kilitleniyordu, 1024'te 60 FPS (PROGRESS Faz 2.4). Bir karede tek toplu çizime
+   * düşen dörtgen sayısı bunun altında (maçta en çok birkaç yüz).
+   */
+  batchQuads: 1024,
 } as const;
 
 /** Sabit adımlı (fixed timestep) oyun döngüsü. */
@@ -3034,4 +3043,116 @@ export const DEBUG = {
 /** Dil ayarları. */
 export const I18N = {
   defaultLanguage: 'tr',
+} as const;
+
+/**
+ * Performans ölçümü (Faz 2.4). QUALITY_BAR §1 hedefleri ve geliştirici araçlarının (kare süresi
+ * grafiği, stres sahnesi, rollback ölçer) ayarları. Geliştirici araçları yalnızca geliştirici
+ * derlemesinde (`__DEV_TOOLS__`) pakete girer; hedefler yayın derlemesinde de okunabilir.
+ */
+export const PERF = {
+  /** P1: karelerin ≥ %99'unun ana iş parçacığı işi bu bütçenin içinde (60 Hz, 1 vsync). */
+  frameBudgetMs: 16.7,
+  /** P1: kare aralığı p99 ≤ 20 ms (aralığın 20 ms'yi aşması = 60 Hz'de vsync kaçtı). */
+  onTimeMs: 20,
+  onTimeShare: 0.99,
+  /** P2: oyun akarken bu süreyi aşan kare aralığı "takılma"dır. */
+  hitchMs: 50,
+  /** Bundan uzun aralıklar ölçüme girmez (uygulama arka planda / sekme gizli). */
+  ignoreAboveMs: 1000,
+  /** P3: son dakikanın ortalama FPS'i ilk dakikadan en çok bu kadar düşük olabilir. */
+  thermalFpsDrop: 2,
+  /** P3/P5: dayanıklılık ve stres testinin süresi (dk). */
+  soakMinutes: 15,
+  msPerMinute: 60_000,
+  /** P9: rollback — durum kaydı + bu kadar adımlık yeniden simülasyon ≤ `rollbackBudgetMs`. */
+  rollbackFrames: 8,
+  rollbackBudgetMs: 4,
+  /** Rollback sonucunu canlı durumla karşılaştırma sıklığı (her N karede bir; ayırma yapar). */
+  rollbackVerifyEvery: 10,
+  /** Kare süresi histogramı: 0,1 ms kova, 0–100 ms (üstü taşma kovası). */
+  bucketMs: 0.1,
+  maxMs: 100,
+  /** Kare süresi grafiği (DOM katmanı, CSS px). */
+  graph: {
+    frames: 240,
+    widthPx: 260,
+    heightPx: 72,
+    /** Grafiğin üst sınırı (ms); üstü kırpılır. */
+    maxMs: 50,
+    /** Katman bu aralıkla yeniden çizilir (her karede değil: ölçtüğünü etkilemesin). */
+    refreshMs: 250,
+    fontPx: 11,
+    linePx: 13,
+    padPx: 6,
+    background: 'rgba(0, 0, 0, 0.72)',
+    text: '#d8ffd8',
+    work: '#5ad1ff',
+    interval: '#7dff7d',
+    late: '#ffb02e',
+    hitch: '#ff4d4d',
+    guide: 'rgba(255, 255, 255, 0.35)',
+    /** Kayıt (localStorage) anahtarı: grafik açık mı? */
+    storageKey: 'kafaKafaya.devPerf',
+  },
+} as const;
+
+/**
+ * Sentetik stres sahnesi (Faz 2.4, yalnızca geliştirici derlemesi): final görseller gelmeden
+ * ART_BIBLE'ın hedef boyutlarıyla çizim yükü. Saha katmanları §10.1–10.2 (2624×1504 tuval, K0–K1
+ * @0,5x, K2–K5 @1x), karakter başına 22 parça ve 1024² atlas (§6.1, §13.4), aynı anda 60 parçacık
+ * (§12.3). Mantıksal çözünürlük 1280×720 → @1x çizimler 2/3 ölçekle görünür. Doku belleği: saha
+ * ~29 MB (§13.4 bütçesi 32 MB) + iki karakter 8 MB (bütçe 16 MB).
+ */
+export const STRESS = {
+  /** @1x tasarım (1920) → mantıksal (1280). */
+  artScale: 2 / 3,
+  /** Taşma paylı tuval (@1x) ve 1920×1080 çekirdeğin tuvaldeki sol üst köşesi. */
+  canvasW: 2624,
+  canvasH: 1504,
+  coreX: 352,
+  coreY: 212,
+  /** K0 gökyüzü ve K1 uzak silüet @0,5x (tam tuval). */
+  halfScale: 0.5,
+  /** K2 orta plan (tribün + kalabalık şeritleri): tuvaldeki üst kenar ve yükseklik (@1x). */
+  midTop: 420,
+  midH: 560,
+  /** K3 saha arkası panoları (zemin çizgisinin hemen üstü; zemin tuvalde y 1060). */
+  boardsTop: 900,
+  boardsH: 160,
+  /** K4 zemin (zemin çizgisinden tuvalin altına). */
+  groundTop: 1060,
+  groundH: 444,
+  /** K5 ön plan şeridi (16:9'da ekranın alt %5'i; tuvalde y 1292 = ekran altı). */
+  frontTop: 1212,
+  frontH: 80,
+  /** Kalabalık modül atlası (@1x): 8×8 hücre; tribünde 4 sıra × 12 parça, her biri kıpırdar. */
+  crowdAtlasW: 2048,
+  crowdAtlasH: 1024,
+  crowdCols: 8,
+  crowdRows: 8,
+  crowdLines: 4,
+  crowdPerLine: 12,
+  crowdBobPx: 4,
+  crowdHz: 1.3,
+  /** Karakter atlası (@1x, 5×5 hücre) ve parça sayısı (§6.1: gövde 7 + kafa grubu 15). */
+  charAtlas: 1024,
+  charGrid: 5,
+  charParts: 22,
+  charBodyParts: 7,
+  /** Kafa merkezinin ayak tabanına uzaklığı ve parçaların yayılma yarıçapı (@1x). */
+  charHeadY: 210,
+  charSpread: 70,
+  charSwingRad: 0.25,
+  charHz: 2.2,
+  charAlpha: 0.85,
+  /** Aynı anda canlı parçacık (ART_BIBLE §12.3 maç içi üst sınır): normal + toplamalı. */
+  particles: 60,
+  particlesAdditive: 20,
+  particleLife: 1.2,
+  particleSpeed: 220,
+  particleGravity: 300,
+  particleScale: 0.6,
+  /** Dokuların rastgele desen tohumu. */
+  seed: 2404,
 } as const;

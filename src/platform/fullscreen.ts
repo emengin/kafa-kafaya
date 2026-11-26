@@ -1,5 +1,6 @@
 import { t } from '../i18n';
 import { isTouchDevice } from './device';
+import { setScreenAwake } from './screenAwake';
 import { IS_NATIVE_APP } from './target';
 
 /**
@@ -85,8 +86,12 @@ export function refreshPlatformTexts(): void {
   refresh();
 }
 
-/** Maç sahnesi açılınca/kapanınca: masaüstünde tam ekran düğmesi maçta gizlenir. */
+/**
+ * Maç sahnesi açılınca/kapanınca: masaüstünde tam ekran düğmesi maçta gizlenir; maç boyunca ekran
+ * kapanmaz (Faz 2.4, `screenAwake.ts`).
+ */
 export function setInMatch(value: boolean): void {
   inMatch = value;
+  setScreenAwake(value);
   refresh();
 }

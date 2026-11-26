@@ -146,6 +146,13 @@ Kodda değişiklik yaptıktan sonra yalnızca `npm run cap:sync` çalıştır ve
 | `npm run cap:sync`           | `build:mobile` + derlenen dosyaları Android projesine kopyalar            |
 | `npm run cap:open`           | Android projesini Android Studio'da açar                                  |
 | `npm run assets:placeholder` | Geçici uygulama simgesini ve açılış ekranını yeniden üretir (kodla çizer) |
+| `npm run cap:sync:dev`       | Geliştirici derlemesi (aşağıda) + Android projesine kopyalar              |
+
+**Geliştirici derlemesi (Faz 2.4).** `npm run cap:sync:dev` aynı oyunu geliştirici araçlarıyla derler:
+Ayarlar → Kontroller menüsünde **Performans grafiği**, **Dayanıklılık testi (15 dk)** ve **Stres testi
+(15 dk)** görünür. Yayına giden derleme her zaman `npm run cap:sync`'tir; geliştirici araçları orada
+hiç yoktur (duman testi bunu denetler). Telefonda performans ölçümünün adımları:
+[docs/archive/PROGRESS_MOBILE_2.md § Faz 2.4 — Telefonda ölçüm](docs/archive/PROGRESS_MOBILE_2.md).
 
 **Web ve mobil derleme neden ayrı?** Web sürümü GitHub Pages'te `/kafa-kafaya/` alt yolunda yayınlanır
 ve çevrimdışı çalışmak için service worker kullanır. Uygulamada oyun kök yoldan açılır ve service

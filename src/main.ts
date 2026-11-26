@@ -23,6 +23,10 @@ import { TournamentScene } from './scenes/TournamentScene';
 import { TrophyScene } from './scenes/TrophyScene';
 import { wantsDebugOverlay } from './scenes/devFlags';
 
+// Geliştirici araçları (Faz 2.4): yalnızca geliştirici derlemesinde pakete girer (kare süresi
+// grafiği, stres sahnesi, rollback ölçer, `?gl=` deneyleri). Yayın derlemesinde bu dal yoktur.
+const devTools = __DEV_TOOLS__ ? await import('./dev/install') : null;
+
 document.title = t('game.title');
 document.documentElement.lang = getLanguage();
 
@@ -81,7 +85,14 @@ const game = new Phaser.Game({
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   fps: { target: DISPLAY.targetFps },
-  render: { antialias: true, antialiasGL: !lowPower, powerPreference: 'high-performance' },
+  render: {
+    antialias: true,
+    antialiasGL: !lowPower,
+    powerPreference: 'high-performance',
+    // Küçük toplu çizim tamponu: mobil GPU'da boşaltma başına tampon kopyası küçük (Faz 2.4).
+    batchSize: DISPLAY.batchQuads,
+    ...devTools?.renderOverrides(),
+  },
   input: { activePointers: TOUCH_POINTERS },
   scene: [
     BootScene,
@@ -118,6 +129,8 @@ window.addEventListener('orientationchange', refreshScale);
 game.events.on(Phaser.Core.Events.PRE_STEP, () => {
   gamepads.poll();
 });
+
+devTools?.installDevTools(game);
 
 // Geliştirici kancası: tarayıcı testleri maç durumunu ve ses sistemini okuyabilsin.
 if (wantsDebugOverlay()) {

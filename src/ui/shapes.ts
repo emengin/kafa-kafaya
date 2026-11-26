@@ -3,6 +3,24 @@ import type Phaser from 'phaser';
 type Graphics = Phaser.GameObjects.Graphics;
 
 /**
+ * Çizgi çizen her şey: Phaser `Graphics`/`LiteGraphics` ya da bir Canvas 2D bağlamının sarmalayıcısı
+ * (ikon dokuları, Faz 2.4). Yalnızca ikon ve yay çizimlerinin kullandığı yöntemler.
+ */
+export interface Pen {
+  lineStyle(lineWidth: number, color: number, alpha?: number): unknown;
+  fillStyle(color: number, alpha?: number): unknown;
+  strokeCircle(x: number, y: number, radius: number): unknown;
+  fillCircle(x: number, y: number, radius: number): unknown;
+  lineBetween(x1: number, y1: number, x2: number, y2: number): unknown;
+  strokePoints(
+    points: readonly { x: number; y: number }[],
+    closeShape?: boolean,
+    closePath?: boolean,
+    endIndex?: number,
+  ): unknown;
+}
+
+/**
  * Ucuz Graphics çizimleri. Phaser'ın WebGL'de her karede yeniden üçgenlediği `fillCircle`/`arc`
  * her yayı ~100 noktayla örnekler (küçük yüz parçaları için gereksiz ve pahalı). Bunlar
  * yarıçapa göre 6–24 noktalı çokgenler kullanır ve geçici dizi ayırmaz (paylaşılan tampon).
@@ -58,14 +76,7 @@ function arcPoints(
 }
 
 /** Yay çizgisi (a0 → a1, saat yönü). */
-export function strokeArc(
-  g: Graphics,
-  x: number,
-  y: number,
-  r: number,
-  a0: number,
-  a1: number,
-): void {
+export function strokeArc(g: Pen, x: number, y: number, r: number, a0: number, a1: number): void {
   const n = arcPoints(x, y, r, a0, a1, 0);
   g.strokePoints(points, false, false, n);
 }

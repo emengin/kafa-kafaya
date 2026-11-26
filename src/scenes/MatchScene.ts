@@ -32,8 +32,9 @@ import { AiController, AiInputSource } from '../game/ai/AiController';
 import { mixSeed } from '../game/ai/random';
 import { observe } from '../game/ai/worldView';
 import { getCharacter, loadoutFor, type CharacterDef } from '../game/characters';
+import { devHooks, type MatchDevSession } from '../dev/hooks';
 import { POWER_UP_TYPES } from '../game/entities/Player';
-import { GameSim } from '../game/GameSim';
+import { GameSim, type GameSimOptions } from '../game/GameSim';
 import { isCpuMode, resolveMatchSetup, type MatchSetup } from '../game/matchSetup';
 import { ReplayRecorder, type ReplayPlan } from '../game/replay';
 import type { SimState } from '../game/simState';
@@ -62,6 +63,7 @@ import { MatchRenderer } from '../ui/MatchRenderer';
 import { MenuOverlay } from '../ui/MenuOverlay';
 import { RenderFrame } from '../ui/renderFrame';
 import { screenLayout } from '../ui/ScreenLayout';
+import { solidRect } from '../ui/solidRect';
 import { playerColorHex, playerMark } from '../ui/identity';
 import { ReplayOverlay } from '../ui/ReplayOverlay';
 import { volumeMenuItems } from '../ui/settingsMenu';
@@ -116,7 +118,7 @@ export class MatchScene extends Phaser.Scene {
   private ais: AiController[] = [];
   private readonly hitStop = new HitStop();
   private governor!: QualityGovernor;
-  private screenFlash!: Phaser.GameObjects.Rectangle;
+  private screenFlash!: Phaser.GameObjects.Image;
   private danger = 0;
   private lastCountdown = -1;
   private readonly decoyTrack: { x: number; y: number }[] = [];
@@ -153,6 +155,8 @@ export class MatchScene extends Phaser.Scene {
   /** Tekrar bitince geri yüklenecek canlı durum (nesne yeniden kullanılır). */
   private liveState: SimState | undefined;
   private readonly replayLoop = createGameLoop();
+  /** Geliştirici oturumu (Faz 2.4: stres sahnesi, rollback ölçer; yayın derlemesinde hep null). */
+  private devSession: MatchDevSession | null = null;
   /** `sim.step`'e verilen girdi çifti (her adımda yeni dizi ayrılmasın). */
   private readonly stepInputs: [InputState, InputState] = [EMPTY_INPUT, EMPTY_INPUT];
 
@@ -201,7 +205,7 @@ export class MatchScene extends Phaser.Scene {
     const { mode, difficulty, p1Ai } = this.setup;
     const training = mode === 'training';
     const durationSeconds = devMatchDuration() ?? this.setup.durationSeconds;
-    this.sim = new GameSim({
+    const simOptions: GameSimOptions = {
       rules: training
         ? { durationSeconds: Infinity, goldenGoalOvertime: false }
         : { durationSeconds },
@@ -209,7 +213,8 @@ export class MatchScene extends Phaser.Scene {
       seed: mixSeed(seed, 2),
       skipKickoff: training,
       solo: training,
-    });
+    };
+    this.sim = new GameSim(simOptions);
     this.prevFrame.copyFrom(this.sim);
     this.currFrame.copyFrom(this.sim);
     this.recorder = !training && getSettings().replays ? new ReplayRecorder(this.sim) : null;
@@ -250,6 +255,8 @@ export class MatchScene extends Phaser.Scene {
       gamepads.onDisconnect = null;
       setInMatch(false);
       crowd.stop();
+      this.devSession?.destroy();
+      this.devSession = null;
     });
 
     const fixed = devQuality();
@@ -290,7 +297,7 @@ export class MatchScene extends Phaser.Scene {
     );
     this.hud.update(this.sim.match, this.sim.players);
     this.screenFlash = screenLayout(this)
-      .cover(this.add.rectangle(0, 0, DISPLAY.width, DISPLAY.height, WHITE, 0))
+      .cover(solidRect(this, 0, 0, DISPLAY.width, DISPLAY.height, WHITE, 0))
       .setDepth(HUD.depth - 1);
     this.replayOverlay = new ReplayOverlay(this, () => {
       this.endReplay();
@@ -299,6 +306,16 @@ export class MatchScene extends Phaser.Scene {
     this.debug.setVisible(wantsDebugOverlay());
     if (isTouchDevice()) this.createTouchControls();
     if (settings.latencyMeter) this.latencyMeter = new LatencyMeter(this);
+    devHooks.quality?.(this.governor.level);
+    this.devSession =
+      devHooks.match?.({
+        scene: this,
+        sim: this.sim,
+        simOptions,
+        world: this.view.worldLayer,
+        stage: this.view.stageLayer,
+        playerPosition: (i) => this.drawFrame.players[i],
+      }) ?? null;
     this.cameras.main.fadeIn(HUD.kickoffFadeMs);
     music.play('match');
     crowd.start();
@@ -347,6 +364,7 @@ export class MatchScene extends Phaser.Scene {
     if (this.governor.sample(deltaMs)) {
       this.view.setQuality(this.governor.level);
       rememberQuality(this.governor.level);
+      devHooks.quality?.(this.governor.level);
     }
     this.avgFrameMs = lerp(this.avgFrameMs || deltaMs, deltaMs, DEBUG.statsSmoothing);
 
@@ -393,6 +411,7 @@ export class MatchScene extends Phaser.Scene {
       worldDt,
       time / UNITS.msPerSecond,
     );
+    this.devSession?.frame(realDt, time / UNITS.msPerSecond);
     this.updateCrowd(realDt);
     this.updateCountdown();
     this.hud.update(this.sim.match, this.sim.players);
@@ -422,6 +441,7 @@ export class MatchScene extends Phaser.Scene {
       const a = this.inputs[0].read(tick);
       const b = this.inputs[1].read(tick);
       latencyProbe.step(performance.now());
+      this.devSession?.beforeStep(a, b);
       this.recorder?.record(this.sim.tick, a, b);
       this.stepInputs[0] = a;
       this.stepInputs[1] = b;
@@ -634,10 +654,10 @@ export class MatchScene extends Phaser.Scene {
     const k = ACCESSIBILITY.effects[getSettings().effects].flashes;
     if (k <= 0) return;
     this.tweens.killTweensOf(this.screenFlash);
-    this.screenFlash.setFillStyle(color, alpha * k);
+    this.screenFlash.setTint(color).setAlpha(alpha * k);
     this.tweens.add({
       targets: this.screenFlash,
-      fillAlpha: 0,
+      alpha: 0,
       duration: SUPER_FX.launchFlashMs,
       ease: 'Quad.easeOut',
     });

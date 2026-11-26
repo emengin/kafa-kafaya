@@ -4,6 +4,7 @@ import { NET, PITCH } from '../config/gameConfig';
 import { NetSim } from '../fx/NetSim';
 import type { GoalDef, Pitch } from '../game/pitch';
 import { LiteGraphics } from './LiteGraphics';
+import { solidRect } from './solidRect';
 
 /** Ağ yayının bir düğümünü yerleştiren fonksiyon (dünya koordinatı). */
 type NodeFn = (i: number, j: number) => { x: number; y: number };
@@ -16,7 +17,7 @@ type NodeFn = (i: number, j: number) => { x: number; y: number };
  */
 export class GoalView {
   private readonly nets: [NetSim, NetSim];
-  private readonly interiors: [Phaser.GameObjects.Rectangle, Phaser.GameObjects.Rectangle];
+  private readonly interiors: [Phaser.GameObjects.Image, Phaser.GameObjects.Image];
   private readonly baked: [Phaser.GameObjects.Image | null, Phaser.GameObjects.Image | null] = [
     null,
     null,
@@ -36,17 +37,16 @@ export class GoalView {
     const maxH = PITCH.goal.mouthHeight + MAX_GROWTH;
     const rows = Math.round(maxH / NET.spacingPx) + 1;
     this.nets = [new NetSim(cols, rows), new NetSim(cols, rows)];
-    const interior = (goal: GoalDef): Phaser.GameObjects.Rectangle =>
-      scene.add
-        .rectangle(
-          goal.net.minX,
-          goal.net.minY,
-          goal.net.maxX - goal.net.minX,
-          goal.mouthHeight,
-          NET.interior,
-          NET.interiorAlpha,
-        )
-        .setOrigin(0);
+    const interior = (goal: GoalDef): Phaser.GameObjects.Image =>
+      solidRect(
+        scene,
+        goal.net.minX,
+        goal.net.minY,
+        goal.net.maxX - goal.net.minX,
+        goal.mouthHeight,
+        NET.interior,
+        NET.interiorAlpha,
+      ).setOrigin(0);
     this.interiors = [interior(pitch.goals[0]), interior(pitch.goals[1])];
     backLayer.add(this.interiors);
     this.live = new LiteGraphics(scene);
@@ -81,8 +81,7 @@ export class GoalView {
         net.setSize(goal.net.maxX - goal.net.minX, h);
         this.interiors[i]
           .setPosition(goal.net.minX, goal.net.minY)
-          .setSize(goal.net.maxX - goal.net.minX, h);
-        this.interiors[i].setDisplaySize(goal.net.maxX - goal.net.minX, h);
+          .setDisplaySize(goal.net.maxX - goal.net.minX, h);
       }
       net.update(dt);
       const animating = net.active || changed;
@@ -162,8 +161,8 @@ export class GoalView {
   private drawFrames(): void {
     if (this.posts.length === 0) {
       for (let i = 0; i < 2; i++) {
-        const make = (color: number): Phaser.GameObjects.Rectangle =>
-          this.scene.add.rectangle(0, 0, 1, 1, color).setOrigin(0);
+        const make = (color: number): Phaser.GameObjects.Image =>
+          solidRect(this.scene, 0, 0, 1, 1, color).setOrigin(0);
         const parts = [
           make(NET.postOutline),
           make(NET.post),
@@ -187,18 +186,24 @@ export class GoalView {
       // Ön direk (görsel): kale çizgisinde, üst direkten zemine.
       const px = goal.lineX - (left ? w : 0);
       const h = groundY - bar.maxY;
-      po?.setPosition(px - 1, bar.maxY).setSize(w + 2, h);
-      pf?.setPosition(px, bar.maxY).setSize(w, h);
-      ps?.setPosition(px + (left ? w * SHADE_FROM : 0), bar.maxY).setSize(w * (1 - SHADE_FROM), h);
+      po?.setPosition(px - 1, bar.maxY).setDisplaySize(w + 2, h);
+      pf?.setPosition(px, bar.maxY).setDisplaySize(w, h);
+      ps?.setPosition(px + (left ? w * SHADE_FROM : 0), bar.maxY).setDisplaySize(
+        w * (1 - SHADE_FROM),
+        h,
+      );
       // Üst direk.
       const bw = bar.maxX - bar.minX;
       const bh = bar.maxY - bar.minY;
-      bo?.setPosition(bar.minX - 1, bar.minY - 1).setSize(bw + 2, bh + 2);
-      bf?.setPosition(bar.minX, bar.minY).setSize(bw, bh);
-      bs?.setPosition(bar.minX, bar.minY + bh * SHADE_FROM).setSize(bw, bh * (1 - SHADE_FROM));
+      bo?.setPosition(bar.minX - 1, bar.minY - 1).setDisplaySize(bw + 2, bh + 2);
+      bf?.setPosition(bar.minX, bar.minY).setDisplaySize(bw, bh);
+      bs?.setPosition(bar.minX, bar.minY + bh * SHADE_FROM).setDisplaySize(
+        bw,
+        bh * (1 - SHADE_FROM),
+      );
     });
   }
-  private readonly posts: Phaser.GameObjects.Rectangle[][] = [];
+  private readonly posts: Phaser.GameObjects.Image[][] = [];
 }
 
 /** Büyüyen kale için ağın en fazla uzayacağı yükseklik payı (px). */

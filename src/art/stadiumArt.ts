@@ -29,8 +29,21 @@ export const STAGE_KEYS = {
   vignette: 'stage-vignette',
   boards: 'stage-boards',
   boardsGoal: 'stage-boards-goal',
-  crowd: (row: number, cheer: boolean): string => `crowd-${row}-${cheer ? 'up' : 'sit'}`,
+  /** Kalabalık atlası (Faz 2.4): tüm sıraların oturan ve ayaktaki hâlleri tek dokuda. */
+  crowd: 'crowd-atlas',
 } as const;
+
+/**
+ * Kalabalık atlasındaki kare: `row` sırasının `segment`'inci parçası, oturan ya da ayakta (tezahürat).
+ * Bütün kalabalık tek dokudan çizilir: mobilde toplu çizim başına tek doku kullanıldığı için
+ * sıra başına ayrı doku, sıra başına bir çizim çağrısı demekti (Faz 2.4).
+ */
+export function crowdFrame(row: number, cheer: boolean, segment: number): string {
+  return `${row}-${cheer ? 'up' : 'sit'}-${segment}`;
+}
+
+/** Atlasta şeritler arası boşluk (px): doku süzmesinde komşu şerit sızmasın. */
+const CROWD_GAP = 2;
 
 const TWO_PI = Math.PI * 2;
 const B = STADIUM.bleedPx;
@@ -289,14 +302,21 @@ export function generateCrowdTextures(
   rightColors: readonly number[],
 ): void {
   const c = STADIUM.crowd;
-  c.rows.forEach((row, ri) => {
-    for (const cheer of [false, true]) {
-      const key = STAGE_KEYS.crowd(ri, cheer);
-      remakeCanvasTexture(scene, key, STAGE_WIDTH, c.rowHeight, (ctx, w, h) => {
+  const stride = c.rowHeight + CROWD_GAP;
+  const strip = (ri: number, cheer: boolean): number => (ri * 2 + (cheer ? 1 : 0)) * stride;
+  remakeCanvasTexture(scene, STAGE_KEYS.crowd, STAGE_WIDTH, c.rows.length * 2 * stride, (ctx) => {
+    c.rows.forEach((row, ri) => {
+      for (const cheer of [false, true]) {
+        // Her şerit kendi bölgesine kırpılır (taşan çizim komşu şeride düşmesin).
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, strip(ri, cheer), STAGE_WIDTH, c.rowHeight);
+        ctx.clip();
+        ctx.translate(0, strip(ri, cheer));
         drawCrowdRow(
           ctx,
-          w,
-          h,
+          STAGE_WIDTH,
+          c.rowHeight,
           row.scale,
           row.haze,
           cheer,
@@ -304,11 +324,18 @@ export function generateCrowdTextures(
           rightColors,
           c.seed + ri * ROW_SEED,
         );
-      });
-      const tex = scene.textures.get(key);
-      const segW = STAGE_WIDTH / c.segments;
-      for (let s = 0; s < c.segments; s++)
-        tex.add(s, 0, Math.floor(segW * s), 0, Math.ceil(segW), c.rowHeight);
+        ctx.restore();
+      }
+    });
+  });
+  const tex = scene.textures.get(STAGE_KEYS.crowd);
+  const segW = STAGE_WIDTH / c.segments;
+  c.rows.forEach((_, ri) => {
+    for (const cheer of [false, true]) {
+      for (let s = 0; s < c.segments; s++) {
+        const x = Math.floor(segW * s);
+        tex.add(crowdFrame(ri, cheer, s), 0, x, strip(ri, cheer), Math.ceil(segW), c.rowHeight);
+      }
     }
   });
 }

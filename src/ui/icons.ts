@@ -1,12 +1,11 @@
 import type Phaser from 'phaser';
 import { FX, type PowerUpType } from '../config/gameConfig';
 import { POWER_UP_TYPES } from '../game/entities/Player';
-import { strokeArc } from './shapes';
+import { css, makeCanvasTexture } from '../art/canvas';
+import { strokeArc, type Pen } from './shapes';
 
 /** Sık kullanılan renk. */
 const WHITE = 0xffffff;
-
-type Graphics = Phaser.GameObjects.Graphics;
 
 /** İkon çizimlerinde yarıçapa oranlar (yalnızca şekil; ayar değeri değildir). */
 const R = {
@@ -40,7 +39,7 @@ const SIXTY_DEG = Math.PI / FLAKE_ARMS;
  * içinde kullanılır. `r` ikonun sığacağı dairenin yarıçapı.
  */
 export function drawPowerUpIcon(
-  g: Graphics,
+  g: Pen,
   type: PowerUpType,
   x: number,
   y: number,
@@ -120,7 +119,7 @@ export function drawPowerUpIcon(
 
 /** Saat 12'den saat yönünde `fraction` kadar yay (geri sayım halkası). */
 export function strokeRing(
-  g: Graphics,
+  g: Pen,
   x: number,
   y: number,
   r: number,
@@ -145,18 +144,85 @@ export const ICON_RADIUS = 32;
 const ICON_PAD = 6;
 
 /**
- * Güçlendirici ikonlarını bir kez dokuya çizer (Canvas üzerinden): oyun sırasında her karede
- * vektör çizim yapılmaz, ikonlar sprite olarak kullanılır.
+ * Güçlendirici ikonlarını bir kez dokuya çizer: oyun sırasında her karede vektör çizim yapılmaz,
+ * ikonlar sprite olarak kullanılır. Doğrudan Canvas 2D ile (Faz 2.4): eskiden
+ * `Graphics.generateTexture` ile Phaser'ın Canvas çizicisi üzerinden çiziliyordu; artık Canvas
+ * çizicisi yalnızca WebGL'siz tarayıcılar için yedek.
  */
 export function generateIconTextures(scene: Phaser.Scene): void {
   const size = (ICON_RADIUS + ICON_PAD) * 2;
   for (const type of POWER_UP_TYPES) {
-    const key = iconKey(type);
-    if (scene.textures.exists(key)) continue;
-    const g = scene.make.graphics({ x: 0, y: 0 }, false);
-    drawPowerUpIcon(g, type, size / 2, size / 2, ICON_RADIUS, WHITE, 1, ICON_LINE);
-    g.generateTexture(key, size, size);
-    g.destroy();
+    makeCanvasTexture(scene, iconKey(type), size, size, (ctx) => {
+      drawPowerUpIcon(
+        new CanvasPen(ctx),
+        type,
+        size / 2,
+        size / 2,
+        ICON_RADIUS,
+        WHITE,
+        1,
+        ICON_LINE,
+      );
+    });
   }
 }
 const ICON_LINE = 5;
+
+/**
+ * `Pen` arayüzünü Canvas 2D bağlamına çizer: Phaser'ın Canvas Graphics çizicisiyle aynı komutlar
+ * (yol + `stroke`/`fill`, varsayılan uç ve birleşim), böylece ikonlar eskisiyle aynı görünür.
+ */
+class CanvasPen implements Pen {
+  constructor(private readonly ctx: CanvasRenderingContext2D) {}
+
+  lineStyle(lineWidth: number, color: number, alpha = 1): this {
+    this.ctx.lineWidth = lineWidth;
+    this.ctx.strokeStyle = css(color, alpha);
+    return this;
+  }
+
+  fillStyle(color: number, alpha = 1): this {
+    this.ctx.fillStyle = css(color, alpha);
+    return this;
+  }
+
+  strokeCircle(x: number, y: number, radius: number): this {
+    this.ctx.beginPath();
+    this.ctx.arc(x, y, radius, 0, Math.PI * 2);
+    this.ctx.stroke();
+    return this;
+  }
+
+  fillCircle(x: number, y: number, radius: number): this {
+    this.ctx.beginPath();
+    this.ctx.arc(x, y, radius, 0, Math.PI * 2);
+    this.ctx.fill();
+    return this;
+  }
+
+  lineBetween(x1: number, y1: number, x2: number, y2: number): this {
+    this.ctx.beginPath();
+    this.ctx.moveTo(x1, y1);
+    this.ctx.lineTo(x2, y2);
+    this.ctx.stroke();
+    return this;
+  }
+
+  strokePoints(
+    points: readonly { x: number; y: number }[],
+    closeShape = false,
+    closePath = false,
+    endIndex = points.length,
+  ): this {
+    this.ctx.beginPath();
+    for (let i = 0; i < endIndex; i++) {
+      const p = points[i];
+      if (!p) break;
+      if (i === 0) this.ctx.moveTo(p.x, p.y);
+      else this.ctx.lineTo(p.x, p.y);
+    }
+    if (closeShape || closePath) this.ctx.closePath();
+    this.ctx.stroke();
+    return this;
+  }
+}

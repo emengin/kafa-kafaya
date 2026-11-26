@@ -26,6 +26,7 @@ import { css, makeCanvasTexture } from '../art/canvas';
 import { LiteGraphics } from './LiteGraphics';
 import { BOTTOM_CENTER, TOP_CENTER } from '../platform/screenFrame';
 import { screenLayout } from './ScreenLayout';
+import { solidRect } from './solidRect';
 
 /** Sık kullanılan renk. */
 const GOLD = 0xffd23f;
@@ -47,7 +48,7 @@ type Text = Phaser.GameObjects.Text;
  */
 export class MatchHud {
   private readonly scores: [Text, Text];
-  private readonly scoreFlash: [Phaser.GameObjects.Rectangle, Phaser.GameObjects.Rectangle];
+  private readonly scoreFlash: [Phaser.GameObjects.Image, Phaser.GameObjects.Image];
   private readonly clock: Text;
   private readonly clockBack: Phaser.GameObjects.Image;
   private readonly clockWarnKey: string;
@@ -147,10 +148,9 @@ export class MatchHud {
           .setOrigin(0.5)
           .setDepth(d),
       );
-    const flash = (x: number): Phaser.GameObjects.Rectangle =>
+    const flash = (x: number): Phaser.GameObjects.Image =>
       onBoard(
-        scene.add
-          .rectangle(x, b.y, b.scoreW - FLASH_INSET, b.scoreH - FLASH_INSET, WHITE, 0)
+        solidRect(scene, x, b.y, b.scoreW - FLASH_INSET, b.scoreH - FLASH_INSET, WHITE, 0)
           .setDepth(d)
           .setBlendMode(Phaser.BlendModes.ADD),
       );
@@ -374,9 +374,9 @@ export class MatchHud {
     });
     this.scene.tweens.add({ targets: text, scale: 1, duration: s.popMs, ease: 'Back.easeOut' });
     const flash = this.scoreFlash[i];
-    flash.setFillStyle(WHITE, s.flashAlpha);
+    flash.setAlpha(s.flashAlpha);
     this.scene.tweens.killTweensOf(flash);
-    this.scene.tweens.add({ targets: flash, fillAlpha: 0, duration: s.popMs });
+    this.scene.tweens.add({ targets: flash, alpha: 0, duration: s.popMs });
   }
 
   private updateClock(match: MatchFlow): void {

@@ -104,6 +104,17 @@ test('derleme hedefi: web PWA olarak, mobil uygulama olarak açılıyor', async 
   expect(errors).toEqual([]);
 });
 
+test('yayın derlemesinde geliştirici araçları yok (Faz 2.4)', async ({ page }) => {
+  const errors = collectErrors(page);
+  // Geliştirici derlemesinde bu bayraklar grafiği açar ve maçı stres testiyle başlatırdı.
+  await page.goto('./?debug=1&perf=1&devtest=stress&cpu=easy&cpu1=easy&seed=1');
+  await expect.poll(() => isActive(page, 'Match'), { timeout: 30_000 }).toBe(true);
+  await page.waitForTimeout(1000);
+  expect(await page.evaluate(() => '__KAFA_PERF__' in window)).toBe(false);
+  await expect(page.locator('#perf-overlay')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
 interface TouchView {
   def: { key: string; x: number; y: number };
 }

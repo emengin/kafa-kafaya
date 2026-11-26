@@ -5,6 +5,7 @@ import { t, upper } from '../i18n';
 import { BOTTOM_RIGHT, TOP_LEFT } from '../platform/screenFrame';
 import { PillButton } from './PillButton';
 import { screenLayout } from './ScreenLayout';
+import { solidRect } from './solidRect';
 
 /** Kırmızı "kayıt" noktası. */
 const RED = 0xff3b3b;
@@ -19,7 +20,7 @@ const BLACK = 0x000000;
  * rozet sol üste, "Atla" sağ alta sabitli (güvenli alanın içinde).
  */
 export class ReplayOverlay {
-  private readonly bars: [Phaser.GameObjects.Rectangle, Phaser.GameObjects.Rectangle];
+  private readonly bars: [Phaser.GameObjects.Image, Phaser.GameObjects.Image];
   private readonly dot: Phaser.GameObjects.Arc;
   private readonly label: Phaser.GameObjects.Text;
   private readonly skip: PillButton;
@@ -36,12 +37,10 @@ export class ReplayOverlay {
     const h = REPLAY.letterboxPx;
     const depth = HUD.depth - 1;
     this.bars = [
-      scene.add
-        .rectangle(0, 0, width, h, BLACK, REPLAY.letterboxAlpha)
+      solidRect(scene, 0, 0, width, h, BLACK, REPLAY.letterboxAlpha)
         .setOrigin(0, 0)
         .setDepth(depth),
-      scene.add
-        .rectangle(0, height, width, h, BLACK, REPLAY.letterboxAlpha)
+      solidRect(scene, 0, height, width, h, BLACK, REPLAY.letterboxAlpha)
         .setOrigin(0, 1)
         .setDepth(depth),
     ];
@@ -75,8 +74,8 @@ export class ReplayOverlay {
       this.topY = view.y;
       this.bottomY = view.y + view.height;
       const [top, bottom] = this.bars;
-      top.setPosition(view.x, this.topY).setSize(view.width, h);
-      bottom.setPosition(view.x, this.bottomY).setSize(view.width, h);
+      top.setPosition(view.x, this.topY).setDisplaySize(view.width, h);
+      bottom.setPosition(view.x, this.bottomY).setDisplaySize(view.width, h);
     });
     this.setVisible(false);
   }

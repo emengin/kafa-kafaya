@@ -30,6 +30,7 @@ import { getProgress } from '../save/progress';
 import { DemoMatch } from '../ui/DemoMatch';
 import { HelpPanel, type HelpPage } from '../ui/HelpPanel';
 import { volumeMenuItems } from '../ui/settingsMenu';
+import { devHooks } from '../dev/hooks';
 import { TextMenu, type TextMenuItem } from '../ui/TextMenu';
 import { SceneKeys } from './sceneKeys';
 import { BOTTOM_CENTER, BOTTOM_LEFT, BOTTOM_RIGHT } from '../platform/screenFrame';
@@ -383,6 +384,10 @@ export class MenuScene extends Phaser.Scene {
           });
         },
       },
+      // Geliştirici derlemesinde (Faz 2.4): performans grafiği, dayanıklılık ve stres testleri.
+      ...(devHooks.menuItems?.((setup) => {
+        this.leave(SceneKeys.Match, setup);
+      }) ?? []),
       {
         label: t('menu.back'),
         onSelect: () => {
