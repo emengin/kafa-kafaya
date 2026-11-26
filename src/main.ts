@@ -10,6 +10,7 @@ import { gamepads } from './input/Gamepads';
 import { initDeviceDetection } from './platform/device';
 import { initHaptics } from './platform/haptics';
 import { installPlatformUi, refreshPlatformTexts } from './platform/fullscreen';
+import { installLifecycle } from './platform/lifecycle';
 import { registerServiceWorker } from './platform/pwa';
 import { cutoutInsets, installSafeArea, onSafeAreaChange } from './platform/safeArea';
 import { fitParent } from './platform/screenFrame';
@@ -35,6 +36,8 @@ document.documentElement.lang = getLanguage();
 initDeviceDetection();
 installPlatformUi();
 initHaptics();
+// Yaşam döngüsü (Faz 2.5): arka plan, ses kesintileri, kulaklık, düşük bellek, Android geri tuşu.
+installLifecycle();
 onLanguageChange(refreshPlatformTexts);
 registerServiceWorker();
 

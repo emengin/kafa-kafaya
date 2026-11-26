@@ -7,3 +7,10 @@
 export function registerPlugin<T>(): T {
   return {} as T;
 }
+
+/** Faz 2.5: tarayıcıda hiçbir zaman yerel platform değil. */
+export const Capacitor = {
+  isNativePlatform(): boolean {
+    return false;
+  },
+};

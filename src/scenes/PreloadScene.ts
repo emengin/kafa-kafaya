@@ -5,9 +5,13 @@ import { generateStadiumTextures } from '../art/stadiumArt';
 import { addPanel, goldFill, textStyle } from '../art/uiArt';
 import { COLORS, DISPLAY, PRELOAD } from '../config/gameConfig';
 import { CHARACTERS } from '../game/characters';
+import { storage } from '../game/storage';
 import { t } from '../i18n';
+import { IS_NATIVE_APP } from '../platform/target';
+import { takeMatchResume } from '../save/matchResume';
 import { generateIconTextures } from '../ui/icons';
 import { wantsDirectMatch } from './devFlags';
+import type { MatchResumeData } from './MatchScene';
 import { SceneKeys } from './sceneKeys';
 import { screenLayout } from '../ui/ScreenLayout';
 
@@ -17,6 +21,10 @@ const WHITE = 0xffffff;
 /**
  * Tüm dokuları kodla üretir (harici dosya yok): efektler ve top, stadyum, her karakter. Üretim
  * kareler arasına bölünür; böylece yükleme çubuğu ilerler ve tarayıcı donmaz.
+ *
+ * Faz 2.5: uygulamada bu ekran yerel açılış ekranının arkasında kalır (açılış ekranı ana menünün
+ * ilk karesine kadar sürer); bu yüzden "bir an görünsün" beklemesi yok. Yarım kalan maç kaydı
+ * varsa (süreç arka planda kapanmıştı) ana menü yerine maç kaldığı yerden açılır.
  */
 export class PreloadScene extends Phaser.Scene {
   private bar!: Phaser.GameObjects.Graphics;
@@ -85,13 +93,24 @@ export class PreloadScene extends Phaser.Scene {
         this.time.delayedCall(0, next);
         return;
       }
-      const wait = Math.max(0, PRELOAD.minVisibleMs - (performance.now() - start));
+      const minVisible = IS_NATIVE_APP ? 0 : PRELOAD.minVisibleMs;
+      const wait = Math.max(0, minVisible - (performance.now() - start));
       this.time.delayedCall(wait, () => {
-        this.scene.start(wantsDirectMatch() ? SceneKeys.Match : SceneKeys.Menu);
+        this.startFirstScene();
       });
     };
     this.drawBar(0);
     this.time.delayedCall(0, next);
+  }
+
+  private startFirstScene(): void {
+    if (wantsDirectMatch()) {
+      this.scene.start(SceneKeys.Match);
+      return;
+    }
+    const resume = takeMatchResume(storage, Date.now(), __APP_VERSION__);
+    if (resume) this.scene.start(SceneKeys.Match, { resume } satisfies MatchResumeData);
+    else this.scene.start(SceneKeys.Menu);
   }
 
   private drawBar(progress: number): void {

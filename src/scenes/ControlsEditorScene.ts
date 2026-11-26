@@ -31,6 +31,7 @@ import { tapHaptic } from '../platform/haptics';
 import { anchorShift, TOP_CENTER, TOP_LEFT, TOP_RIGHT } from '../platform/screenFrame';
 import { getTouchPrefs, setTouchPrefs, snapScale } from '../save/touchPrefs';
 import { DemoMatch } from '../ui/DemoMatch';
+import { MenuOverlay } from '../ui/MenuOverlay';
 import { PillButton } from '../ui/PillButton';
 import { screenLayout, type ScreenLayout } from '../ui/ScreenLayout';
 import { ringTexture, touchButtonTexture, touchLabel } from '../ui/touchButtonArt';
@@ -67,7 +68,9 @@ export const EDITOR_RETURN = { view: 'controls', index: 0 } as const;
  * Kurallar (`touchLayout.ts`): buton tasarım çerçevesinin içinde ve skor tabelasının altında kalır
  * (sürüklerken kırpılır); başka butona `minGapPx`'ten yakınsa kırmızı görünür ve bırakınca son
  * geçerli yerine döner. Düzen tasarım çerçevesinde saklandığı için her ekran oranında geçerlidir.
- * Kaydet → `setTouchPrefs`; İptal / Esc → değişiklikler atılır.
+ * Kaydet → `setTouchPrefs`; İptal / Esc / Android geri → değişiklikler atılır. Kaydedilmemiş
+ * değişiklik varsa önce sorulur (Kaydet ve çık / Kaydetmeden çık / Düzenlemeye dön; Faz 2.5);
+ * onay açıkken geri tuşu onayı kapatır.
  */
 export class ControlsEditorScene extends Phaser.Scene {
   private demo!: DemoMatch;
@@ -90,6 +93,10 @@ export class ControlsEditorScene extends Phaser.Scene {
   private hint!: Phaser.GameObjects.Text;
   private hintTimer: Phaser.Time.TimerEvent | null = null;
   private leaving = false;
+  /** Açılıştaki düzen (kaydedilmemiş değişiklik var mı?). */
+  private initialPrefs = '';
+  /** Kaydedilmemiş değişiklik onayı (Faz 2.5). */
+  private prompt: MenuOverlay | null = null;
 
   constructor() {
     super(SceneKeys.ControlsEditor);
@@ -101,6 +108,7 @@ export class ControlsEditorScene extends Phaser.Scene {
     this.views = [];
     this.selected = 'kick';
     this.hintTimer = null;
+    this.prompt = null;
     const prefs = getTouchPrefs();
     this.layout = screenLayout(this);
     const canonical = effectivePlacements(prefs, this.layout.pxPerDp);
@@ -108,6 +116,7 @@ export class ControlsEditorScene extends Phaser.Scene {
     this.custom = prefs.custom;
     this.opacity = prefs.opacity;
     this.leftHanded = prefs.leftHanded;
+    this.initialPrefs = this.prefsKey();
 
     const pair: [CharacterDef, CharacterDef] = [
       CHARACTERS[0] ?? CHARACTERS[1],
@@ -137,6 +146,8 @@ export class ControlsEditorScene extends Phaser.Scene {
     this.tracker = new KeyTracker(window, new Set<string>(CONTROLS.ui.menuBack)).attach();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.tracker.detach();
+      this.prompt?.destroy();
+      this.prompt = null;
       this.input.off(Phaser.Input.Events.POINTER_DOWN, this.onDown);
       this.input.off(Phaser.Input.Events.POINTER_MOVE, this.onMove);
       this.input.off(Phaser.Input.Events.POINTER_UP, this.onUp);
@@ -151,7 +162,66 @@ export class ControlsEditorScene extends Phaser.Scene {
   override update(time: number, deltaMs: number): void {
     this.demo.update(time, deltaMs);
     crowd.setIntensity(this.demo.excitement * MENU.demo.crowdScale);
-    if (!this.leaving && this.tracker.consumeAny(CONTROLS.ui.menuBack)) this.leave(false);
+    if (this.leaving) return;
+    if (this.prompt) {
+      if (this.tracker.consumeAny(CONTROLS.ui.menuBack)) {
+        sfx.menuBack();
+        this.closePrompt();
+      } else {
+        this.prompt.update(this.tracker);
+      }
+      return;
+    }
+    if (this.tracker.consumeAny(CONTROLS.ui.menuBack)) this.cancel();
+  }
+
+  /** Düzenin karşılaştırma anahtarı (kayıtta saklanan her şey). */
+  private prefsKey(): string {
+    return JSON.stringify({ ...this.currentPrefs(), custom: this.custom });
+  }
+
+  /** İptal / geri: değişiklik yoksa hemen çık, varsa sor. */
+  private cancel(): void {
+    if (this.prefsKey() === this.initialPrefs) {
+      this.leave(false);
+      return;
+    }
+    this.drag = null;
+    sfx.menuMove();
+    this.prompt = new MenuOverlay(this, {
+      title: t('editor.unsavedTitle'),
+      lines: [t('editor.unsavedInfo')],
+      // Araç çubuğunun (butonların 3 katman üstü) da üstünde: altındaki dokunuşları perde yutar.
+      depth: TOUCH.editor.depth + PROMPT_LAYER,
+      items: [
+        {
+          label: t('editor.keepEditing'),
+          onSelect: () => {
+            this.time.delayedCall(0, () => {
+              this.closePrompt();
+            });
+          },
+        },
+        {
+          label: t('editor.saveAndLeave'),
+          onSelect: () => {
+            this.leave(true);
+          },
+        },
+        {
+          label: t('editor.discard'),
+          onSelect: () => {
+            this.leave(false);
+          },
+        },
+      ],
+    });
+  }
+
+  private closePrompt(): void {
+    this.prompt?.destroy();
+    this.prompt = null;
+    this.tracker.releaseAll();
   }
 
   // ───────────────────────────── Görünüm ─────────────────────────────
@@ -488,6 +558,8 @@ const ZONE_LINE = 2;
 const TEXT_STROKE = 3;
 /** Araç çubuğu butonların (3 katman: alan, buton, yazı) üstünde. */
 const TOOLBAR_LAYER = 3;
+/** Kaydedilmemiş değişiklik onayı araç çubuğunun da üstünde. */
+const PROMPT_LAYER = 10;
 const SELECT_PAD = 8;
 const SELECT_LINE = 4;
 const PICK_PAD = 14;

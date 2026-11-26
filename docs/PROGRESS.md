@@ -83,7 +83,8 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
   - [x] 2.3 Dokunmatik kontroller v2 — 2026-11-26 → telefonda denendi, geri bildirim işlendi (aşağıda)
   - [x] 2.4 Performans (rollback ≤ 4 ms dahil) — 2026-11-27 → telefonda 30 → 60 FPS, rollback p99 1,1 ms
         (aşağıda)
-  - [ ] 2.5 Uygulama yaşam döngüsü
+  - [ ] 2.5 Uygulama yaşam döngüsü — kod tamam, adb ön testleri geçti; telefonda kesinti testi bekliyor
+        (aşağıda)
   - [ ] 2.6 Sürekli derleme hattı
   - [ ] 2.7 Determinizm sertleştirme
   - [ ] 2.8 Gözlemlenebilirlik temeli
@@ -365,6 +366,134 @@ uçtan uca gecikme (D6'nın 80 ms kısmı) ölçülmedi; 4.6'daki cihaz turunda 
 (notlarda). Telefonda geliştirici derlemesi kurulu; yayın derlemesine dönüş: `npm run cap:sync` →
 ▶ Run.
 
+### Faz 2.5 — Uygulama yaşam döngüsü (2026-11-27, kod tamam — telefonda kesinti testi bekliyor)
+
+Platform olayları tek yerde (`src/platform/lifecycle.ts`): arka plan, ses odağı (çağrı, başka
+oynatıcı, bildirim), kulaklık çıkarma, düşük bellek ve Android geri tuşu. Yerel taraf:
+`InterruptionsPlugin.java` (ses odağı, kulaklık, `onTrimMemory`), `LaunchSplashPlugin.java` +
+`MainActivity` (açılış ekranı, çizici süreç kaybı), `@capacitor/app` (arka plan/ön plan, geri tuşu).
+
+**Ne yapıldı**
+
+- **Arka plan:** uygulama arka plana geçince ses askıya alınır, maç duraklar ve simülasyonun tam
+  durumu kaydedilir (`src/save/matchResume.ts`). Süreç yaşıyorsa dönüşte maç bellekte, duraklatılmış.
+  Android süreci bellek için kapatırsa ya da WebView'ın çizici süreci ölürse, oyun açılınca maç
+  kaldığı yerden "Yarım kalan maç" notuyla duraklatılmış açılır (kayıt 1 saatten eskiyse ana menü).
+  Kayıt Infinity/NaN/-0'ı korur; geri yüklenen maç kesintisiz maçla aynı girdilerle bit düzeyinde
+  aynı sürer (test).
+- **Ses kesintileri:** uygulama öndeyken ses odağını ister. Telefon çalınca/başka oynatıcı sesi alınca
+  ses susar, maç "Ses kesildi (arama ya da başka uygulama)" notuyla duraklar; odak dönünce ses gelir,
+  maç oyuncu "Devam" diyene kadar duraklı kalır. Bildirim sesinde ses kısılır (Android 8+ bunu
+  çoğunlukla kendisi yapar), maç durmaz. Kulaklık (kablolu ya da Bluetooth) çıkınca maç "Kulaklık
+  çıkarıldı" notuyla duraklar.
+- **Düşük bellek:** her `onTrimMemory`'de maç kaydedilir; kritik düzeyde (öndeyken bellek çok az)
+  maç "Cihaz belleği azaldı: maç kaydedildi" notuyla duraklar. Çizici süreç ölürse uygulama çökmek
+  yerine etkinliği temiz bir açılışla yeniden başlatır (kayıtlı maç geri gelir).
+- **Geri tuşu:** her ekranda Esc ile aynı yol (tablo aşağıda). Ana menüde çıkış onayı.
+- **Açılış ekranı (2.1'den):** sistem açılış ekranı ana menünün (ya da geri yüklenen maçın) ilk
+  karesine kadar kalır; uygulamanın boş zemini ve yükleme çubuğu artık görünmüyor.
+- **Ekran açık bayrağı (2.4'ten):** duraklatmada kapanır (sistem zaman aşımı geçerli), devamda açılır;
+  maç sonu ekranında 30 sn sonra kapanır.
+
+**Android geri tuşu — ekran ekran** (klavye Esc/Backspace ve gamepad B de aynısını yapar)
+
+| Ekran                                   | Geri tuşu                                                                                                                   |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Açılış / yükleme                        | Yok sayılır (açılış ekranı görünür, birkaç saniye)                                                                          |
+| Ana menü                                | **"Oyundan çıkılsın mı?" onayı** — "Hayır, oyunda kal" seçili gelir; "Evet, çık" uygulamayı kapatır. Tarayıcıda yok sayılır |
+| Ana menü → çıkış onayı açıkken          | Onay kapanır (oyunda kalınır)                                                                                               |
+| Ayarlar                                 | Ana menü ("Ayarlar" seçili)                                                                                                 |
+| Ayarlar → Kontroller                    | Ayarlar ("Kontroller" seçili)                                                                                               |
+| Nasıl Oynanır / Kontrol Şeması          | Açıldığı menü                                                                                                               |
+| Kontrol düzenleyicisi, değişiklik yok   | Kontroller (İptal ile aynı)                                                                                                 |
+| Kontrol düzenleyicisi, değişiklik var   | Onay: "Düzenlemeye dön" (seçili) / "Kaydet ve çık" / "Kaydetmeden çık"; onay açıkken geri → düzenlemeye dönülür             |
+| Karakter seçimi                         | Hazır olanı geri alır (önce P2, sonra P1); kimse hazır değilse ana menü                                                     |
+| Turnuva ağacı                           | Ana menü (turnuva kayıtlı kalır, "Turnuvaya devam" ile dönülür)                                                             |
+| Kupa ekranı                             | Ana menü                                                                                                                    |
+| Maç (oyun, gol tekrarı, santra)         | Duraklatır                                                                                                                  |
+| Duraklatma menüsü                       | Devam                                                                                                                       |
+| Duraklatma → Ses Ayarları               | Duraklatma menüsü                                                                                                           |
+| Maç sonu ekranı                         | Turnuvada ağaç ("Devam" ile aynı), diğer modlarda ana menü                                                                  |
+| Dikey ekran uyarısı (yalnızca tarayıcı) | Maç zaten duraklı; dikeyken devam edilmez                                                                                   |
+
+**Kararlar**
+
+- **Geri tuşu = Esc.** Android geri tuşu `SystemBack` sanal tuşu olarak menülerdeki "geri" ve maçtaki
+  "duraklat" listelerine eklendi; ekranlar ayrı ayrı bağlanmadı. Yeni ekran Esc'i işliyorsa geri tuşu
+  da çalışır.
+- **Ses odağı oyunda.** Oyun açılınca arka planda çalan müzik (Spotify vb.) durur; çağrı/başka
+  oynatıcı gelince oyun susar. Alternatif (kullanıcının müziğiyle karışık çalmak) seçilirse çağrı
+  algılanamaz. İleride "arka plan müziğine izin ver" ayarı düşünülebilir (not aşağıda).
+- **Açılış ekranı "çıkış animasyonu bekletilerek" tutuluyor.** İlk deneme (`@capacitor/splash-screen`,
+  Android 12 API'si içerik çizimini durduruyor) WebView'ı yavaşlattı: ana menü 2,66–3,07 sn → 3,06–3,76
+  sn (A2 ≤ 3 sn bozuluyordu). Eklenti kaldırıldı; `MainActivity` açılış görüntüsünü en üstte tutarken
+  oyun altta tam hızda yükleniyor. Güvenlik sınırı 8 sn.
+- **Yarım maç kaydı yalnızca arka plana geçişte ve bellek uyarısında** (her karede değil): öndeyken
+  çizici süreç kendiliğinden çökerse (bellek uyarısı gelmeden) maç kaybolur, uygulama ana menüden
+  açılır. Biten maç, dev oturumları ve çıkılan maç kaydedilmez; kayıt okununca silinir.
+
+**Ölçümler ve adb ön testleri (realme 12 kite, 2026-11-27)**
+
+| Test                                                            | Sonuç                                                                                                                        |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Soğuk açılış → ana menünün ilk karesi (6 kez)                   | 2,55–3,09 sn, medyan 2,70 (açılış ekranı tutulmadan 2,66–3,07): fark yok                                                     |
+| Açılış ekranı menüye kadar kalıyor mu                           | ✅ 1,5 sn'de ekran görüntüsü: açılış ekranı (uygulamanın ilk karesi 1,1 sn'de, altta)                                        |
+| Geri tuşu (`adb input keyevent BACK`)                           | ✅ ana menü onayı ve kapanması, seçim, maç, duraklatma, ses ayarları, düzenleyicinin 3 hali, Kontroller → Ayarlar → Ana menü |
+| Ev tuşu → süreci öldür (`am kill`) → aç                         | ✅ maç aynı skor/sürede, "Yarım kalan maç" notuyla duraklı (gol tekrarı sırasında da)                                        |
+| Kritik bellek (`am send-trim-memory … RUNNING_CRITICAL`)        | ✅ maç duraklar, not görünür, kayıt alınır                                                                                   |
+| Çizici süreç çöküşü (DevTools `Page.crash`)                     | ✅ uygulama düşmedi (aynı süreç), etkinlik yeniden açıldı, maç geri geldi                                                    |
+| Telefon çağrısı, bildirim, kulaklık, kilit, uygulama değiştirme | ⏳ adb ile denenemez → geliştiricinin telefon testi (liste aşağıda)                                                          |
+
+adb denemelerinde bulunup düzeltilen iki hata: geri yüklenen maçta oyuncular çizilmiyordu (duraklatılmış
+sahne hiç kare çizmemişti); `recreate()` ile yeniden kurulan etkinlikte WebView çentik genişliği kadar
+kayıyordu (gri şerit) → temiz yeniden başlatma.
+
+**Telefonda denenecek kesinti senaryoları** (geliştirici; sonuçlar buraya işlenecek)
+
+| #   | Senaryo                                                                                   | Beklenen                                                                                     | Sonuç |
+| --- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ----- |
+| 1   | Maç sırasında biri arasın, **reddet**                                                     | Zil çalarken oyun sesi susar, maç "Ses kesildi…" notuyla duraklar; reddedince ses geri gelir | ⏳    |
+| 2   | Maç sırasında biri arasın, **aç, konuş, kapat**, oyuna dön                                | Maç duraklı, skor/süre aynı, ses var; Devam ile sürer                                        | ⏳    |
+| 3   | Ana menüdeyken arama gelsin                                                               | Müzik susar, arama bitince geri gelir                                                        | ⏳    |
+| 4   | Maç sırasında bildirim sesi (WhatsApp mesajı vb.)                                         | Maç durmaz; oyun sesi bir an kısılabilir; çökme yok                                          | ⏳    |
+| 5   | Maç sırasında **ev tuşu**, birkaç saniye sonra simgeden dön                               | Maç duraklı, durum aynı, ses var; dönüş ≤ 1 sn (A3)                                          | ⏳    |
+| 6   | Maç sırasında **son uygulamalar** → başka uygulama → geri                                 | 5 ile aynı                                                                                   | ⏳    |
+| 7   | Son uygulamalar ekranını açıp hiçbir şey seçmeden geri dön                                | Maç duraklı                                                                                  | ⏳    |
+| 8   | Maç sırasında bildirim panelini indir, kapat                                              | Maç sürer (duraklamaz) — duraklamasını isterseniz söyleyin                                   | ⏳    |
+| 9   | Kulaklık takılıyken maç → **kulaklığı çıkar** (kablolu ya da Bluetooth)                   | Maç "Kulaklık çıkarıldı" notuyla duraklar; ses hoparlörden gelir                             | ⏳    |
+| 10  | Maç sırasında **kulaklığı tak**                                                           | Ses kulaklığa geçer; maç durmaz                                                              | ⏳    |
+| 11  | Maç sırasında **güç tuşuyla ekranı kilitle**, aç                                          | Kilitliyken ses yok; açınca maç duraklı                                                      | ⏳    |
+| 12  | Duraklatma menüsünde dokunmadan bekle (ekran zaman aşımı kısa olsun, ör. 30 sn)           | Ekran kararır. Maç oynanırken kararmaz                                                       | ⏳    |
+| 13  | Geri tuşu tablosundaki ekranları tek tek dene (özellikle turnuva, kupa, maç sonu, yardım) | Tablodaki gibi                                                                               | ⏳    |
+| 14  | Ana menüde geri → "Evet, çık"; sonra simgeden aç                                          | Uygulama kapanır; açılışta açılış ekranı → ana menü                                          | ⏳    |
+| 15  | Maç sırasında ev tuşu, sonra ağır uygulamalar aç (kamera, oyun) birkaç dakika, oyuna dön  | Maç ya bellekte duraklı ya da "Yarım kalan maç" notuyla geri gelir; ana menüye düşmez        | ⏳    |
+| 16  | Turnuva maçında 5 ve 15                                                                   | Maç turnuva maçı olarak sürer, bitince sonuç turnuvaya yazılır                               | ⏳    |
+| 17  | Spotify/YouTube Music çalarken oyunu aç                                                   | Müzik durur (karar yukarıda); oyunu kapatınca kendiliğinden geri gelmez                      | ⏳    |
+| 18  | Simgeye dokunup açılışı izle                                                              | Logo ekranı menü gelene kadar kalır; arada boş/siyah ekran ya da yükleme çubuğu yok          | ⏳    |
+
+**Bitti kriterleri**
+
+| Kriter                                                          | Durum                                                                                                   |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| 1. Arka planda otomatik duraklatma ve durumun korunması         | ✅ adb: ev tuşu + süreç öldürme, çizici süreç çöküşü; telefon testi 5–7, 15–16 bekliyor                 |
+| 2. Çağrı, bildirim, kulaklık gibi ses kesintileri               | kod ✅; ⏳ telefon testi 1–4, 9–11 (adb ile denenemez)                                                  |
+| 3. Her ekranda tutarlı geri tuşu                                | ✅ tablo; adb'de ana ekranlar denendi; telefon testi 13–14                                              |
+| 4. Düşük bellek uyarısında güvenli davranış                     | ✅ adb: kritik uyarı, çizici süreç çöküşü                                                               |
+| 2.1'den: açılış ekranı oyun hazır olana kadar                   | ✅ telefonda ölçüldü (A2 değişmedi)                                                                     |
+| 2.4'ten: ekran açık bayrağı duraklatmada kapanır                | ✅ kod; telefon testi 12                                                                                |
+| **Faz: kesinti senaryolarının hepsi test edildi ve listelendi** | ⏳ liste hazır; telefon testi bekliyor                                                                  |
+| Determinizm ve tüm testler                                      | ✅ 448 birim testi (determinizm + yarım maç kaydı gidiş-dönüşü), duman testi web + mobil, ekran matrisi |
+| Web yayını bozulmadı                                            | ✅ web paketinde Capacitor yok (boş modüller); duman testi yeşil                                        |
+
+**QUALITY_BAR satırları**
+
+| Satır                       | Sonuç                                                                                |
+| --------------------------- | ------------------------------------------------------------------------------------ |
+| A1 soğuk açılış ilk görüntü | ✅ sistem açılış ekranı anında; artık menüye kadar o kalıyor                         |
+| A2 soğuk açılış etkileşim   | ✅ 2,55–3,09 sn, medyan 2,70 (2.4: medyan 2,65)                                      |
+| A3 sıcak açılış             | durum korunuyor ✅ (adb); süre telefon testi 5'te                                    |
+| K5 kesintiler               | ◐ arka plan, düşük bellek, süreç/çizici kaybı ✅ (adb); çağrı, bildirim, kulaklık ⏳ |
+
 ## Sonraki fazlar için notlar
 
 Faz 0.3'teki açık sorular Faz 0.4'te, 1.1'e bırakılanlar Faz 1.1'de (K13–K17) karara bağlandı;
@@ -434,8 +563,6 @@ sonra hâlâ görülen riskler:
 - **3.2 / 3.3 — ART_BIBLE bağımlılığı:** bağımlılık notu yalnızca 3.4 için, ama parçalı iskelet
   (3.2) ve kozmetik slotları (3.3) ART_BIBLE'ın katman yapısına (1.4) dayanıyor; 1.4'ten önce
   başlanırsa yeniden iş çıkabilir.
-- **2.5 — Geri tuşu ve düzenleyici (2.3'ten):** kontrol düzenleyicisinde Android geri tuşu
-  "İptal" gibi davranmalı (kaydetmeden çık); kaydedilmemiş değişiklik varsa onay sorulabilir.
 - **2.9 / 3.6 — Hit-stop ve giriş gecikmesi (2.3'ten):** vuruş anındaki hit-stop simülasyonu
   40–60 ms bekletiyor; o arada basılan tuş da bekliyor (tarayıcıda p95 ~100 ms). Hit-stop yalnızca
   sunuma taşınınca (2.7 notu) bu gecikme kalkar; his ayarında ölçer açık denenmeli.
@@ -449,9 +576,19 @@ sonra hâlâ görülen riskler:
   üstünde ve altında 120 px dekor + 48 px sarsıntı payı çiziyor (`STAGE_PAD_X/Y`). Final stadyum
   çizimi ART_BIBLE §10.1'in 2560×1440 (@1,5x) tuvaline göre gelmeli; ışık kuleleri şimdilik
   çekirdeğin içinde, 21:9'da dış kenarlarda kule yok.
-- **2.5 — Yaşam döngüsü ve açılış (2.1'den):** arka planda maçı duraklatma ve sesi kesme
-  `@capacitor/app` (`appStateChange`) ile. `MainActivity` odak dönüşünde çubukları zaten gizliyor.
-  Açılış ekranını oyun hazır olana kadar tutmak için `@capacitor/splash-screen` (QUALITY_BAR A1/A2).
+- **2.8 — Çizici süreç kaybı ve kesintiler (2.5'ten):** `MainActivity.RendererGoneHandler` çizici
+  süreç ölünce etkinliği yeniden başlatıyor (çökme yok); bu olay ve `detail.didCrash()` (çöktü mü,
+  sistem mi kapattı) Crashlytics'e özel olay olarak gitmeli (QUALITY_BAR K4). Yarım maç geri yükleme
+  sayısı da izlenebilir.
+- **6.x / 11.x — Arka plan müziği (2.5'ten):** oyun ses odağını alıyor, açılınca kullanıcının müziği
+  (Spotify vb.) duruyor. İstek gelirse "arka plan müziğine izin ver" ayarı: odak istenmez, oyun
+  müziği kapatılır, efektler karışık çalar (çağrı algısı o zaman yalnızca arka plana geçişle).
+- **9.x — Online maçta yaşam döngüsü (2.5'ten):** çevrimdışı maçta arka plan = duraklat + kaydet.
+  Online maçta duraklatma yok: arka plana geçiş bağlantı kopması gibi ele alınmalı (yeniden bağlanma
+  süresi, 9.6'daki kaçma cezası); yarım maç kaydı online maçta kullanılmamalı.
+- **12.3 — Eski Android'de açılış ekranı ve ses odağı (2.5'ten):** açılış ekranı ve ses odağı yalnızca
+  Android 15'te (referans cihaz) denendi. Android 7–11'de core-splashscreen kendi görünümünü çiziyor,
+  ses odağı eski API ile isteniyor; cihaz matrisinde açılış (boş ekran yok) ve çağrı senaryosu denenmeli.
 - **2.6 — CI'da APK (2.1'den):** Capacitor CLI Node ≥ 22 istiyor (CI 24). Gradle 9.1 JDK 17–25 ile
   çalışır (`actions/setup-java`). `npx cap sync` öncesi `build:mobile` şart (`cap:sync` betiği yapıyor).
 - **12.1 — Sürüm hattı (2.1'den):** `versionCode`/`versionName` `package.json`'dan okunmalı (şu an
@@ -479,8 +616,6 @@ sonra hâlâ görülen riskler:
 - **Capacitor 9 (2.1'den):** 9.0 RC şablonu AGP 9.4 + Gradle 9.8, minSdk 26, compileSdk 37. Geçişte
   Gradle 10 uyarıları da kapanır; `android/` şablon farkı elle birleştirilir (`MainActivity`, manifest,
   `styles.xml`, `colors.xml` özelleştirildi).
-- **2.5 — Ekran açık bayrağı (2.4'ten):** `setScreenAwake` maç boyunca açık, duraklatma menüsünde de.
-  Duraklatmada (ve maç sonu ekranında bir süre sonra) kapatılmalı; arka planda sistem zaten kapatır.
 - **2.7 — Simülasyonda ayırma (2.4'ten):** `collideStatic`/`circleVsCircle` her temasta yeni temas
   nesnesi, `resolveContact` yeni sonuç nesnesi döndürüyor; `loadState` yanılsamalar için yeni `Ball`
   kuruyor (rollback'te her geri sarmada). Masaüstünde kare başına ~6 kB; 2.7 denetiminde ön ayrılmış

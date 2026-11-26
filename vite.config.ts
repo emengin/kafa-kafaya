@@ -54,6 +54,10 @@ export default defineConfig(({ command, mode, isPreview }) => {
             '@capacitor/core': fileURLToPath(
               new URL('./src/platform/capacitorWebStub.ts', import.meta.url),
             ),
+            // Geri tuşu ve uygulama durumu (Faz 2.5) yalnızca uygulamada.
+            '@capacitor/app': fileURLToPath(
+              new URL('./src/platform/appWebStub.ts', import.meta.url),
+            ),
           },
         },
     plugins: [

@@ -1,7 +1,8 @@
 # Kalite Çıtası (Quality Bar)
 
-> **Sürüm:** v1.1 (Faz 2.4, 2026-11-27) — performans, açılış ve bellek satırları referans cihazda
-> ölçüldü ("Ölçülen" sütunu). Hedefler değişmedi; P1'in nasıl ölçüldüğü netleştirildi. Final
+> **Sürüm:** v1.2 (Faz 2.5, 2026-11-27) — açılış satırları açılış ekranı değişikliğinden sonra
+> yeniden ölçüldü; K5 senaryo listesi PROGRESS.md § Faz 2.5'te. v1.1 (Faz 2.4): performans, açılış
+> ve bellek satırları referans cihazda ölçüldü ("Ölçülen" sütunu). Hedefler değişmedi; P1'in nasıl ölçüldüğü netleştirildi. Final
 > görsellerle Faz 4.6 ve 12.3'te tekrar ölçülür. Ayrıntı ve yöntem:
 > [archive/PROGRESS_MOBILE_2.md § Faz 2.4](archive/PROGRESS_MOBILE_2.md).
 >
@@ -37,16 +38,16 @@ tam karşılığı (RAM 4 değil 8 GB; P6 bu yüzden mutlak değerle izlenir).
 
 ## 2. Açılış ve ekran geçişleri
 
-| #   | Kriter                     | Hedef                                                                              | Ölçülen                                                                      |
-| --- | -------------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| A1  | Soğuk açılış — ilk görüntü | Simgeye dokunuştan açılış ekranına ≤ 1 sn                                          | ◐ sistem açılış ekranı anında; uygulamanın ilk karesi 1,09–1,29 sn (Faz 2.4) |
-| A2  | Soğuk açılış — etkileşim   | Simgeye dokunuştan dokunulabilir ana menüye ≤ 3 sn (referans), ≤ 5 sn (taban)      | ✅ 2,55–2,86 sn, medyan 2,65 (Faz 2.4, referans cihaz)                       |
-| A3  | Sıcak açılış               | Arka plandan dönüşte ≤ 1 sn, durum korunmuş                                        | —                                                                            |
-| A4  | Dokunma geri bildirimi     | Basılı durum aynı karede (≤ 16,7 ms) görünür; ses ve titreşim ≤ 50 ms              | —                                                                            |
-| A5  | Ekran geçişi animasyonu    | 200–350 ms; pop-up açılış/kapanış 150–250 ms                                       | —                                                                            |
-| A6  | Yerel ekran açılışı        | Dokunuştan etkileşime ≤ 500 ms (yükleme ekranı yalnızca > 1 sn sürecek işlerde)    | —                                                                            |
-| A7  | Ağa bağlı ekran            | ≤ 300 ms içinde iskelet/yükleniyor durumu; 10 sn'de anlaşılır hata ve yeniden dene | —                                                                            |
-| A8  | Maça giriş                 | Karakter seçimi onayından santraya ≤ 2 sn                                          | —                                                                            |
+| #   | Kriter                     | Hedef                                                                              | Ölçülen                                                                  |
+| --- | -------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| A1  | Soğuk açılış — ilk görüntü | Simgeye dokunuştan açılış ekranına ≤ 1 sn                                          | ✅ sistem açılış ekranı anında, ana menüye kadar kalıyor (Faz 2.5)       |
+| A2  | Soğuk açılış — etkileşim   | Simgeye dokunuştan dokunulabilir ana menüye ≤ 3 sn (referans), ≤ 5 sn (taban)      | ✅ 2,55–3,09 sn, medyan 2,70 (Faz 2.5, referans cihaz; 2.4: medyan 2,65) |
+| A3  | Sıcak açılış               | Arka plandan dönüşte ≤ 1 sn, durum korunmuş                                        | ◐ durum korunuyor (süreç ölse bile, Faz 2.5); süre telefon testinde      |
+| A4  | Dokunma geri bildirimi     | Basılı durum aynı karede (≤ 16,7 ms) görünür; ses ve titreşim ≤ 50 ms              | —                                                                        |
+| A5  | Ekran geçişi animasyonu    | 200–350 ms; pop-up açılış/kapanış 150–250 ms                                       | —                                                                        |
+| A6  | Yerel ekran açılışı        | Dokunuştan etkileşime ≤ 500 ms (yükleme ekranı yalnızca > 1 sn sürecek işlerde)    | —                                                                        |
+| A7  | Ağa bağlı ekran            | ≤ 300 ms içinde iskelet/yükleniyor durumu; 10 sn'de anlaşılır hata ve yeniden dene | —                                                                        |
+| A8  | Maça giriş                 | Karakter seçimi onayından santraya ≤ 2 sn                                          | —                                                                        |
 
 ## 3. Kararlılık
 
@@ -56,7 +57,7 @@ tam karşılığı (RAM 4 değil 8 GB; P6 bu yüzden mutlak değerle izlenir).
 | K2  | Algılanan çökme oranı      | < %1,09 (Google Play "kötü davranış" eşiği), hedef < %0,5                                 | Android vitals                       |
 | K3  | Algılanan ANR oranı        | < %0,47 (Google Play eşiği), hedef < %0,2                                                 | Android vitals                       |
 | K4  | JS hataları                | Yakalanmamış JS hatası ve WebView çizici süreç kaybı da çökme sayılır ve raporlanır       | Crashlytics özel olay                |
-| K5  | Kesintiler                 | Arka plan, çağrı, bildirim, kulaklık, düşük bellek senaryolarında veri kaybı ve çökme yok | Faz 2.5 senaryo listesi              |
+| K5  | Kesintiler                 | Arka plan, çağrı, bildirim, kulaklık, düşük bellek senaryolarında veri kaybı ve çökme yok | Faz 2.5 senaryo listesi (PROGRESS)   |
 | K6  | Motorlar arası determinizm | Aynı tekrar kaydı Chromium, WebKit ve Node'da her karede aynı checksum'ı üretir           | CI (Faz 2.7); gerçek cihazlarda 12.3 |
 
 ## 4. Dokunma ve okunurluk

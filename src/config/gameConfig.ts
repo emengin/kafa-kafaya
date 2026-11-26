@@ -958,6 +958,16 @@ export const TOUCH_CODES = {
   fill: 'TouchFill',
 } as const;
 
+/**
+ * Sistem tuşlarının sanal kodları (Faz 2.5). Android geri tuşu (`@capacitor/app` → `backButton`)
+ * bu kodla sanal tuş olarak basılır; menülerde Esc/Backspace/B ile, maçta duraklatma tuşlarıyla
+ * aynı listededir. Böylece her ekranda klavye Esc'i, gamepad B'si ve Android geri tuşu aynı işi
+ * yapar (ekran ekran tablo: PROGRESS.md § Faz 2.5).
+ */
+export const SYSTEM_CODES = {
+  back: 'SystemBack',
+} as const;
+
 /** Yerel 2 oyuncuda (Faz 2.3 prototipi) ikinci oyuncunun dokunmatik butonları. */
 export const TOUCH_CODES_P2 = {
   left: 'Touch2Left',
@@ -1010,7 +1020,7 @@ export const CONTROLS = {
   ui: {
     debugToggle: 'F1',
     /** Duraklat / devam (herhangi biri). */
-    pause: ['Escape', 'KeyP', PAD1.start, PAD2.start, TOUCH_CODES.pause],
+    pause: ['Escape', 'KeyP', PAD1.start, PAD2.start, TOUCH_CODES.pause, SYSTEM_CODES.back],
     /** Menülerde gezinme ve seçim. */
     menuUp: ['ArrowUp', 'KeyW', PAD1.up, PAD2.up],
     menuDown: ['ArrowDown', 'KeyS', PAD1.down, PAD2.down],
@@ -1019,7 +1029,7 @@ export const CONTROLS = {
     menuLeft: ['ArrowLeft', 'KeyA', PAD1.left, PAD2.left, PAD1.lb, PAD2.lb],
     menuRight: ['ArrowRight', 'KeyD', PAD1.right, PAD2.right, PAD1.rb, PAD2.rb],
     /** Alt menüden geri dönüş. */
-    menuBack: ['Escape', 'Backspace', PAD1.b, PAD2.b],
+    menuBack: ['Escape', 'Backspace', PAD1.b, PAD2.b, SYSTEM_CODES.back],
   },
   /** Antrenman kısayolları: topu sıfırla, süper barını doldur, kukla rakibi aç/kapa. */
   training: {
@@ -1327,7 +1337,31 @@ export const STORAGE = {
     tournament: 'tournament',
     /** Faz 2.3: dokunmatik kontrol düzeni (konum, boyut, opaklık, solak modu) — JSON. */
     touchLayout: 'touchLayout',
+    /**
+     * Faz 2.5: arka plana geçerken alınan maç kaydı (süreç kapanırsa maç kaldığı yerden açılır);
+     * uygulama öne dönünce ve maç bitince silinir — JSON.
+     */
+    matchResume: 'matchResume',
   },
+} as const;
+
+/**
+ * Uygulama yaşam döngüsü (Faz 2.5): arka plan, ses kesintileri, düşük bellek. Ayrıntı:
+ * `src/platform/lifecycle.ts`. Açılış ekranının süreleri yerel tarafta (`MainActivity.java`).
+ */
+export const LIFECYCLE = {
+  /**
+   * Arka planda kaydedilen maç bu kadar eskiyse açılışta geri yüklenmez (ms; 1 saat). Daha eski
+   * yarım maç unutulmuş sayılır; uygulama ana menüden açılır.
+   */
+  resumeMaxAgeMs: 3_600_000,
+  /**
+   * Bildirim sesi gibi kısa kesintide (Android "ses kısma" isteği) ana ses bu orana iner. Android
+   * 8+ bunu çoğunlukla kendisi yapar; eski sürümlerde ve sistemin kısmadığı durumda bu değer.
+   */
+  duckGain: 0.3,
+  /** Maç sonu ekranında ekranın açık kalma süresi (ms); sonra sistemin zaman aşımı geçerli. */
+  endScreenAwakeMs: 30_000,
 } as const;
 
 /** Renk paleti (Phaser sayısal renk biçimi). */

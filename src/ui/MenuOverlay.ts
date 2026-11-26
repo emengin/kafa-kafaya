@@ -13,6 +13,8 @@ export interface MenuOverlayOptions {
   /** Başlığın altındaki bilgi satırları (skor, "Altın golle" …). */
   readonly lines?: readonly string[];
   readonly items: readonly TextMenuItem[];
+  /** Çizim derinliği (varsayılan `OVERLAY.depth`); üstünde kalması gereken katman varsa büyütülür. */
+  readonly depth?: number;
 }
 
 /**
@@ -26,7 +28,8 @@ export class MenuOverlay {
 
   constructor(scene: Phaser.Scene, options: MenuOverlayOptions) {
     const { width, height } = DISPLAY;
-    const { panel, title, line, items, hint, gapPx, depth } = OVERLAY;
+    const { panel, title, line, items, hint, gapPx } = OVERLAY;
+    const depth = options.depth ?? OVERLAY.depth;
     const lines = options.lines ?? [];
     const cx = width / 2;
 

@@ -1,9 +1,15 @@
-import { AUDIO } from '../config/gameConfig';
+import { AUDIO, LIFECYCLE } from '../config/gameConfig';
 import { storage } from '../game/storage';
 import { loadVolumes, saveVolumes, type VolumeSettings } from './settings';
 
 /** Ses veri yolu: efektler (kalabalık da efekt ayarına bağlı), kalabalık, müzik. */
 export type Bus = 'sfx' | 'crowd' | 'music';
+
+/**
+ * Sesi susturan kesinti nedenleri (Faz 2.5): uygulama/sekme arka planda; ses odağı başka
+ * uygulamada (telefon çağrısı, başka bir oynatıcı). Herhangi biri sürerken bağlam askıdadır.
+ */
+export type AudioHold = 'background' | 'focus';
 
 export interface ToneOptions {
   readonly type: OscillatorType;
@@ -44,7 +50,10 @@ const MIN_ATTACK = 0.004;
  * ana), kırpılmayı önleyen sıkıştırıcı, ses düzeyi ayarları (kaydedilir), gürültü tamponları
  * ve ses sayısı sınırı. Tarayıcıların autoplay kuralı gereği bağlam **ilk kullanıcı
  * etkileşiminde** oluşturulur/açılır; o ana kadar tüm çalma çağrıları sessizce yok sayılır.
- * Sekme gizlenince bağlam askıya alınır.
+ *
+ * Kesintiler (Faz 2.5, `src/platform/lifecycle.ts`): arka planda ya da ses odağı kaybedilince
+ * (`setHold`) bağlam askıya alınır, nedenlerin hepsi kalkınca sürer; bildirim sesi gibi kısa
+ * kesintide (`setDucked`) ana ses kısılır.
  */
 export class AudioEngine {
   ctx: AudioContext | null = null;
@@ -56,13 +65,14 @@ export class AudioEngine {
   private voices = 0;
   private white: AudioBuffer | null = null;
   private pink: AudioBuffer | null = null;
-  private visibilityHooked = false;
+  private readonly holds = new Set<AudioHold>();
+  private ducked = false;
 
-  /** Kullanıcı etkileşiminde çağrılır: bağlamı kurar ve açar. */
+  /** Kullanıcı etkileşiminde çağrılır: bağlamı kurar ve açar (kesinti sürüyorsa açmaz). */
   unlock(): void {
     const ctx = this.context();
     if (!ctx) return;
-    if (ctx.state === 'suspended') {
+    if (this.holds.size === 0 && ctx.state !== 'running') {
       void ctx.resume().then(
         () => {
           this.checkReady();
@@ -91,6 +101,25 @@ export class AudioEngine {
   setVolumes(v: VolumeSettings): void {
     this.volumes = { ...v };
     saveVolumes(storage, this.volumes);
+    this.applyVolumes();
+  }
+
+  /** Kesinti başladı/bitti. Herhangi bir neden sürerken ses askıda; hepsi bitince sürer. */
+  setHold(reason: AudioHold, on: boolean): void {
+    if (on) this.holds.add(reason);
+    else this.holds.delete(reason);
+    this.syncHold();
+  }
+
+  /** Bir kesinti sürüyor mu? */
+  get held(): boolean {
+    return this.holds.size > 0;
+  }
+
+  /** Kısa kesinti (bildirim sesi): ana ses `LIFECYCLE.duckGain` oranına iner. */
+  setDucked(on: boolean): void {
+    if (this.ducked === on) return;
+    this.ducked = on;
     this.applyVolumes();
   }
 
@@ -205,7 +234,8 @@ export class AudioEngine {
     if (!ctx || !this.master || !this.buses) return;
     const t = ctx.currentTime;
     const v = this.volumes;
-    this.master.gain.setTargetAtTime(v.master * AUDIO.masterGain, t, VOLUME_SMOOTH);
+    const duck = this.ducked ? LIFECYCLE.duckGain : 1;
+    this.master.gain.setTargetAtTime(v.master * AUDIO.masterGain * duck, t, VOLUME_SMOOTH);
     this.buses.sfx.gain.setTargetAtTime(v.sfx, t, VOLUME_SMOOTH);
     this.buses.music.gain.setTargetAtTime(v.music * AUDIO.musicGain, t, VOLUME_SMOOTH);
     this.buses.crowd.gain.setTargetAtTime(AUDIO.crowdGain, t, VOLUME_SMOOTH);
@@ -239,23 +269,31 @@ export class AudioEngine {
       this.white = makeNoise(ctx, AUDIO.noiseSeconds, false);
       this.pink = makeNoise(ctx, AUDIO.crowdNoiseSeconds, true);
       this.applyVolumes();
-      this.hookVisibility();
+      this.syncHold();
     } catch {
       this.ctx = null;
     }
     return this.ctx;
   }
 
-  /** Sekme gizliyken sesi askıya al (zamanlayıcılar kısılır, müzik takılmasın). */
-  private hookVisibility(): void {
-    if (this.visibilityHooked || typeof document === 'undefined') return;
-    this.visibilityHooked = true;
-    document.addEventListener('visibilitychange', () => {
-      const ctx = this.ctx;
-      if (!ctx) return;
-      if (document.hidden) void ctx.suspend().catch(() => undefined);
-      else if (this.notifiedReady) void ctx.resume().catch(() => undefined);
-    });
+  /**
+   * Kesinti varken bağlamı askıya al (zamanlayıcılar kısılır, müzik takılmasın; telefon çağrısının
+   * üstüne ses binmesin); kalkınca yeniden aç. Kullanıcı daha önce etkileşmişse tarayıcı izin verir;
+   * hiç etkileşmediyse açılış ilk dokunuşa kalır (`unlock`).
+   */
+  private syncHold(): void {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    if (this.holds.size > 0) {
+      if (ctx.state === 'running') void ctx.suspend().catch(() => undefined);
+    } else if (ctx.state !== 'running' && ctx.state !== 'closed') {
+      void ctx.resume().then(
+        () => {
+          this.checkReady();
+        },
+        () => undefined,
+      );
+    }
   }
 }
 

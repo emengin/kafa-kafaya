@@ -13,6 +13,7 @@ import {
   FX,
   HUD,
   JUICE,
+  LIFECYCLE,
   LOOP,
   MATCH,
   REPLAY,
@@ -53,7 +54,11 @@ import {
   twoPlayerTouchAllowed,
 } from '../platform/device';
 import { setInMatch } from '../platform/fullscreen';
+import { hideSplash, onAppEvent, reclaimAudio, type AppEvent } from '../platform/lifecycle';
+import { setScreenAwake } from '../platform/screenAwake';
+import { storage } from '../game/storage';
 import { getSettings } from '../save/gameSettings';
+import { clearMatchResume, saveMatchResume, type MatchResume } from '../save/matchResume';
 import { saveMatchResult, saveTournamentWin } from '../save/progress';
 import { createGameLoop, lerp } from '../physics';
 import { DebugOverlay } from '../ui/DebugOverlay';
@@ -89,6 +94,22 @@ function cpuName(difficulty: AiDifficulty): string {
 /** Girdisiz kaynak (antrenman kuklası). */
 const IDLE_SOURCE: InputSource = { read: () => EMPTY_INPUT };
 
+/** Duraklatma menüsünde "devam", alt menüde "geri": duraklat tuşları ve geri tuşları (Faz 2.5). */
+const PAUSE_OR_BACK: readonly string[] = [
+  ...new Set<string>([...CONTROLS.ui.pause, ...CONTROLS.ui.menuBack]),
+];
+
+/** Açılışta yarım kalan maçı geri yüklerken sahneye verilen veri (Faz 2.5, `PreloadScene`). */
+export interface MatchResumeData {
+  readonly resume: MatchResume;
+}
+
+function resumeOf(data: unknown): MatchResume | null {
+  return typeof data === 'object' && data !== null && 'resume' in data
+    ? (data as MatchResumeData).resume
+    : null;
+}
+
 /**
  * Maç sahnesi: Hızlı Maç (CPU), 2 oyuncu, turnuva maçı ya da antrenman. Kurallar ve durum makinesi GameSim/MatchFlow'dadır
  * (deterministik); sahne girdiyi toplar (klavye ya da yapay zekâ — ikisi de yalnızca
@@ -100,7 +121,12 @@ const IDLE_SOURCE: InputSource = { read: () => EMPTY_INPUT };
  * - **Hit-stop:** sert vuruşta döngüye 40–60 ms boyunca süre verilmez (dünya donar);
  *   simülasyon adımları değişmez, determinizm korunur.
  * - **Duraklatma:** döngü hiç ilerletilmez (her durumdan açılır, aynı yerden devam eder);
- *   sahne tween'leri de dondurulur.
+ *   sahne tween'leri de dondurulur. Arka plana geçiş, ses kesintisi (çağrı), kulaklığın
+ *   çıkarılması, kritik düşük bellek ve gamepad kopması kendiliğinden duraklatır (Faz 2.5).
+ * - **Yarım maç kaydı (Faz 2.5):** arka plana geçerken ve düşük bellek uyarısında simülasyonun tam
+ *   durumu kaydedilir; süreç kapanırsa oyun açılınca maç kaldığı yerden, duraklatılmış açılır.
+ * - **Geri tuşu (Faz 2.5):** maçta duraklatır; duraklatma menüsünde devam ettirir; ses ayarlarında
+ *   duraklatma menüsüne döner; maç sonunda turnuva ağacına ya da ana menüye çıkar.
  * - **Kalite:** kare süresi uzun süre bütçeyi aşarsa efektler bir kademe azaltılır.
  */
 export class MatchScene extends Phaser.Scene {
@@ -141,6 +167,8 @@ export class MatchScene extends Phaser.Scene {
   private recorded = false;
   /** Duraklatma nedeni satırı (ör. gamepad bağlantısı koptu). */
   private pauseNote: string | null = null;
+  /** Maçın tohumu (yarım maç kaydına yazılır). */
+  private seed = 0;
 
   // ── Gol tekrarı (Faz 7) ──
   /** Son saniyelerin halka tamponu (antrenmanda ve ayar kapalıyken yok). */
@@ -167,6 +195,7 @@ export class MatchScene extends Phaser.Scene {
   /**
    * @param data Menünün verdiği `MatchSetup`. Veri yoksa (geliştirici kısayoluyla doğrudan
    *             başlatma) URL bayrakları (`?cpu=`, `?cpu1=`, `?seed=`) kullanılır.
+   *             `MatchResumeData` ise yarım kalan maç kaldığı yerden, duraklatılmış açılır.
    */
   create(data?: unknown): void {
     // Sahne yeniden başlatıldığında alanlar sıfırlanmaz: hepsini burada kur.
@@ -195,11 +224,14 @@ export class MatchScene extends Phaser.Scene {
     // Kamera çekirdeği ortalar, kenara sabitli arayüz ekran oranına ve çentiğe göre yerleşir.
     screenLayout(this);
 
-    const fromMenu = typeof data === 'object' && data !== null && 'mode' in data;
+    const resume = resumeOf(data);
+    const input: unknown = resume ? resume.setup : data;
+    const fromMenu = typeof input === 'object' && input !== null && 'mode' in input;
     const dev = devAiFlags();
-    this.setup = resolveMatchSetup(data, fromMenu ? { cpu: null, cpu1: null, seed: null } : dev);
+    this.setup = resolveMatchSetup(input, fromMenu ? { cpu: null, cpu1: null, seed: null } : dev);
     // Tohum maç başında bir kez seçilir: Yeniden Başlat aynı kurulumu korur, maç yine farklıdır.
-    const seed = this.setup.seed ?? randomSeed();
+    const seed = resume?.seed ?? this.setup.seed ?? randomSeed();
+    this.seed = seed;
     const [c1, c2] = this.setup.characters;
     this.characters = [getCharacter(c1), getCharacter(c2)];
     const { mode, difficulty, p1Ai } = this.setup;
@@ -215,6 +247,8 @@ export class MatchScene extends Phaser.Scene {
       solo: training,
     };
     this.sim = new GameSim(simOptions);
+    // Bozuk ya da uyumsuz kayıt yarıda kalırsa simülasyon temiz kurulur (maç baştan başlar).
+    if (resume && !this.tryLoadState(resume.state)) this.sim = new GameSim(simOptions);
     this.prevFrame.copyFrom(this.sim);
     this.currFrame.copyFrom(this.sim);
     this.recorder = !training && getSettings().replays ? new ReplayRecorder(this.sim) : null;
@@ -238,10 +272,9 @@ export class MatchScene extends Phaser.Scene {
     const stopTouchWatch = onTouchDetected(() => {
       this.createTouchControls();
     });
-    const onVisibility = (): void => {
-      if (document.hidden) this.autoPause(null);
-    };
-    document.addEventListener('visibilitychange', onVisibility);
+    const stopAppEvents = onAppEvent((e) => {
+      this.onAppEvent(e);
+    });
     gamepads.onDisconnect = () => {
       this.autoPause(t('pause.padDisconnected'));
     };
@@ -251,7 +284,9 @@ export class MatchScene extends Phaser.Scene {
       this.overlay?.destroy();
       this.overlay = null;
       stopTouchWatch();
-      document.removeEventListener('visibilitychange', onVisibility);
+      stopAppEvents();
+      // Maçtan çıkıldı (ana menü, yeniden başlat, maç sonu): yarım maç kaydı artık geçersiz.
+      clearMatchResume(storage);
       gamepads.onDisconnect = null;
       setInMatch(false);
       crowd.stop();
@@ -275,7 +310,7 @@ export class MatchScene extends Phaser.Scene {
     const settings = getSettings();
     this.view.shakeEnabled = settings.screenShake;
     this.view.setAccessibility(ACCESSIBILITY.effects[settings.effects], settings.colorblind);
-    if (training) this.view.setPlayerVisible(1, false);
+    if (training) this.view.setPlayerVisible(1, !this.sim.solo);
     for (const c of this.characters) {
       this.view.prewarmText(
         upper(t(`super.${c.superType}`)),
@@ -319,6 +354,66 @@ export class MatchScene extends Phaser.Scene {
     this.cameras.main.fadeIn(HUD.kickoffFadeMs);
     music.play('match');
     crowd.start();
+    // Açılışta geri yüklenen maç: yerel açılış ekranı ilk karede söner (ana menü yerine).
+    this.game.events.once(Phaser.Core.Events.POST_RENDER, hideSplash);
+    if (resume) {
+      // Duraklatılmış sahne çizim güncellemesi yapmaz: geri yüklenen durumu bir kez çiz.
+      this.view.draw(this.drawFrame.lerpFrom(this.prevFrame, this.currFrame, 1), 0, 0, 0);
+      this.hud.update(this.sim.match, this.sim.players);
+      this.pauseNote = t('pause.resumed');
+      this.pause();
+    }
+  }
+
+  private tryLoadState(state: SimState): boolean {
+    try {
+      this.sim.loadState(state);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Platform olayları (Faz 2.5, `lifecycle.ts`). */
+  private onAppEvent(e: AppEvent): void {
+    switch (e.type) {
+      case 'hidden':
+        this.autoPause(null);
+        this.saveResume();
+        break;
+      case 'visible':
+        // Süreç yaşıyor, maç bellekte: kayda gerek yok (sonraki arka plan geçişinde yenilenir).
+        clearMatchResume(storage);
+        break;
+      case 'audioLost':
+        this.autoPause(t('pause.audioInterrupted'));
+        break;
+      case 'headphonesUnplugged':
+        this.autoPause(t('pause.headphones'));
+        break;
+      case 'lowMemory':
+        this.saveResume();
+        if (e.critical) this.autoPause(t('pause.lowMemory'));
+        break;
+      case 'audioGained':
+        break;
+    }
+  }
+
+  /**
+   * Yarım maç kaydı: bitmemiş maçın tam durumu. Gol tekrarı oynuyorsa canlı durum (tekrar değil)
+   * yazılır. Biten maç (sonuç kayda geçti), çıkış ve geliştirici oturumları kaydedilmez.
+   */
+  private saveResume(): void {
+    if (this.leaving || this.endShown || this.recorded || this.devSession) return;
+    const state = this.replay ? this.liveState : this.sim.saveState();
+    if (!state) return;
+    saveMatchResume(
+      storage,
+      { setup: this.setup, seed: this.seed, state },
+      Date.now(),
+      __APP_VERSION__,
+    );
   }
 
   /**
@@ -369,15 +464,22 @@ export class MatchScene extends Phaser.Scene {
     this.avgFrameMs = lerp(this.avgFrameMs || deltaMs, deltaMs, DEBUG.statsSmoothing);
 
     if (this.paused) {
-      if (this.tracker.consumeAny(ui.pause) && !this.inSettings) {
-        this.resume();
+      // Geri/duraklat: ses ayarlarında duraklatma menüsüne dön, duraklatma menüsünde devam et.
+      if (this.tracker.consumeAny(PAUSE_OR_BACK)) {
+        if (this.inSettings) {
+          sfx.menuBack();
+          this.showPauseMenu();
+        } else {
+          this.resume();
+        }
       } else {
         this.overlay?.update(this.tracker);
       }
       return;
     }
     if (this.endShown) {
-      this.overlay?.update(this.tracker);
+      if (this.tracker.consumeAny(ui.menuBack)) this.leaveEndScreen();
+      else this.overlay?.update(this.tracker);
     } else if (this.tracker.consumeAny(ui.pause) || (isTouchDevice() && isPortrait())) {
       this.pause();
       return;
@@ -671,10 +773,15 @@ export class MatchScene extends Phaser.Scene {
     this.tracker.releaseAll();
     this.tweens.pauseAll();
     this.touch?.setEnabled(false);
+    // Duraklatılmış maçta ekran sistemin zaman aşımıyla kapanabilir (Faz 2.4 notu → 2.5).
+    setScreenAwake(false);
     this.showPauseMenu();
   }
 
-  /** Sekme gizlenince ya da gamepad kopunca kendiliğinden duraklat (nedeni panelde yazar). */
+  /**
+   * Kendiliğinden duraklat (nedeni panelde yazar): arka plan, ses kesintisi, kulaklık, düşük
+   * bellek, gamepad kopması.
+   */
   private autoPause(note: string | null): void {
     if (this.leaving || this.endShown) return;
     if (this.paused) {
@@ -764,6 +871,9 @@ export class MatchScene extends Phaser.Scene {
     this.tracker.releaseAll();
     this.tweens.resumeAll();
     this.touch?.setEnabled(true);
+    setScreenAwake(true);
+    // Kesinti bitti ama ses odağı geri gelmediyse (başka oynatıcı aldıysa) yeniden iste.
+    reclaimAudio();
   }
 
   // ───────────────────────────── Gol tekrarı ─────────────────────────────
@@ -953,6 +1063,7 @@ export class MatchScene extends Phaser.Scene {
     const { mode } = this.setup;
     const [a, b] = this.sim.match.score;
     saveMatchResult({ mode, score: [a, b], winner });
+    clearMatchResume(storage);
     if (mode !== 'tournament') return;
     const state = getSavedTournament();
     if (state?.status !== 'active') return;
@@ -964,6 +1075,10 @@ export class MatchScene extends Phaser.Scene {
   private showEndScreen(): void {
     this.endShown = true;
     this.tracker.releaseAll();
+    // Sonuç ekranı bir süre açık kalır, sonra ekran sistemin zaman aşımıyla kapanabilir.
+    this.time.delayedCall(LIFECYCLE.endScreenAwakeMs, () => {
+      setScreenAwake(false);
+    });
     const match = this.sim.match;
     const winner: PlayerIndex | null = match.winner;
     const [a, b] = match.score;
@@ -1001,6 +1116,13 @@ export class MatchScene extends Phaser.Scene {
       lines,
       items,
     });
+  }
+
+  /** Maç sonunda geri tuşu: turnuvada ağaca (Devam ile aynı), diğer modlarda ana menüye. */
+  private leaveEndScreen(): void {
+    sfx.menuBack();
+    if (this.setup.mode === 'tournament') this.leaveTo(SceneKeys.Tournament, { justPlayed: true });
+    else this.toMainMenu();
   }
 
   private restart(): void {

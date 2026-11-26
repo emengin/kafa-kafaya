@@ -18,6 +18,7 @@ import { getSavedTournament } from '../game/tournament';
 import { format, getLanguage, setLanguage, t, upper } from '../i18n';
 import { KeyTracker } from '../input/KeyboardInput';
 import { setInMatch } from '../platform/fullscreen';
+import { canExitApp, exitApp, hideSplash } from '../platform/lifecycle';
 import { tapHaptic } from '../platform/haptics';
 import {
   cycleOption,
@@ -29,6 +30,7 @@ import {
 import { getProgress } from '../save/progress';
 import { DemoMatch } from '../ui/DemoMatch';
 import { HelpPanel, type HelpPage } from '../ui/HelpPanel';
+import { MenuOverlay } from '../ui/MenuOverlay';
 import { volumeMenuItems } from '../ui/settingsMenu';
 import { devHooks } from '../dev/hooks';
 import { TextMenu, type TextMenuItem } from '../ui/TextMenu';
@@ -67,6 +69,10 @@ const CTRL = { scheme: 3 } as const;
  * menüsü (zorluk, maç süresi, ses düzeyleri, ekran sarsıntısı, dil, kontrol şeması) ve sayfalı
  * yardım paneli aynı sahnede, demo maçın üstünde açılır. Sol altta istatistikler. Klavye, fare,
  * dokunmatik ve gamepad ile kullanılır.
+ *
+ * Geri tuşu (Esc/Backspace/B, Android geri; Faz 2.5): alt menüde bir üst menüye döner. Ana menüde
+ * uygulamada "Oyundan çıkılsın mı?" onayı açılır (seçili gelen "Hayır"; ikinci geri onayı
+ * kapatır), tarayıcıda yok sayılır (sayfa kapatılamaz).
  */
 export class MenuScene extends Phaser.Scene {
   private tracker!: KeyTracker;
@@ -79,6 +85,8 @@ export class MenuScene extends Phaser.Scene {
   private starting = false;
   /** Bir sonraki karede yapılacak görünüm değişimi bekliyor mu? */
   private pendingView = false;
+  /** Ana menüde geri tuşuyla açılan çıkış onayı (Faz 2.5). */
+  private exitPrompt: MenuOverlay | null = null;
 
   constructor() {
     super(SceneKeys.Menu);
@@ -91,6 +99,7 @@ export class MenuScene extends Phaser.Scene {
     this.menu = null;
     this.help = null;
     this.heading = null;
+    this.exitPrompt = null;
     setInMatch(false);
 
     const layout = screenLayout(this);
@@ -134,6 +143,8 @@ export class MenuScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.tracker.detach();
       this.help?.destroy();
+      this.exitPrompt?.destroy();
+      this.exitPrompt = null;
     });
 
     this.createFooter();
@@ -146,12 +157,27 @@ export class MenuScene extends Phaser.Scene {
     this.cameras.main.fadeIn(MENU.startFadeMs);
     music.play('menu');
     crowd.start();
+    // Oyun hazır: yerel açılış ekranı ana menünün ilk karesi çizilince söner (Faz 2.5).
+    this.game.events.once(Phaser.Core.Events.POST_RENDER, hideSplash);
   }
 
   override update(time: number, deltaMs: number): void {
     this.demo.update(time, deltaMs);
     crowd.setIntensity(this.demo.excitement * MENU.demo.crowdScale);
     if (this.starting || this.pendingView) return;
+    if (this.exitPrompt) {
+      if (this.tracker.consumeAny(CONTROLS.ui.menuBack)) {
+        sfx.menuBack();
+        this.closeExitPrompt();
+      } else {
+        this.exitPrompt.update(this.tracker);
+      }
+      return;
+    }
+    if (this.view === 'main' && this.tracker.consumeAny(CONTROLS.ui.menuBack)) {
+      if (canExitApp()) this.openExitPrompt();
+      return;
+    }
     if (this.view === 'help') {
       this.help?.update(this.tracker);
       return;
@@ -522,6 +548,37 @@ export class MenuScene extends Phaser.Scene {
       .setAlpha(MENU.footer.alpha)
       .setDepth(d);
     layout.place(footer, BOTTOM_RIGHT);
+  }
+
+  /** "Oyundan çıkılsın mı?" — yanlışlıkla geri tuşuna basınca oyun kapanmasın (Faz 2.5). */
+  private openExitPrompt(): void {
+    sfx.menuMove();
+    this.exitPrompt = new MenuOverlay(this, {
+      title: t('exit.title'),
+      items: [
+        {
+          label: t('exit.stay'),
+          onSelect: () => {
+            // Menü öğesinin işleyicisi içinden: kaplamayı bir sonraki karede kaldır.
+            this.time.delayedCall(0, () => {
+              this.closeExitPrompt();
+            });
+          },
+        },
+        {
+          label: t('exit.quit'),
+          onSelect: () => {
+            exitApp();
+          },
+        },
+      ],
+    });
+  }
+
+  private closeExitPrompt(): void {
+    this.exitPrompt?.destroy();
+    this.exitPrompt = null;
+    this.tracker.releaseAll();
   }
 
   // ───────────────────────────── Geçişler ─────────────────────────────
