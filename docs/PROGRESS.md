@@ -81,8 +81,8 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
   - [x] 2.1 Capacitor ve Android derleme — 2026-11-26 → gerçek telefonda açılıp oynandı (aşağıda)
   - [x] 2.2 Ekran ve ölçekleme — 2026-11-26 → gerçek telefonda kontrol edildi (aşağıda)
   - [x] 2.3 Dokunmatik kontroller v2 — 2026-11-26 → telefonda denendi, geri bildirim işlendi (aşağıda)
-  - [ ] 2.4 Performans (rollback ≤ 4 ms dahil) — telefonda ölçüldü: 30 → 60 FPS, rollback p99 1,1 ms;
-        pil (USB'siz) ve kamera gecikmesi ölçümü geliştiricide bekliyor (aşağıda)
+  - [x] 2.4 Performans (rollback ≤ 4 ms dahil) — 2026-11-27 → telefonda 30 → 60 FPS, rollback p99 1,1 ms
+        (aşağıda)
   - [ ] 2.5 Uygulama yaşam döngüsü
   - [ ] 2.6 Sürekli derleme hattı
   - [ ] 2.7 Determinizm sertleştirme
@@ -289,7 +289,7 @@ oynanabilir.
 | QUALITY_BAR A4 (basılı durum aynı kare, titreşim ≤ 50 ms) | ✅ basılı görünüm olay anında; titreşim süresi ölçülmedi                                   |
 | Web yayını bozulmadı                                      | ✅ web paketinde Capacitor yok; masaüstü yerleşim aynı; duman testi yeşil                  |
 
-### Faz 2.4 — Performans (2026-11-27; telefonda ölçüldü, pil ve kamera ölçümü bekliyor)
+### Faz 2.4 — Performans (2026-11-27, tamamlandı)
 
 Referans cihaz: **realme 12 kite (RMX3890)**, Snapdragon 685, Android 15, WebView 158 (QUALITY_BAR §0).
 Ölçümler telefon USB'deyken uygulamanın WebView'ında (`npm run bench -- --device`); dokunuşlar
@@ -332,14 +332,14 @@ kaldı (karar); (6) tezgâh cihaza genişletildi ✅.
 | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | 1. Düşük-orta seviye Android'de profil                         | ✅ realme 12 kite: 30 FPS'in kök nedeni bulundu (katman, karışım kipi, GL çağrı kaydı, tampon taraması)                      |
 | 2. Nesne havuzları, texture atlas, kare başına ayırma, WebView | ✅ havuzlar vardı (doğrulandı); kalabalık atlası; ayırma ölçüldü ve azaltıldı (Phaser içi kalan ~%85, not); WebView ayarları |
-| 3. Isınma ve pil (15 dk'da FPS düşüşü yok)                     | ◐ ısınma ✅ (15 dk, düşüş yok); **pil ölçülmedi** (test USB'de şarjdayken) → geliştirici                                     |
+| 3. Isınma ve pil (15 dk'da FPS düşüşü yok)                     | ◐ ısınma ✅ (15 dk, düşüş yok); pil ölçülmedi (test USB'de şarjdayken) → 4.6                                                 |
 | 4. Kare süresi grafiği (geliştirici katmanı)                   | ✅ yalnızca geliştirici derlemesinde; yayın derlemesinde yok (duman testi)                                                   |
 | 5. Rollback ölçümü (kayıt + 8 adım)                            | ✅ ort. 0,51 ms, p99 1,1 ms, p99,9 2,1 ms; canlı durumla 0 fark                                                              |
 | 6. Hedef boyutta sentetik stres sahnesi                        | ✅ ART_BIBLE §10.2 / §6.1 / §12.3 boyutlarında (`?devtest=stress`); 4.6 ve 12.3'te tekrar                                    |
 | 7. Sonuçlar QUALITY_BAR'da                                     | ✅ P1–P9, A1, A2, D6                                                                                                         |
 | **Faz: 15 dk sabit 60 FPS; kayıt + 8 adım ≤ 4 ms**             | ✅ telefonda (stres sahnesinde bile 59,7 FPS); seyrek GC takılması P2'de açık                                                |
 | Determinizm testleri; optimizasyonlar simülasyonu değiştirmez  | ✅ 440 birim testi; tarayıcıda HEAD ↔ Faz 2.4 durum özetleri birebir aynı                                                    |
-| 2.3'ten kalan: telefonda gecikme ölçümü                        | ◐ uygulama içi ölçer ✅ (oyun payı 5,6 ms); **kamera ölçümü** → geliştirici                                                  |
+| 2.3'ten kalan: telefonda gecikme ölçümü                        | ◐ uygulama içi ölçer ✅ (oyun payı 5,6 ms); kamera ölçümü yapılmadı → 4.6                                                    |
 | 2.3'ten kalan: hareket bölgesi telefonda                       | ✅ gerçek dokunuşla: sol kenar, ◀ altı (kenardan 6 px'e kadar), ▶ sağı                                                       |
 | Web yayını bozulmadı                                           | ✅ duman testi web + mobil; web paketinde Capacitor ve geliştirici araçları yok                                              |
 
@@ -351,20 +351,19 @@ kaldı (karar); (6) tezgâh cihaza genişletildi ✅.
 | P2 takılma              | ❌ oyun akarken ~1–2 dk'da bir 50–75 ms; nedeni V8 büyük GC (~25 ms) → 3.x notu               |
 | P3 ısınma               | ✅ son dakika ilk dakikadan hızlı                                                             |
 | P4 kalite kademesi      | ✅ hep Yüksek                                                                                 |
-| P5 pil                  | ölçülmedi (USB'de şarjda) → geliştirici                                                       |
+| P5 pil                  | ölçülmedi (USB'de şarjda) → 4.6                                                               |
 | P6 bellek               | ◐ normal maç 366–371 MB ✅; hedef boyutlu stres 428–452 MB ❌; büyüme yok ✅ → 3.1 / 4.5 notu |
 | P7 ayırma / GC          | ◐ bizim kod havuzlu, küçük GC ≤ 3,1 ms; Phaser içi kutulama ve büyük GC (P2)                  |
 | P8 yüksek yenileme hızı | ✅                                                                                            |
 | P9 rollback             | ✅ p99,9 2,1 ms                                                                               |
 | A1 / A2 açılış          | ◐ uygulamanın ilk karesi 1,1–1,3 sn (sistem açılış ekranı anında) / ✅ menü 2,65 sn           |
-| D6 giriş gecikmesi      | ◐ oyun payı 5,6 ms ✅; dokunuştan ekrana (kamera) → geliştirici                               |
+| D6 giriş gecikmesi      | ◐ oyun payı 5,6 ms ✅; dokunuştan ekrana (kamera) ölçülmedi → 4.6                             |
 
-**Geliştiriciden beklenen (faz bunlardan sonra tamamlandı işaretlenir):** (1) **Pil:** telefon
-USB'siz, parlaklık %50, Ayarlar → Kontroller → Stres testi (15 dk); başta ve sonda pil yüzdesi
-(hedef ≤ %5) ve sondaki "15 dk BİTTİ" satırının ekran görüntüsü. (2) **Kamera ile gecikme**
-(Faz 2.3 yöntemi B): 10 dokunuşun medyanı (hedef ≤ 80 ms). Adımlar:
-[archive § Faz 2.4 → Telefonda ölçüm](archive/PROGRESS_MOBILE_2.md). Telefona şu an geliştirici
-derlemesi kurulu.
+**Kapanış (2026-11-27):** geliştirici fazın mevcut verilerle tamamlandı işaretlenmesini istedi. Bitti
+kriterleri (15 dk sabit 60 FPS, kayıt + 8 adım ≤ 4 ms) telefonda sağlandı. Pil (P5) ve kamerayla
+uçtan uca gecikme (D6'nın 80 ms kısmı) ölçülmedi; 4.6'daki cihaz turunda final görsellerle ölçülecek
+(notlarda). Telefonda geliştirici derlemesi kurulu; yayın derlemesine dönüş: `npm run cap:sync` →
+▶ Run.
 
 ## Sonraki fazlar için notlar
 
@@ -496,6 +495,9 @@ sonra hâlâ görülen riskler:
   da tek ADD kapta; maç içinde `Rectangle` yerine `solidRect`; saydamlığı 0 olan nesne görünür
   bırakılmaz (gizlenir ya da `alpha 0`). Phaser 4 filtreleri (3.6) de toplu çizimi böler. Yeni
   sahne/efekt eklenince `npm run bench -- --device` ile çizim/kare ve FPS kontrol edilmeli.
+- **4.6 — Pil ve kamera gecikmesi (2.4'ten):** P5 (15 dk USB'siz, parlaklık %50, ≤ %5 pil) ve D6'nın
+  uçtan uca kısmı (ağır çekim kamera, ≤ 80 ms) 2.4'te ölçülmedi; 4.6 cihaz turunda final görsellerle.
+  Adımlar: [archive § Faz 2.4 → Telefonda ölçüm](archive/PROGRESS_MOBILE_2.md) (D ve E).
 - **4.6 / 12.3 — Ölçümleri tekrarla (2.4'ten):** stres sahnesi final görsellerin vekili; 4.6'da
   final görsellerle aynı tezgâh ve 15 dk test (`?devtest=stress` yerine gerçek maç + rollback:
   `?devtest=rollback`), 12.3'te cihaz matrisiyle.

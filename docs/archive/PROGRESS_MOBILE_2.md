@@ -467,9 +467,10 @@ Masaüstü Chrome, mobil derleme, 1280×720, CDP dokunma olayları, 60 basış, 
    iki ayrı sayı yaz: aradaki fark simülasyon adımı + çizim payıdır.
 7. Sonuçları (telefon modeli, fps, medyan, A'daki satır) yaz: QUALITY_BAR'a ve buraya işlenir.
 
-## Faz 2.4 — Performans (2026-11-26 → 2026-11-27; telefonda ölçüldü, pil ve kamera ölçümü bekliyor)
+## Faz 2.4 — Performans (2026-11-26 → 2026-11-27, tamamlandı)
 
-Özet ve bitti kriterleri: [PROGRESS.md § Faz 2.4](../PROGRESS.md). Ölçümlerin hepsi geliştiricinin
+Özet ve bitti kriterleri: [PROGRESS.md § Faz 2.4](../PROGRESS.md). Geliştiricinin isteğiyle faz mevcut
+verilerle kapandı; pil (P5) ve kamerayla uçtan uca gecikme ölçülmedi (Faz 4.6). Ölçümlerin hepsi geliştiricinin
 test telefonunda (QUALITY_BAR referans sınıfı): **realme 12 kite (RMX3890)** — Snapdragon 685
 (SM6225), Adreno 610, 8 GB RAM, 1080×2400 60/90 Hz panel, Android 15, Android System WebView 158.
 Telefon USB'yle bağlıyken uygulamanın WebView'ına DevTools protokolüyle bağlanıldı
