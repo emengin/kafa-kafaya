@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DISPLAY, TOUCH } from '../config/gameConfig';
-import { touchButtons } from '../input/touchLayout';
+import { DEFAULT_TOUCH_PREFS, touchButtons } from '../input/touchLayout';
 import {
   anchorPoint,
   anchorShift,
@@ -179,7 +179,7 @@ describe('dokunmatik butonlar (QUALITY_BAR D5)', () => {
     };
     const f = frameFor(v.w, v.h, v.insets, cutout);
     const { safe } = f;
-    const buttons = touchButtons(true, f);
+    const buttons = touchButtons({ training: true, frame: f });
     for (const b of buttons) {
       expect(b.x - b.r).toBeGreaterThanOrEqual(safe.x);
       expect(b.x + b.r).toBeLessThanOrEqual(safe.x + safe.width);
@@ -197,12 +197,49 @@ describe('dokunmatik butonlar (QUALITY_BAR D5)', () => {
     const right = buttons.find((b) => b.id === 'right');
     if (!left || !right) throw new Error('◀ ▶ butonları yok');
     expect(right.x - left.x - left.r - right.r).toBeGreaterThanOrEqual(TOUCH.moveGapPx - EPS);
-    // Kayan parmak arada girdi kaybetmesin: iki tolerans aralığı kapatır.
-    expect(TOUCH.hitSlackPx * 2).toBeGreaterThanOrEqual(TOUCH.moveGapPx);
+    // Dokunma alanları ◀ ile ▶ arasını kapatır (parmak arada girdi kaybetmez).
+    expect(left.hitR + right.hitR).toBeGreaterThan(right.x - left.x);
   });
 
+  it.each(variants)(
+    '$name, çentik $notch: solak ve yerel 2 oyuncu düzenleri de içeride ve çakışmasız',
+    (v) => {
+      const cutout = {
+        left: v.notch === 'sol' ? NOTCH_PX : 0,
+        top: 0,
+        right: v.notch === 'sağ' ? NOTCH_PX : 0,
+        bottom: 0,
+      };
+      const f = frameFor(v.w, v.h, v.insets, cutout);
+      const { safe } = f;
+      const layouts = [
+        touchButtons({
+          training: true,
+          frame: f,
+          prefs: { ...DEFAULT_TOUCH_PREFS, leftHanded: true },
+        }),
+        touchButtons({ twoPlayer: true, frame: f }),
+      ];
+      for (const buttons of layouts) {
+        for (const b of buttons) {
+          expect(b.x - b.r).toBeGreaterThanOrEqual(safe.x - EPS);
+          expect(b.x + b.r).toBeLessThanOrEqual(safe.x + safe.width + EPS);
+          expect(b.y - b.r).toBeGreaterThanOrEqual(safe.y - EPS);
+          expect(b.y + b.r).toBeLessThanOrEqual(safe.y + safe.height + EPS);
+        }
+        for (const [i, a] of buttons.entries()) {
+          for (const b of buttons.slice(i + 1)) {
+            expect(Math.hypot(a.x - b.x, a.y - b.y) - a.r - b.r).toBeGreaterThanOrEqual(
+              TOUCH.minGapPx - EPS,
+            );
+          }
+        }
+      }
+    },
+  );
+
   it('16:9 çentiksiz: konumlar tasarım değerleriyle (gameConfig) aynı', () => {
-    for (const b of touchButtons(true, DESIGN_FRAME)) {
+    for (const b of touchButtons({ training: true, frame: DESIGN_FRAME })) {
       expect({ x: b.x, y: b.y }).toEqual({ x: TOUCH.buttons[b.id].x, y: TOUCH.buttons[b.id].y });
     }
   });

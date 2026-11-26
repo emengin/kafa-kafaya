@@ -45,9 +45,9 @@ yaş beyanı ve rıza kayıtları (8.1–8.2), satın alma makbuzları — Reven
 listesi (9.6), destek ve KVKK başvuruları (10.1, 11.5), bildirim jetonu (11.2), A/B deney ataması
 (11.3).
 
-| Veri | Kaynak | Amaç | Hukuki sebep (taslak) | Rıza | Aktarıldığı yer | Saklama süresi | Faz |
-| ---- | ------ | ---- | --------------------- | ---- | --------------- | -------------- | --- |
-|      |        |      |                       |      |                 |                |     |
+| Veri                                                                                                                       | Kaynak                | Amaç                  | Hukuki sebep (taslak)       | Rıza  | Aktarıldığı yer                                                                           | Saklama süresi                 | Faz |
+| -------------------------------------------------------------------------------------------------------------------------- | --------------------- | --------------------- | --------------------------- | ----- | ----------------------------------------------------------------------------------------- | ------------------------------ | --- |
+| Dokunmatik kontrol düzeni (`touchLayout`: konum, boyut, opaklık, solak modu); titreşim ve gecikme ölçer ayarı (`settings`) | Oyun (`localStorage`) | Tercihleri hatırlamak | Uygulanmaz: cihazdan çıkmaz | Hayır | Aktarılmaz (cihazda; Android otomatik yedeği açıksa Google yedeğine gider — Faz 8.1 notu) | Uygulama verisi silinene kadar | 2.3 |
 
 ## Yurt dışı aktarımlar
 

@@ -18,6 +18,7 @@ import { getSavedTournament } from '../game/tournament';
 import { format, getLanguage, setLanguage, t, upper } from '../i18n';
 import { KeyTracker } from '../input/KeyboardInput';
 import { setInMatch } from '../platform/fullscreen';
+import { tapHaptic } from '../platform/haptics';
 import {
   cycleOption,
   EFFECT_LEVELS,
@@ -36,7 +37,7 @@ import { screenLayout } from '../ui/ScreenLayout';
 
 /** Menünün açılacağı görünüm (dil değişince ya da alt ekrandan dönüşte). */
 export interface MenuData {
-  readonly view?: 'main' | 'settings' | 'help';
+  readonly view?: 'main' | 'settings' | 'controls' | 'help';
   /** Seçili gelecek öğe. */
   readonly index?: number;
   readonly helpPage?: HelpPage;
@@ -56,6 +57,8 @@ function randomPair(): [CharacterDef, CharacterDef] {
 const MAIN = { quick: 0, versus: 1, tournament: 2, training: 3, settings: 4, help: 5 } as const;
 /** Ayarlar öğelerinin sırası. */
 const SET = { language: 9, controls: 10 } as const;
+/** Kontroller alt menüsünün sırası. */
+const CTRL = { scheme: 3 } as const;
 
 /**
  * Ana menü (Faz 6): arka planda canlı AI vs AI demo maçı (gerçek simülasyon ve çizim), altın başlık
@@ -69,7 +72,7 @@ export class MenuScene extends Phaser.Scene {
   private demo!: DemoMatch;
   private menu: TextMenu | null = null;
   private help: HelpPanel | null = null;
-  private view: 'main' | 'settings' | 'help' = 'main';
+  private view: 'main' | 'settings' | 'controls' | 'help' = 'main';
   private title!: Phaser.GameObjects.Text;
   private heading: Phaser.GameObjects.Text | null = null;
   private starting = false;
@@ -135,6 +138,7 @@ export class MenuScene extends Phaser.Scene {
     this.createFooter();
     const view = data?.view ?? 'main';
     if (view === 'settings') this.showSettings(data?.index ?? 0);
+    else if (view === 'controls') this.showControls(data?.index ?? 0);
     else if (view === 'help') this.showHelp(data?.helpPage ?? 'rules', 'main');
     else this.showMain(data?.index ?? 0);
 
@@ -154,6 +158,11 @@ export class MenuScene extends Phaser.Scene {
     if (this.view === 'settings' && this.tracker.consumeAny(CONTROLS.ui.menuBack)) {
       sfx.menuBack();
       this.showMain(MAIN.settings);
+      return;
+    }
+    if (this.view === 'controls' && this.tracker.consumeAny(CONTROLS.ui.menuBack)) {
+      sfx.menuBack();
+      this.showSettings(SET.controls);
       return;
     }
     this.menu?.update(this.tracker);
@@ -301,10 +310,10 @@ export class MenuScene extends Phaser.Scene {
         },
       },
       {
-        label: t('settings.controls'),
+        label: t('settings.controlsMenu'),
         onSelect: () => {
           this.later(() => {
-            this.showHelp('controls', 'settings');
+            this.showControls(0);
           });
         },
       },
@@ -329,7 +338,73 @@ export class MenuScene extends Phaser.Scene {
     });
   }
 
-  private showHelp(page: HelpPage, returnTo: 'main' | 'settings'): void {
+  /**
+   * Kontroller (Faz 2.3): dokunmatik düzen düzenleyicisi, titreşim, giriş gecikmesi göstergesi,
+   * kontrol şeması (yardım sayfası), geri.
+   */
+  private showControls(selected: number): void {
+    const toggle = (on: boolean): string => (on ? t('settings.on') : t('settings.off'));
+    const row = (label: string, value: string): string => `${label}   ◄ ${value} ►`;
+    const flip = (key: 'vibration' | 'latencyMeter'): void => {
+      updateSettings({ [key]: !getSettings()[key] });
+    };
+    const items: TextMenuItem[] = [
+      {
+        label: t('settings.touchLayout'),
+        onSelect: () => {
+          this.leave(SceneKeys.ControlsEditor, {});
+        },
+      },
+      {
+        label: () => row(t('settings.vibration'), toggle(getSettings().vibration)),
+        onAdjust: () => {
+          flip('vibration');
+          if (getSettings().vibration) tapHaptic();
+        },
+        onSelect: () => {
+          flip('vibration');
+          if (getSettings().vibration) tapHaptic();
+        },
+      },
+      {
+        label: () => row(t('settings.latencyMeter'), toggle(getSettings().latencyMeter)),
+        onAdjust: () => {
+          flip('latencyMeter');
+        },
+        onSelect: () => {
+          flip('latencyMeter');
+        },
+      },
+      {
+        label: t('settings.controls'),
+        onSelect: () => {
+          this.later(() => {
+            this.showHelp('controls', 'controls');
+          });
+        },
+      },
+      {
+        label: t('menu.back'),
+        onSelect: () => {
+          this.later(() => {
+            this.showSettings(SET.controls);
+          });
+        },
+      },
+    ];
+    this.view = 'controls';
+    const st = MENU.settings;
+    this.setHeading(t('settings.controlsMenu'));
+    this.setMenu(items, selected, st.top, {
+      fontSizePx: st.fontSizePx,
+      spacingPx: st.spacingPx,
+      strokePx: st.strokePx,
+      buttonWidth: st.buttonWidth,
+      buttonHeight: st.buttonHeight,
+    });
+  }
+
+  private showHelp(page: HelpPage, returnTo: 'main' | 'settings' | 'controls'): void {
     this.menu?.destroy();
     this.menu = null;
     this.setHeading(null);
@@ -339,6 +414,7 @@ export class MenuScene extends Phaser.Scene {
     this.help = new HelpPanel(this, page, MENU.uiDepth + 1, () => {
       this.help = null;
       if (returnTo === 'settings') this.showSettings(SET.controls);
+      else if (returnTo === 'controls') this.showControls(CTRL.scheme);
       else this.showMain(MAIN.help);
     });
   }

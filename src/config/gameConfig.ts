@@ -949,6 +949,15 @@ export const TOUCH_CODES = {
   fill: 'TouchFill',
 } as const;
 
+/** Yerel 2 oyuncuda (Faz 2.3 prototipi) ikinci oyuncunun dokunmatik butonları. */
+export const TOUCH_CODES_P2 = {
+  left: 'Touch2Left',
+  right: 'Touch2Right',
+  jump: 'Touch2Jump',
+  kick: 'Touch2Kick',
+  super: 'Touch2Super',
+} as const;
+
 const [PAD1, PAD2] = PAD_CODES;
 
 /** Gamepad oyun eşlemesi: sol çubuk/d-pad hareket, A zıpla, X/B şut, RB/RT süper. */
@@ -978,7 +987,7 @@ export const CONTROLS = {
   },
   /** Gamepad oyun eşlemesi: [slot 1 → P1, slot 2 → P2]. */
   pads: [padBindings(PAD1), padBindings(PAD2)],
-  /** Dokunmatik butonlar (her zaman P1). */
+  /** Dokunmatik butonlar (P1). */
   touch: {
     left: TOUCH_CODES.left,
     right: TOUCH_CODES.right,
@@ -986,6 +995,8 @@ export const CONTROLS = {
     kick: TOUCH_CODES.kick,
     super: TOUCH_CODES.super,
   },
+  /** Yerel 2 oyuncuda P2'nin dokunmatik butonları (ekranın sağ yarısı). */
+  touch2: TOUCH_CODES_P2,
   /** Arayüz tuşları (oyun girdisi değildir, tekrar kaydına girmez). */
   ui: {
     debugToggle: 'F1',
@@ -1040,31 +1051,60 @@ export const GAMEPAD = {
 } as const;
 
 /**
- * Dokunmatik kontroller (Faz 6): mantıksal koordinatlarda yarı saydam daire butonlar. Sol:
- * ← →; sağ: Zıpla, Şut, Süper; üst sol: duraklat (antrenmanda topu sıfırla, barı doldur).
- * Çoklu dokunuş: her parmak ayrı izlenir; parmak butonlar arasında kaydırılabilir.
+ * Dokunmatik kontroller (Faz 6, v2 Faz 2.3): mantıksal koordinatlarda yarı saydam daire butonlar.
+ * Sol: ◀ ▶; sağ: Zıpla, Şut, Süper; üst sol: duraklat (antrenmanda topu sıfırla, barı doldur).
+ * Solak modunda hareket sağa, eylemler sola geçer. Konum ve boyut kontrol düzenleyicisinden
+ * değişebilir (`src/save/touchPrefs.ts`); buradaki değerler varsayılandır.
+ *
+ * Dokunma alanı (Faz 2.3): her buton görselinden büyük bir alanı dinler (`reachRatio`) ve en az
+ * `hitFloorDp` çapındadır. Parmak hangi gruba (hareket / eylem) inerse kalkana kadar o grubun
+ * olur: hareket parmağı ekranın neresine kayarsa kaysın en yakın yön basılı kalır.
  */
 export const TOUCH = {
   depth: 400,
+  /** Varsayılan buton opaklığı (düzenleyicide `opacityLevels`'tan biri seçilir). */
   alpha: 0.3,
-  pressedAlpha: 0.62,
+  /** Basılı butonun opaklığı = normal opaklık + bu değer (en çok 1). */
+  pressedAlphaBoost: 0.32,
+  opacityLevels: [0.15, 0.3, 0.45, 0.6, 0.75],
   /**
-   * Dokunuşun buton yarıçapından bu kadar dışarıda da sayılması (px). ◀ ▶ aralığının yarısından
-   * büyük (2 × 30 ≥ `moveGapPx`): parmak ◀'den ▶'ye kayarken arada girdi kopmaz, en yakın basar.
+   * Dokunma alanı yarıçapı = görsel yarıçap × (1 + `reachRatio`). İki alanın kesiştiği yerde
+   * parmağa (yarıçapa göre) en yakın buton basar.
    */
-  hitSlackPx: 30,
+  reachRatio: 0.8,
+  /** Duraklat ve antrenman butonları: görselin yalnızca bu kadar dışı (yanlışlıkla duraklatmasın). */
+  uiReachPx: 16,
+  /**
+   * Dokunma alanının en küçük çapı (dp; QUALITY_BAR D1, D3): maç kontrollerinde 72, küçük arayüz
+   * butonlarında 48. Ekranın gerçek dp ölçeğiyle piksele çevrilir.
+   */
+  hitFloorDp: { game: 72, ui: 48 },
+  /** Eylem grubuna ait parmak, alanın bu katına kadar uzaklaşsa da basmayı sürdürür. */
+  keepRatio: 1.35,
+  /**
+   * Tek parmakla iki buton: parmak iki butonun kenarına bu kadar yakınsa (px) ikisi birden basar
+   * (Zıpla ile Şut arasına basmak = zıplayıp vurmak; QUALITY_BAR D7).
+   */
+  combos: [['jump', 'kick']],
+  comboReachPx: 26,
   /**
    * Butonların kenarları arasında en az boşluk (px; yatay telefonda ~2 px/dp): 16 px ≈ 8 dp
-   * (QUALITY_BAR D2). ◀ ile ▶ arası daha geniş (`moveGapPx` ≈ 29 dp): başparmak ikisini
-   * birlikte örtüp yanlış yöne basmasın (Faz 2.2 telefon testi: 18 px çok yakın bulundu).
+   * (QUALITY_BAR D2). Varsayılan düzende ◀ ile ▶ arası daha geniş (`moveGapPx` ≈ 29 dp):
+   * başparmak ikisini birlikte örtüp yanlış yöne basmasın (Faz 2.2 telefon testi).
    */
   minGapPx: 16,
   moveGapPx: 58,
+  /** Testlerde ve ölçülemeyen ekranda varsayılan ölçek: yatay telefonda ~2 oyun px = 1 dp. */
+  designPxPerDp: 2,
   fillColor: 0xffffff,
   pressedColor: 0xffd23f,
   strokeColor: 0x0b1340,
   strokePx: 4,
   labelFontSizePx: 17,
+  /** Basınca butondan yayılan halka (görsel geri bildirim). */
+  ring: { durationMs: 170, fromScale: 1, toScale: 1.32, alpha: 0.55, lineWidthPx: 5 },
+  /** Titreşim süresi (ms; tarayıcıda `navigator.vibrate`). Uygulamada Capacitor Haptics "hafif". */
+  vibrateMs: 8,
   /** "Barı doldur" butonundaki şimşek (yarıçapa oranlı köşe noktaları). */
   boltIcon: [
     [0.12, -0.72],
@@ -1075,15 +1115,56 @@ export const TOUCH = {
     [0.04, -0.12],
   ],
   buttons: {
-    left: { x: 108, y: 612, r: 62 },
-    right: { x: 290, y: 612, r: 62 },
-    jump: { x: 1022, y: 628, r: 62 },
-    kick: { x: 1168, y: 560, r: 68 },
-    super: { x: 1170, y: 408, r: 50 },
+    left: { x: 118, y: 606, r: 72 },
+    right: { x: 320, y: 606, r: 72 },
+    jump: { x: 1010, y: 624, r: 72 },
+    kick: { x: 1162, y: 548, r: 78 },
+    super: { x: 1176, y: 376, r: 60 },
     pause: { x: 50, y: 50, r: 32 },
     reset: { x: 130, y: 50, r: 32 },
     fill: { x: 210, y: 50, r: 32 },
   },
+  /**
+   * Yerel 2 oyuncu prototipi (Faz 2.3, GAME_DESIGN_MOBILE §7.7): her oyuncuya ekranın bir yarısı.
+   * Değerler P1 (sol yarı) için; P2 aynası. Hareket dış kenara, eylemler ortaya sabitli.
+   * `minDiagonalInch`: dokunmatik 2 oyuncunun açıldığı en küçük ekran (0 = her cihaz; telefon
+   * testi rahat bulmazsa 7 → yalnızca tablet, telefonda gamepad).
+   */
+  twoPlayer: {
+    minDiagonalInch: 0,
+    buttons: {
+      left: { x: 92, y: 626, r: 58 },
+      right: { x: 250, y: 626, r: 58 },
+      jump: { x: 410, y: 640, r: 54 },
+      kick: { x: 540, y: 590, r: 58 },
+      super: { x: 540, y: 448, r: 46 },
+    },
+  },
+  /** Kontrol düzenleyicisi (Faz 2.3). */
+  editor: {
+    /** Boyut çarpanı aralığı ve adımı (varsayılan 1). */
+    minScale: 0.7,
+    maxScale: 1.4,
+    scaleStep: 0.1,
+    /** Butonun üst kenarı bundan yukarı çıkamaz (skor tabelası ve duraklat butonu boş kalsın). */
+    minTopPx: 140,
+    depth: 500,
+    panelY: 44,
+    rowY: 104,
+    buttonH: 46,
+    fontSizePx: 17,
+    hintFontSizePx: 15,
+    hintY: 152,
+    selectedColor: 0xffd23f,
+    invalidColor: 0xff5050,
+    hitZoneAlpha: 0.12,
+    dimAlpha: 0.35,
+  },
+  /**
+   * Giriş gecikmesi ölçer (Faz 2.3): son N örnek; maç içi gösterge bu aralıkla yenilenir. Bu
+   * süreden uzun adım beklemeyen basış (duraklatma, tekrar) ölçüme girmez.
+   */
+  latency: { samples: 120, refreshMs: 500, staleMs: 250, fontSizePx: 14, y: 704 },
 } as const;
 
 /** Oyun ayarları (Faz 6): seçenekler ve varsayılanlar; `localStorage`'da saklanır. */
@@ -1097,6 +1178,8 @@ export const SETTINGS = {
     replays: true,
     colorblind: false,
     effects: 'high',
+    vibration: true,
+    latencyMeter: false,
   },
   /** Efekt yoğunluğu seçenekleri (Faz 7, erişilebilirlik). */
   effectLevels: ['low', 'medium', 'high'],
@@ -1221,6 +1304,8 @@ export const STORAGE = {
     progress: 'progress',
     /** Faz 6: süren turnuva (yoksa kayıt silinir) — JSON. */
     tournament: 'tournament',
+    /** Faz 2.3: dokunmatik kontrol düzeni (konum, boyut, opaklık, solak modu) — JSON. */
+    touchLayout: 'touchLayout',
   },
 } as const;
 

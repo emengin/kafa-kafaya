@@ -26,6 +26,10 @@ export interface GameSettings {
   readonly colorblind: boolean;
   /** Efekt yoğunluğu: parçacıklar, ekran parlamaları, gol yakınlaşması (Faz 7). */
   readonly effects: EffectLevel;
+  /** Dokunmatik butonlarda titreşim (Faz 2.3; QUALITY_BAR §5: ayardan kapatılabilir). */
+  readonly vibration: boolean;
+  /** Maçta giriş gecikmesi göstergesi (Faz 2.3; ölçüm aracı). */
+  readonly latencyMeter: boolean;
 }
 
 export const DEFAULT_SETTINGS: GameSettings = {
@@ -35,6 +39,8 @@ export const DEFAULT_SETTINGS: GameSettings = {
   replays: SETTINGS.defaults.replays,
   colorblind: SETTINGS.defaults.colorblind,
   effects: SETTINGS.defaults.effects,
+  vibration: SETTINGS.defaults.vibration,
+  latencyMeter: SETTINGS.defaults.latencyMeter,
 };
 
 export const MATCH_DURATIONS: readonly number[] = SETTINGS.matchDurations;
@@ -61,6 +67,9 @@ export function parseSettings(value: unknown, legacyDifficulty: unknown = null):
     replays: typeof v.replays === 'boolean' ? v.replays : DEFAULT_SETTINGS.replays,
     colorblind: typeof v.colorblind === 'boolean' ? v.colorblind : DEFAULT_SETTINGS.colorblind,
     effects: isEffectLevel(v.effects) ? v.effects : DEFAULT_SETTINGS.effects,
+    vibration: typeof v.vibration === 'boolean' ? v.vibration : DEFAULT_SETTINGS.vibration,
+    latencyMeter:
+      typeof v.latencyMeter === 'boolean' ? v.latencyMeter : DEFAULT_SETTINGS.latencyMeter,
   };
 }
 

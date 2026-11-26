@@ -1,4 +1,4 @@
-import { DEV } from '../config/gameConfig';
+import { DEV, TOUCH } from '../config/gameConfig';
 
 /**
  * Dokunmatik cihaz algılama (Faz 6). Kaba işaretçi (`pointer: coarse`, telefon/tablet), ilk
@@ -39,3 +39,23 @@ export function onTouchDetected(fn: () => void): () => void {
 export function isPortrait(): boolean {
   return globalThis.innerHeight > globalThis.innerWidth;
 }
+
+/**
+ * Ekranın köşegeni (inç). Android ve iOS'ta `screen` boyutu CSS px = dp (1/160 inç) cinsinden;
+ * masaüstünde yaklaşık değer verir (yalnızca telefon/tablet ayrımı için kullanılır).
+ */
+export function screenDiagonalInch(): number {
+  const s = globalThis.screen as Screen | undefined;
+  if (!s) return 0;
+  return Math.hypot(s.width, s.height) / DP_PER_INCH;
+}
+
+/**
+ * Yerel 2 oyuncuda dokunmatik düzen açık mı (Faz 2.3, GAME_DESIGN_MOBILE §7.7)? Ekran
+ * `TOUCH.twoPlayer.minDiagonalInch`'ten küçükse P2 yalnızca gamepad ya da klavyeyle oynar.
+ */
+export function twoPlayerTouchAllowed(): boolean {
+  return screenDiagonalInch() >= TOUCH.twoPlayer.minDiagonalInch;
+}
+
+const DP_PER_INCH = 160;

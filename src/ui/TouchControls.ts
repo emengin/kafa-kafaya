@@ -1,114 +1,82 @@
 import Phaser from 'phaser';
-import { css, makeCanvasTexture } from '../art/canvas';
-import { textStyle } from '../art/uiArt';
-import { TOUCH } from '../config/gameConfig';
-import { t } from '../i18n';
-import {
-  pressedButtons,
-  touchButtons,
-  type TouchButton,
-  type TouchButtonId,
-} from '../input/touchLayout';
+import { TOUCH, UNITS } from '../config/gameConfig';
+import { latencyProbe } from '../input/latencyProbe';
+import { touchButtons, type PlayerIndex, type TouchButton } from '../input/touchLayout';
+import { TouchRouter, type TouchPoint } from '../input/touchRouter';
 import { releaseVirtual, setVirtual } from '../input/virtualKeys';
+import { tapHaptic } from '../platform/haptics';
+import { getTouchPrefs } from '../save/touchPrefs';
 import { screenLayout, type ScreenLayout } from './ScreenLayout';
-
-type Ctx = CanvasRenderingContext2D;
+import { ringTexture, touchButtonTexture, touchLabel } from './touchButtonArt';
 
 interface ButtonView {
-  /** Şimdiki ekran çerçevesindeki konum (çerçeve değişince yenilenir). */
+  /** Şimdiki ekran çerçevesindeki konum ve dokunma alanı (çerçeve değişince yenilenir). */
   def: TouchButton;
   readonly img: Phaser.GameObjects.Image;
   readonly label: Phaser.GameObjects.Text;
+  /** Basınca yayılan halka. */
+  readonly ring: Phaser.GameObjects.Image;
+  /** Halkanın başlangıcından geçen süre (ms); süreyi aşınca gizli. */
+  ringMs: number;
 }
 
-/** Butonun ikon çizimi (kanvas, merkez 0,0; yarıçap r). Yazılı butonlarda null. */
-const ICONS: Partial<Record<TouchButtonId, (ctx: Ctx, r: number) => void>> = {
-  left: (ctx, r) => {
-    triangle(ctx, r, -1);
-  },
-  right: (ctx, r) => {
-    triangle(ctx, r, 1);
-  },
-  pause: (ctx, r) => {
-    const w = r * PAUSE_BAR_W;
-    const h = r * PAUSE_BAR_H;
-    ctx.fillRect(-w * PAUSE_GAP, -h / 2, w, h);
-    ctx.fillRect(w * (PAUSE_GAP - 1), -h / 2, w, h);
-  },
-  reset: (ctx, r) => {
-    const R = r * RESET_R;
-    ctx.lineWidth = r * RESET_LINE;
-    ctx.beginPath();
-    ctx.arc(0, 0, R, RESET_FROM, RESET_TO);
-    ctx.stroke();
-    const ax = Math.cos(RESET_TO) * R;
-    const ay = Math.sin(RESET_TO) * R;
-    const s = r * RESET_HEAD;
-    ctx.beginPath();
-    ctx.moveTo(ax + s, ay);
-    ctx.lineTo(ax - s, ay - s * RESET_HEAD_SKEW);
-    ctx.lineTo(ax - s * RESET_HEAD_SKEW, ay + s);
-    ctx.closePath();
-    ctx.fill();
-  },
-  fill: (ctx, r) => {
-    ctx.beginPath();
-    BOLT.forEach(([x, y], i) => {
-      if (i === 0) ctx.moveTo(x * r, y * r);
-      else ctx.lineTo(x * r, y * r);
-    });
-    ctx.closePath();
-    ctx.fill();
-  },
-};
-
-function triangle(ctx: Ctx, r: number, dir: 1 | -1): void {
-  const s = r * ARROW_SIZE;
-  ctx.beginPath();
-  ctx.moveTo(dir * s, 0);
-  ctx.lineTo(-dir * s * ARROW_BACK, -s);
-  ctx.lineTo(-dir * s * ARROW_BACK, s);
-  ctx.closePath();
-  ctx.fill();
+export interface TouchControlsOptions {
+  /** Antrenman butonları (topu sıfırla, barı doldur). */
+  readonly training: boolean;
+  /** Yerel 2 oyuncu: ekranın her yarısı bir oyuncunun (Faz 2.3 prototipi). */
+  readonly twoPlayer: boolean;
 }
-
-const LABELS: Partial<Record<TouchButtonId, 'touch.jump' | 'touch.kick' | 'touch.super'>> = {
-  jump: 'touch.jump',
-  kick: 'touch.kick',
-  super: 'touch.super',
-};
 
 /**
- * Dokunmatik kontroller (Faz 6): yarı saydam daire butonlar (sol: ← →; sağ: Zıpla, Şut, Süper;
- * üst sol: duraklat, antrenmanda topu sıfırla ve barı doldur). Girdi Phaser işaretçilerinden
- * değil, tuvalin ham dokunma olaylarından okunur: her olayda tüm etkin parmaklar yeniden
- * değerlendirilir (çoklu dokunuş, parmak kaydırma, kaybolan `touchend`'e dayanıklı). Basılı
- * butonlar sanal tuş olarak yollanır; oyuncu girdisi klavyeyle aynı yoldan okunur.
+ * Dokunmatik kontroller (Faz 6; v2 Faz 2.3): yarı saydam daire butonlar (sol: ◀ ▶; sağ: Zıpla,
+ * Şut, Süper; üst sol: duraklat, antrenmanda topu sıfırla ve barı doldur). Konum, boyut, opaklık
+ * ve solak modu oyuncunun düzeninden (Ayarlar → Kontroller → Dokunmatik düzen).
  *
- * Yerleşim (Faz 2.2): butonlar ekranın kenarlarına sabitli (`TOUCH_ANCHORS`) ve güvenli alanın
- * içinde; ekran oranı, boyutu ya da çentiğin tarafı değişince yeniden yerleşir.
+ * Girdi tuvalin ham dokunma olaylarından okunur; her olayda tüm etkin parmaklar `TouchRouter`'a
+ * verilir (geniş dokunma alanı, parmağın grubunda kalması, Zıpla+Şut birlikte, çoklu dokunuş).
+ * Basılı butonlar sanal tuş olarak yollanır; oyuncu girdisi klavyeyle aynı yoldan okunur.
+ *
+ * Basma hissi (QUALITY_BAR A4): basılı görünüm olay anında ayarlanır (bir sonraki karede
+ * görünür), yayılan halka ve hafif titreşim. Yeni maç butonu basışları giriş gecikmesi ölçerine
+ * yazılır.
+ *
+ * Yerleşim (Faz 2.2): butonlar ekranın kenarlarına sabitli ve güvenli alanın içinde; ekran
+ * oranı, boyutu ya da çentiğin tarafı değişince yeniden yerleşir.
  */
 export class TouchControls {
   private readonly views: ButtonView[];
-  private readonly pressed = new Set<TouchButtonId>();
+  private readonly pressed = new Set<string>();
+  private readonly router = new TouchRouter();
+  private readonly superReady: [boolean, boolean] = [false, false];
+  private readonly opacity: number;
   private enabled = true;
-  private superReady = false;
   private readonly canvas: HTMLCanvasElement;
   private readonly layout: ScreenLayout;
 
   constructor(
     private readonly scene: Phaser.Scene,
-    training: boolean,
+    opts: TouchControlsOptions,
   ) {
     this.canvas = scene.game.canvas;
     this.layout = screenLayout(scene);
-    this.views = touchButtons(training).map((def) => this.createButton(def));
-    this.layout.onChange((frame) => {
-      const defs = touchButtons(training, frame);
+    const prefs = getTouchPrefs();
+    this.opacity = prefs.opacity;
+    const build = (): TouchButton[] =>
+      touchButtons({
+        training: opts.training,
+        twoPlayer: opts.twoPlayer,
+        prefs,
+        frame: this.layout.frame,
+        pxPerDp: this.layout.pxPerDp,
+      });
+    this.views = build().map((def) => this.createButton(def));
+    this.layout.onChange(() => {
+      const defs = build();
       this.views.forEach((v, i) => {
         v.def = defs[i] ?? v.def;
         v.img.setPosition(v.def.x, v.def.y);
         v.label.setPosition(v.def.x, v.def.y);
+        v.ring.setPosition(v.def.x, v.def.y);
       });
     });
     for (const type of TOUCH_EVENTS)
@@ -127,14 +95,32 @@ export class TouchControls {
     this.refresh();
   }
 
-  /** Süper barı dolu: Süper butonu altın renkte nabız atar. */
-  setSuperReady(ready: boolean, time: number): void {
-    this.superReady = ready;
-    const v = this.views.find((x) => x.def.id === 'super');
-    if (!v || !this.enabled) return;
-    const pulse = ready ? 1 + SUPER_PULSE * Math.sin(time * SUPER_PULSE_HZ * Math.PI * 2) : 1;
-    v.img.setScale((this.pressed.has('super') ? PRESS_SCALE : 1) * pulse);
-    if (!this.pressed.has('super')) v.img.setTint(ready ? TOUCH.pressedColor : TOUCH.fillColor);
+  /** Süper barı dolu: o oyuncunun Süper butonu altın renkte nabız atar. */
+  setSuperReady(player: PlayerIndex, ready: boolean): void {
+    if (this.superReady[player] === ready) return;
+    this.superReady[player] = ready;
+    this.refresh();
+  }
+
+  /** Her kare: basış halkaları ve süper nabzı. */
+  update(time: number, deltaMs: number): void {
+    if (!this.enabled) return;
+    const ring = TOUCH.ring;
+    for (const v of this.views) {
+      const down = this.pressed.has(v.def.key);
+      if (v.ringMs < ring.durationMs) {
+        v.ringMs += deltaMs;
+        const p = Math.min(1, v.ringMs / ring.durationMs);
+        v.ring
+          .setVisible(p < 1)
+          .setScale(ring.fromScale + (ring.toScale - ring.fromScale) * p)
+          .setAlpha(ring.alpha * (1 - p));
+      }
+      if (v.def.id === 'super' && this.superReady[v.def.player]) {
+        const pulse = 1 + SUPER_PULSE * Math.sin(time * SUPER_PULSE_RAD_PER_MS);
+        v.img.setScale((down ? PRESS_SCALE : 1) * pulse);
+      }
+    }
   }
 
   destroy(): void {
@@ -145,6 +131,7 @@ export class TouchControls {
   private releaseAll(): void {
     for (const v of this.views) releaseVirtual(v.def.code);
     this.pressed.clear();
+    this.router.reset();
   }
 
   private readonly onTouch = (event: Event): void => {
@@ -152,99 +139,74 @@ export class TouchControls {
     if (!this.enabled) return;
     if (e.cancelable) e.preventDefault();
     const scale = this.scene.scale;
-    const points: { x: number; y: number }[] = [];
+    const points: TouchPoint[] = [];
     for (const touch of Array.from(e.touches)) {
-      points.push(
-        this.layout.toWorld(scale.transformX(touch.pageX), scale.transformY(touch.pageY)),
-      );
+      const p = this.layout.toWorld(scale.transformX(touch.pageX), scale.transformY(touch.pageY));
+      points.push({ id: touch.identifier, x: p.x, y: p.y });
     }
-    const now = pressedButtons(
+    const now = this.router.update(
       points,
       this.views.map((v) => v.def),
     );
     let changed = false;
+    let pressedAny = false;
+    let pressedGame = false;
     for (const v of this.views) {
-      const down = now.has(v.def.id);
-      if (down === this.pressed.has(v.def.id)) continue;
+      const down = now.has(v.def.key);
+      if (down === this.pressed.has(v.def.key)) continue;
       changed = true;
-      if (down) this.pressed.add(v.def.id);
-      else this.pressed.delete(v.def.id);
+      if (down) {
+        this.pressed.add(v.def.key);
+        v.ringMs = 0;
+        pressedAny = true;
+        if (v.def.group !== 'ui') pressedGame = true;
+      } else {
+        this.pressed.delete(v.def.key);
+      }
       setVirtual(v.def.code, down);
     }
+    if (pressedGame) latencyProbe.press(e.timeStamp, performance.now());
+    if (pressedAny) tapHaptic();
     if (changed) this.refresh();
   };
 
   private refresh(): void {
+    const base = this.opacity;
     for (const v of this.views) {
-      const down = this.pressed.has(v.def.id);
+      const down = this.pressed.has(v.def.key);
+      const gold = down || (v.def.id === 'super' && this.superReady[v.def.player]);
       v.img
         .setVisible(this.enabled)
-        .setAlpha(down ? TOUCH.pressedAlpha : TOUCH.alpha)
+        .setAlpha(down ? Math.min(1, base + TOUCH.pressedAlphaBoost) : base)
         .setScale(down ? PRESS_SCALE : 1)
-        .setTint(
-          down || (v.def.id === 'super' && this.superReady) ? TOUCH.pressedColor : TOUCH.fillColor,
-        );
-      v.label.setVisible(this.enabled);
-      v.label.setAlpha(down ? 1 : LABEL_ALPHA);
+        .setTint(gold ? TOUCH.pressedColor : TOUCH.fillColor);
+      v.label.setVisible(this.enabled).setAlpha(down ? 1 : Math.min(1, base + LABEL_ALPHA_BOOST));
+      if (!this.enabled) v.ring.setVisible(false);
     }
   }
 
   private createButton(def: TouchButton): ButtonView {
-    const key = `touch-${def.id}-${def.r}`;
-    const size = Math.ceil((def.r + TOUCH.strokePx) * 2 + 2);
-    makeCanvasTexture(this.scene, key, size, size, (ctx, w) => {
-      const c = w / 2;
-      ctx.translate(c, c);
-      const g = ctx.createRadialGradient(0, -def.r * GLOSS_Y, def.r * GLOSS_R, 0, 0, def.r);
-      g.addColorStop(0, 'rgba(255,255,255,0.95)');
-      g.addColorStop(1, 'rgba(255,255,255,0.55)');
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(0, 0, def.r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.lineWidth = TOUCH.strokePx;
-      ctx.strokeStyle = css(TOUCH.strokeColor, STROKE_ALPHA);
-      ctx.stroke();
-      const icon = ICONS[def.id];
-      if (icon) {
-        ctx.fillStyle = css(TOUCH.strokeColor);
-        ctx.strokeStyle = css(TOUCH.strokeColor);
-        icon(ctx, def.r);
-      }
-    });
-    const img = this.scene.add.image(def.x, def.y, key).setDepth(TOUCH.depth);
-    const labelKey = LABELS[def.id];
-    const label = this.scene.add
-      .text(
-        def.x,
-        def.y,
-        labelKey ? t(labelKey) : '',
-        textStyle(TOUCH.labelFontSizePx, '#ffffff', LABEL_STROKE),
-      )
-      .setOrigin(0.5)
-      .setDepth(TOUCH.depth + 1);
-    return { def, img, label };
+    const s = this.scene;
+    const img = s.add
+      .image(def.x, def.y, touchButtonTexture(s, def.id, def.r))
+      .setDepth(TOUCH.depth);
+    const ring = s.add
+      .image(def.x, def.y, ringTexture(s, def.r, TOUCH.ring.lineWidthPx))
+      .setDepth(TOUCH.depth)
+      .setTint(TOUCH.pressedColor)
+      .setVisible(false);
+    const label = touchLabel(s, def.id, def.x, def.y, def.r / TOUCH.buttons[def.id].r).setDepth(
+      TOUCH.depth + 1,
+    );
+    return { def, img, label, ring, ringMs: TOUCH.ring.durationMs };
   }
 }
 
 const TOUCH_EVENTS = ['touchstart', 'touchmove', 'touchend', 'touchcancel'] as const;
 const PRESS_SCALE = 0.93;
-const LABEL_ALPHA = 0.85;
-const STROKE_ALPHA = 0.8;
-const GLOSS_Y = 0.35;
-const GLOSS_R = 0.1;
+/** Yazının opaklığı = buton opaklığı + bu değer (varsayılan 0,3 → 0,85). */
+const LABEL_ALPHA_BOOST = 0.55;
 const SUPER_PULSE = 0.06;
 const SUPER_PULSE_HZ = 2.2;
-const ARROW_SIZE = 0.42;
-const ARROW_BACK = 0.75;
-const PAUSE_BAR_W = 0.22;
-const PAUSE_BAR_H = 0.8;
-const PAUSE_GAP = 1.4;
-const RESET_R = 0.48;
-const RESET_LINE = 0.14;
-const RESET_FROM = -2.6;
-const RESET_TO = 2.2;
-const RESET_HEAD = 0.26;
-const RESET_HEAD_SKEW = 0.2;
-const BOLT = TOUCH.boltIcon;
-const LABEL_STROKE = 3;
+/** Nabız, ms başına radyan. */
+const SUPER_PULSE_RAD_PER_MS = (SUPER_PULSE_HZ * Math.PI * 2) / UNITS.msPerSecond;

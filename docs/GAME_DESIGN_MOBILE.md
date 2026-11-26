@@ -126,7 +126,7 @@ kalıcı öğe sınırı **10**, etkin bir etkinlik varsa +1 etkinlik kartı:
 | Maç süresi            | 60/90/120 sn ayarı                                     | Online 90 sn sabit; tek oyunculuda ayar kalır                                    |
 | Duraklatma            | Her durumda                                            | Online maçta yok (bağlantı ve kopma Faz 9.6); tek oyunculuda var                 |
 | Gol tekrarı           | Her golden sonra, ayardan kapatılabilir                | Online'da maç içinde yok, sonuç ekranında "maçın anı"; tek oyunculuda ayar kalır |
-| 2 oyuncu aynı cihazda | Klavye ve/veya iki gamepad                             | Gamepad ile; dokunmatik düzen Faz 2.3'te denenir (§7.7); ödülsüz                 |
+| 2 oyuncu aynı cihazda | Klavye ve/veya iki gamepad                             | Gamepad ile; dokunmatik düzen prototipi Faz 2.3'te (§7.7); ödülsüz               |
 | Turnuva               | Tek turnuva, karakter açar                             | Kupa Yolu: 8 kupa, yalnızca Altın + XP (§7.4)                                    |
 | Kayıt ve ilerleme     | `localStorage`                                         | Sunucu (Nakama); çevrimdışı ödüller kuyrukta (K3)                                |
 | Güçlendiriciler       | Her maçta                                              | Sıralamalıda açık (tohumlu, iki taraf için aynı); özel odada aç/kapa             |
@@ -633,7 +633,12 @@ kartında oynar: satın almadan önce dene.
 
 Aynı cihazda iki kişi, ödülsüz, çevrimdışı. Lansmanda gamepad ile (iki kol ya da bir kol + dokunmatik)
 desteklenir. Telefonda iki kişilik dokunmatik düzen (her oyuncuya ekranın bir yarısı) Faz 2.3'te
-prototiplenir; rahat değilse yalnızca tablette (≥ 7") sunulur.
+prototiplendi (`TOUCH.twoPlayer`); rahat değilse yalnızca tablette (≥ 7") sunulur.
+
+**Faz 2.3 durumu:** prototip her cihazda açık, karar telefon testinden sonra. Ölçüt: iki kişi telefonu
+masada tutup 90 sn'lik maçı yanlış butona basmadan ve elleri çarpışmadan oynayabiliyor mu? Hayırsa
+`TOUCH.twoPlayer.minDiagonalInch = 7`: telefonda P2 yalnızca gamepad ile (P1 dokunmatik kalır),
+tablette dokunmatik 2 oyuncu açık. Ayrıntı: PROGRESS.md § Faz 2.3.
 
 ### 7.8 Çevrimdışı oyun
 

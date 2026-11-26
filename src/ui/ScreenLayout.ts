@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { TOUCH } from '../config/gameConfig';
 import { onSafeAreaChange, safeAreaInsets } from '../platform/safeArea';
 import {
   anchorShift,
@@ -41,12 +42,14 @@ type Listener = (frame: ScreenFrame) => void;
  */
 export class ScreenLayout {
   private frameNow: ScreenFrame;
+  private pxPerDpNow: number = TOUCH.designPxPerDp;
   private readonly placed: Placed[] = [];
   private readonly covers: Coverable[] = [];
   private readonly listeners: Listener[] = [];
 
   constructor(private readonly scene: Phaser.Scene) {
     this.frameNow = this.measure();
+    this.pxPerDpNow = this.measurePxPerDp();
     this.applyCamera();
     const scale = scene.scale;
     scale.on(Phaser.Scale.Events.RESIZE, this.refresh, this);
@@ -63,6 +66,14 @@ export class ScreenLayout {
 
   get frame(): ScreenFrame {
     return this.frameNow;
+  }
+
+  /**
+   * 1 dp'nin (Android WebView'da 1 CSS px) oyun pikseli karşılığı (Faz 2.3): yatay telefonda
+   * ~1,8–2,2, tablette < 1. Dokunma alanlarının fiziksel en küçük boyutu buna göre hesaplanır.
+   */
+  get pxPerDp(): number {
+    return this.pxPerDpNow;
   }
 
   /** Nesneyi `anchor`'a sabitler; şimdiki konumu tasarım çerçevesindeki konumu sayılır. */
@@ -113,8 +124,11 @@ export class ScreenLayout {
   readonly refresh = (): void => {
     const next = this.measure();
     const a = this.frameNow;
-    if (sameRect(a.view, next.view) && sameRect(a.safe, next.safe)) return;
+    const dp = this.measurePxPerDp();
+    if (sameRect(a.view, next.view) && sameRect(a.safe, next.safe) && dp === this.pxPerDpNow)
+      return;
     this.frameNow = next;
+    this.pxPerDpNow = dp;
     this.applyCamera();
     for (const p of this.placed) this.position(p);
     for (const c of this.covers) this.stretch(c);
@@ -131,6 +145,12 @@ export class ScreenLayout {
     };
     const canvas = { x: b.left, y: b.top, width: b.width, height: b.height };
     return computeFrame(size, canvasInsets(safeAreaInsets(), win, canvas, size));
+  }
+
+  private measurePxPerDp(): number {
+    const scale = this.scene.scale;
+    const cssW = scale.canvasBounds.width;
+    return cssW > 0 ? scale.gameSize.width / cssW : TOUCH.designPxPerDp;
   }
 
   private applyCamera(): void {

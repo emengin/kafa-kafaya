@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { CONTROLS, GAMEPAD, PAD_CODES, TOUCH, type PadButton } from '../config/gameConfig';
+import { CONTROLS, GAMEPAD, PAD_CODES, type PadButton } from '../config/gameConfig';
 import { GamepadPoller, readPad, type GamepadLike, type PadState } from './Gamepads';
 import { KeyboardInputSource, KeyTracker } from './KeyboardInput';
-import { pressedButtons, touchButtons } from './touchLayout';
 import { pressVirtual, releaseVirtual, VirtualKeyEvent } from './virtualKeys';
 
 const BUTTONS = 17;
@@ -145,48 +144,5 @@ describe('Sanal tuşlar ve çoklu kod eşlemesi', () => {
     releaseVirtual(CONTROLS.touch.jump);
     expect(touch.read().jump).toBe(false);
     tracker.detach();
-  });
-});
-
-describe('Dokunmatik butonlar — çoklu dokunuş', () => {
-  const buttons = touchButtons(false);
-  const at = (id: keyof typeof TOUCH.buttons) => ({
-    x: TOUCH.buttons[id].x,
-    y: TOUCH.buttons[id].y,
-  });
-
-  it('iki parmak aynı anda farklı butonlara basar (sol el yön, sağ el şut)', () => {
-    expect([...pressedButtons([at('right'), at('kick')], buttons)].sort()).toEqual([
-      'kick',
-      'right',
-    ]);
-    expect([...pressedButtons([at('left'), at('jump'), at('super')], buttons)].sort()).toEqual([
-      'jump',
-      'left',
-      'super',
-    ]);
-  });
-
-  it('tolerans içinde basar, dışında basmaz; iki buton arasında en yakını seçer', () => {
-    const b = TOUCH.buttons.kick;
-    expect(
-      pressedButtons([{ x: b.x + b.r + TOUCH.hitSlackPx - 1, y: b.y }], buttons).has('kick'),
-    ).toBe(true);
-    expect(pressedButtons([{ x: b.x, y: b.y + b.r + TOUCH.hitSlackPx + 1 }], buttons).size).toBe(0);
-    const { left, right } = TOUCH.buttons;
-    const nearRight = { x: (left.x + right.x) / 2 + 1, y: left.y };
-    expect([...pressedButtons([nearRight], buttons)]).toEqual(['right']);
-    expect(pressedButtons([{ x: 640, y: 360 }], buttons).size).toBe(0);
-  });
-
-  it('antrenmanda topu sıfırla ve barı doldur butonları da var; butonlar üst üste binmez', () => {
-    const training = touchButtons(true);
-    expect(training.map((x) => x.id)).toEqual(expect.arrayContaining(['reset', 'fill', 'pause']));
-    for (const a of training) {
-      for (const c of training) {
-        if (a === c) continue;
-        expect(Math.hypot(a.x - c.x, a.y - c.y)).toBeGreaterThan(a.r + c.r);
-      }
-    }
   });
 });

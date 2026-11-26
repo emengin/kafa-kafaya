@@ -80,7 +80,7 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
   - [x] 2.0 Phaser 4'e geçiş — 2026-11-20 → Phaser 4.2.1, karşılaştırma aşağıda
   - [x] 2.1 Capacitor ve Android derleme — 2026-11-26 → gerçek telefonda açılıp oynandı (aşağıda)
   - [x] 2.2 Ekran ve ölçekleme — 2026-11-26 → gerçek telefonda kontrol edildi (aşağıda)
-  - [ ] 2.3 Dokunmatik kontroller v2
+  - [ ] 2.3 Dokunmatik kontroller v2 — kod tamam 2026-11-26, **telefon testi bekliyor** (aşağıda)
   - [ ] 2.4 Performans (rollback ≤ 4 ms dahil)
   - [ ] 2.5 Uygulama yaşam döngüsü
   - [ ] 2.6 Sürekli derleme hattı
@@ -167,7 +167,7 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
   - [ ] 13.2 Sunucu taraflı yeniden simülasyon (opsiyonel)
 
 Faz ayrıntıları: 0.3 ve 0.4 → [archive/PROGRESS_MOBILE_0.md](archive/PROGRESS_MOBILE_0.md); 1.1 →
-[archive/PROGRESS_MOBILE_1.md](archive/PROGRESS_MOBILE_1.md); 2.0, 2.1 ve 2.2 →
+[archive/PROGRESS_MOBILE_1.md](archive/PROGRESS_MOBILE_1.md); 2.0, 2.1, 2.2 ve 2.3 →
 [archive/PROGRESS_MOBILE_2.md](archive/PROGRESS_MOBILE_2.md). 0.1 ve 0.2 [SEN] fazları; yapıldıysa
 kutuları sen işaretle. 1.3'ün stil testi görselleri ve karşılaştırması `design/style-tests/`
 altında (seçilen çizim tarzı: Yön A'nın sıcak el çizimi, dev kafa oranlarıyla; testteki "Mahalle
@@ -248,6 +248,41 @@ altına düşmez.
 | QUALITY_BAR D2 (butonlar arası ≥ 8 dp)                      | ✅ birim testiyle her oranda; telefon testinde ◀ ▶ (≈ 9 dp) yakın bulundu → ≈ 29 dp                |
 | QUALITY_BAR §6 (16:9, 19,5:9, 21:9, 4:3 görüntüleri)        | ✅ `ekran-matrisi/`                                                                                |
 
+### Faz 2.3 — Dokunmatik kontroller v2 (2026-11-26, kod tamam — telefon testi bekliyor)
+
+Telefon testindeki "◀ ▶'ye bazen basamıyoruz, yakınına basınca da çalışsın" isteği çıkış noktası.
+Butonlar görselinden büyük bir alanı dinliyor (en az 72 dp) ve parmak indiği grupta kalıyor:
+hareket parmağı ekranın neresine kayarsa kaysın yön kopmuyor. Kontrol düzenleyicisi, titreşim,
+basış halkası, giriş gecikmesi ölçer ve yerel 2 oyuncu prototipi eklendi. Ayrıntılar, tarayıcı
+ölçümü ve telefonda ölçüm yöntemi: [archive/PROGRESS_MOBILE_2.md](archive/PROGRESS_MOBILE_2.md).
+
+**Karar — yerel 2 oyuncu (GAME_DESIGN_MOBILE §7.7):** prototip her cihazda açık
+(`TOUCH.twoPlayer.minDiagonalInch: 0`); kesin karar telefon testinden sonra. Ölçüt: iki kişi
+telefonu masada tutup 90 sn'lik maçı yanlış butona basmadan ve elleri birbirine çarpmadan
+oynayabiliyorsa kalır. Değilse yedek plan: `minDiagonalInch: 7` → dokunmatik 2 oyuncu yalnızca
+tablette (≥ 7"), telefonda P2 gamepad ile (P1 dokunmatik + P2 kol). Tek değer değişikliği; kod
+ikisini de destekliyor. Benzetimdeki değerlendirmem: telefonda elde tutarak rahat değil (her oyuncuya
+~7,5 cm × 7 cm ve tek el), masada oynanabilir; bu yüzden ölçüt "masada" testi.
+
+**Bitti kriterleri**
+
+| Kriter                                                    | Durum                                                                                             |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| 1. Sol hareket, sağ zıpla/şut/süper                       | ✅ varsayılan düzen; solak modunda tersi                                                          |
+| 2. Düzenleyici: boyut, konum, opaklık, solak modu         | ✅ Ayarlar → Kontroller → Dokunmatik düzen; benzetimde sürükle → büyüt → solak → kaydet           |
+| 3. Çoklu dokunuş, titreşim + görsel geri bildirim         | ✅ birim + gerçek dokunma olaylı e2e testi; titreşim yalnızca telefonda doğrulanabilir            |
+| 4. Giriş gecikmesi ölçümü ve raporu                       | ✅ maç içi ölçer; tarayıcıda oyun bekletmesi ~10 ms; telefon ölçümü bekliyor                      |
+| Yerel 2 oyuncu prototipi ve karar                         | ⏳ prototip hazır, karar ölçütü yukarıda; telefon testi bekliyor                                  |
+| **Faz: kontroller rahat; iki parmakla hareket + şut**     | ⏳ benzetimde ✅ (CDP iki parmak testi); **telefonda denenmedi**                                  |
+| Faz 2.2 kenar sabitleme ve güvenli alan                   | ✅ tüm düzenler her oran × çentik için birim testinde; ekran matrisi (`npm run screens`)          |
+| Determinizm ve tüm testler                                | ✅ 425 birim testi (determinizm dahil), duman testi web + mobil (dokunmatik dahil), matris        |
+| QUALITY_BAR D1 / D3 (48 / 72 dp dokunma alanı)            | ✅ dp ölçeği ekrandan; birim testi 0,8–3 px/dp                                                    |
+| QUALITY_BAR D2 (butonlar arası ≥ 8 dp)                    | ✅ varsayılan, solak, 2 oyuncu ve düzenleyicide (çakışan konum reddedilir)                        |
+| QUALITY_BAR D6 (≤ 1 adım; dokunuştan ekrana ≤ 80 ms)      | kısmen: tarayıcıda oyun payı ✅ (medyan ~10 ms); vuruşta hit-stop p95'i uzatıyor; ekran ölçülmedi |
+| QUALITY_BAR D7 (iki parmak hareket + şut + zıplama)       | ✅ benzetimde; Zıpla ile Şut arasına basmak ikisini birden basar                                  |
+| QUALITY_BAR A4 (basılı durum aynı kare, titreşim ≤ 50 ms) | ✅ basılı görünüm olay anında; titreşim süresi telefonda ölçülmedi                                |
+| Web yayını bozulmadı                                      | ✅ web paketinde Capacitor yok; masaüstü yerleşim aynı; duman testi yeşil                         |
+
 ## Sonraki fazlar için notlar
 
 Faz 0.3'teki açık sorular Faz 0.4'te, 1.1'e bırakılanlar Faz 1.1'de (K13–K17) karara bağlandı;
@@ -255,8 +290,6 @@ değeri belirlenmemiş konular
 [GAME_DESIGN_MOBILE.md § Hâlâ açık olanlar](GAME_DESIGN_MOBILE.md#hâlâ-açık-olanlar)'da. Kararlardan
 sonra hâlâ görülen riskler:
 
-- **2.3 — Yerel 2 oyuncu:** telefonda iki kişilik dokunmatik düzen prototiplenmeli; rahat değilse
-  yalnızca gamepad ve tablet (GAME_DESIGN_MOBILE §7.7).
 - **2.9 / 7.6 — Eşleşme eşiği artık bitti kriterinde:** her eşleşme %35–65 (K14). Web v1.0.0'da üç
   eşleşme dışarıda: Bora–Toprak %71, Ayaz–Pamuk %69, Toprak–Şimşek %69. Ölçüm eşleşme başına ≥ 200
   maç: 10 karakterle 9.000, 12 karakterle 13.200 maç/tarama.
@@ -319,11 +352,20 @@ sonra hâlâ görülen riskler:
 - **3.2 / 3.3 — ART_BIBLE bağımlılığı:** bağımlılık notu yalnızca 3.4 için, ama parçalı iskelet
   (3.2) ve kozmetik slotları (3.3) ART_BIBLE'ın katman yapısına (1.4) dayanıyor; 1.4'ten önce
   başlanırsa yeniden iş çıkabilir.
-- **2.3 — Kontrol düzenleyici ve yerleşim (2.2'den):** dokunmatik butonlar `TOUCH_ANCHORS` ile
-  kenara sabitli (`src/input/touchLayout.ts`); düzenleyicide kaydedilen konum tasarım çerçevesinde
-  (16:9) + çapa olarak saklanmalı, yoksa geniş ekranda kaydedilen düzen dar ekranda taşar. Yeni
-  arayüz `screenLayout(scene)` ile yerleşir (`place` / `group` / `cover`); tam ekran perdeler
-  `cover` kullanmalı, yoksa geniş ekranda kenarlar açık kalır.
+- **2.5 — Geri tuşu ve düzenleyici (2.3'ten):** kontrol düzenleyicisinde Android geri tuşu
+  "İptal" gibi davranmalı (kaydetmeden çık); kaydedilmemiş değişiklik varsa onay sorulabilir.
+- **2.9 / 3.6 — Hit-stop ve giriş gecikmesi (2.3'ten):** vuruş anındaki hit-stop simülasyonu
+  40–60 ms bekletiyor; o arada basılan tuş da bekliyor (tarayıcıda p95 ~100 ms). Hit-stop yalnızca
+  sunuma taşınınca (2.7 notu) bu gecikme kalkar; his ayarında ölçer açık denenmeli.
+- **2.4 — Gecikme ölçümü referans cihazda (2.3'ten):** QUALITY_BAR D6 telefonda ölçülmedi;
+  yöntem [archive/PROGRESS_MOBILE_2.md § Faz 2.3](archive/PROGRESS_MOBILE_2.md). Referans cihaz
+  gelince ölçer + kamera ölçümü tekrarlanmalı.
+- **3.4 — Dokunmatik buton ve düzenleyici görselleri (2.3'ten):** butonlar, halka ve düzenleyici
+  araç çubuğu kodla çizilmiş yer tutucu (`src/ui/touchButtonArt.ts`, `PillButton`); tasarım
+  sistemi gelince değişir; ◀ ▶ ikonları ve ZIPLA/ŞUT/SÜPER yazıları ikon setine geçmeli.
+- **9.2 — Dokunmatik gecikme ve rollback (2.3'ten):** rollback'in sabit giriş gecikmesi
+  dokunmatiğin ~20–30 ms'sinin üstüne eklenir; online maçta gecikme ölçer ağ gecikmesini de
+  göstermeli.
 - **3.x / 4.1 — Arka plan genişliği (2.2'den):** stadyum dokuları artık çekirdeğin iki yanında 214,
   üstünde ve altında 120 px dekor + 48 px sarsıntı payı çiziyor (`STAGE_PAD_X/Y`). Final stadyum
   çizimi ART_BIBLE §10.1'in 2560×1440 (@1,5x) tuvaline göre gelmeli; ışık kuleleri şimdilik

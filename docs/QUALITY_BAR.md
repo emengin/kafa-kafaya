@@ -67,6 +67,10 @@ Referans cihaz modeli Faz 0.1'de alınınca buraya yazılır: _(henüz yok)_.
 | D6  | Giriş gecikmesi        | Oyunun eklediği gecikme ≤ 1 simülasyon adımı; dokunuştan ekrana ≤ 80 ms (Faz 2.3'te ölçülür) |
 | D7  | Çoklu dokunuş          | İki parmakla aynı anda hareket + şut + zıplama kayıpsız                                      |
 
+D6 ölçümü (Faz 2.3): maç içi gecikme ölçer (Ayarlar → Kontroller → Gecikme ölçer) oyunun ve sistemin
+payını, ağır çekim kamera uçtan uca süreyi verir. Adım adım yöntem ve tarayıcıdaki referans ölçüm:
+[archive/PROGRESS_MOBILE_2.md § Faz 2.3](archive/PROGRESS_MOBILE_2.md).
+
 ## 5. Erişilebilirlik ve efekt bütçesi
 
 - Renk tek ipucu değildir (şekil, konum, metin de var); renk körü modu her yeni ekranda çalışır.

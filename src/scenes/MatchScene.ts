@@ -43,8 +43,14 @@ import { format, t, upper } from '../i18n';
 import { gamepads } from '../input/Gamepads';
 import { EMPTY_INPUT, type InputSource, type InputState } from '../input/InputState';
 import { KeyboardInputSource, KeyTracker } from '../input/KeyboardInput';
+import { latencyProbe } from '../input/latencyProbe';
 import { MergedInputSource } from '../input/MergedInput';
-import { isPortrait, isTouchDevice, onTouchDetected } from '../platform/device';
+import {
+  isPortrait,
+  isTouchDevice,
+  onTouchDetected,
+  twoPlayerTouchAllowed,
+} from '../platform/device';
 import { setInMatch } from '../platform/fullscreen';
 import { getSettings } from '../save/gameSettings';
 import { saveMatchResult, saveTournamentWin } from '../save/progress';
@@ -60,6 +66,7 @@ import { playerColorHex, playerMark } from '../ui/identity';
 import { ReplayOverlay } from '../ui/ReplayOverlay';
 import { volumeMenuItems } from '../ui/settingsMenu';
 import type { TextMenuItem } from '../ui/TextMenu';
+import { LatencyMeter } from '../ui/LatencyMeter';
 import { TouchControls } from '../ui/TouchControls';
 import { devAiFlags, devMatchDuration, devQuality, wantsDebugOverlay } from './devFlags';
 import { SceneKeys } from './sceneKeys';
@@ -126,6 +133,8 @@ export class MatchScene extends Phaser.Scene {
   private avgStepMs = 0;
   private avgFrameMs = 0;
   private touch: TouchControls | null = null;
+  /** Giriş gecikmesi göstergesi (Ayarlar → Kontroller → Gecikme ölçer). */
+  private latencyMeter: LatencyMeter | null = null;
   /** Maç sonucu kayda (istatistik/turnuva) yazıldı mı? */
   private recorded = false;
   /** Duraklatma nedeni satırı (ör. gamepad bağlantısı koptu). */
@@ -170,6 +179,8 @@ export class MatchScene extends Phaser.Scene {
     this.lastCountdown = -1;
     this.decoyTrack.length = 0;
     this.touch = null;
+    this.latencyMeter = null;
+    latencyProbe.clear();
     this.recorded = false;
     this.pauseNote = null;
     this.inSettings = false;
@@ -287,13 +298,15 @@ export class MatchScene extends Phaser.Scene {
     this.debug = new DebugOverlay(this);
     this.debug.setVisible(wantsDebugOverlay());
     if (isTouchDevice()) this.createTouchControls();
+    if (settings.latencyMeter) this.latencyMeter = new LatencyMeter(this);
     this.cameras.main.fadeIn(HUD.kickoffFadeMs);
     music.play('match');
     crowd.start();
   }
 
   /**
-   * 2 oyuncu: P1 = A/D/W/Space + 1. kol + dokunmatik, P2 = oklar/Enter + 2. kol. Tek insanlı
+   * 2 oyuncu: P1 = A/D/W/Space + 1. kol + dokunmatik (sol yarı), P2 = oklar/Enter + 2. kol +
+   * dokunmatik (sağ yarı; yalnızca `twoPlayerTouchAllowed`). Tek insanlı
    * modlarda (CPU, turnuva, antrenman) insan P1 her iki tuş takımı, iki kol ve dokunmatikle
    * oynar; P2 yapay zekâ (antrenmanda girdisiz kukla; `?cpu1=` ile P1 de AI). AI yalnızca
    * simülasyonun görünümünü okur.
@@ -301,7 +314,7 @@ export class MatchScene extends Phaser.Scene {
   private createInputs(seed: number): readonly [InputSource, InputSource] {
     this.ais = [];
     const tr = this.tracker;
-    const { p1, p2, pads, touch } = CONTROLS;
+    const { p1, p2, pads, touch, touch2 } = CONTROLS;
     const [pad1, pad2] = pads;
     const kb1 = new KeyboardInputSource(tr, p1);
     const kb2 = new KeyboardInputSource(tr, p2);
@@ -310,7 +323,8 @@ export class MatchScene extends Phaser.Scene {
     const tc = new KeyboardInputSource(tr, touch);
     const { mode, difficulty, p1Ai } = this.setup;
     if (mode === 'versus') {
-      return [new MergedInputSource(kb1, gp1, tc), new MergedInputSource(kb2, gp2)];
+      const tc2 = new KeyboardInputSource(tr, touch2);
+      return [new MergedInputSource(kb1, gp1, tc), new MergedInputSource(kb2, gp2, tc2)];
     }
     const human = new MergedInputSource(kb1, kb2, gp1, gp2, tc);
     if (mode === 'training') return [human, IDLE_SOURCE];
@@ -355,8 +369,13 @@ export class MatchScene extends Phaser.Scene {
       return;
     }
     if (this.setup.mode === 'training') this.trainingShortcuts();
-    const me = this.sim.players[0];
-    this.touch?.setSuperReady(me.power >= 1 || me.superArmed, time / UNITS.msPerSecond);
+    if (this.touch) {
+      for (const i of [0, 1] as const) {
+        const pl = this.sim.players[i];
+        this.touch.setSuperReady(i, pl.power >= 1 || pl.superArmed);
+      }
+      this.touch.update(time, deltaMs);
+    }
 
     const realDt = Math.min(deltaMs, MAX_FRAME_MS) / UNITS.msPerSecond;
     this.view.rememberBalloon();
@@ -377,6 +396,9 @@ export class MatchScene extends Phaser.Scene {
     this.updateCrowd(realDt);
     this.updateCountdown();
     this.hud.update(this.sim.match, this.sim.players);
+    // Phaser bu güncellemeden hemen sonra kareyi çizer: basışın görünür olduğu kare.
+    latencyProbe.frame(performance.now());
+    this.latencyMeter?.update(time);
 
     const match = this.sim.match;
     if (
@@ -399,6 +421,7 @@ export class MatchScene extends Phaser.Scene {
       this.prevFrame.copyFrom(this.sim);
       const a = this.inputs[0].read(tick);
       const b = this.inputs[1].read(tick);
+      latencyProbe.step(performance.now());
       this.recorder?.record(this.sim.tick, a, b);
       this.stepInputs[0] = a;
       this.stepInputs[1] = b;
@@ -867,7 +890,11 @@ export class MatchScene extends Phaser.Scene {
 
   private createTouchControls(): void {
     if (this.touch) return;
-    this.touch = new TouchControls(this, this.setup.mode === 'training');
+    const { mode } = this.setup;
+    this.touch = new TouchControls(this, {
+      training: mode === 'training',
+      twoPlayer: mode === 'versus' && twoPlayerTouchAllowed(),
+    });
     this.touch.setEnabled(!this.paused && !this.endShown);
   }
 

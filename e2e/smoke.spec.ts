@@ -103,3 +103,110 @@ test('derleme hedefi: web PWA olarak, mobil uygulama olarak açılıyor', async 
   await expect(page.locator('#fullscreen')).toBeVisible({ visible: !mobile && fullscreenApi });
   expect(errors).toEqual([]);
 });
+
+interface TouchView {
+  def: { key: string; x: number; y: number };
+}
+
+/** Maçtaki dokunmatik butonun ekran (CSS px) konumu: dünya → kamera → tuval. */
+function touchButtonCss(page: Page, key: string): Promise<{ x: number; y: number }> {
+  return page.evaluate((k) => {
+    const g = window.__KAFA_GAME__ as unknown as {
+      scale: {
+        canvasBounds: { left: number; top: number; width: number };
+        gameSize: { width: number };
+      };
+      scene: {
+        getScene(s: string): {
+          cameras: { main: { scrollX: number; scrollY: number } };
+          touch: { views: TouchView[] } | null;
+        };
+      };
+    };
+    const m = g.scene.getScene('Match');
+    const v = m.touch?.views.find((x) => x.def.key === k);
+    if (!v) throw new Error(`dokunmatik buton yok: ${k}`);
+    const b = g.scale.canvasBounds;
+    const s = b.width / g.scale.gameSize.width;
+    const cam = m.cameras.main;
+    return { x: b.left + (v.def.x - cam.scrollX) * s, y: b.top + (v.def.y - cam.scrollY) * s };
+  }, key);
+}
+
+test.describe('dokunmatik kontroller v2 (Faz 2.3)', () => {
+  test.use({ hasTouch: true });
+
+  test('iki parmak aynı anda ▶ + Şut; butonun yakınına basmak sayılır; gecikme ölçülür', async ({
+    page,
+  }) => {
+    const errors = collectErrors(page);
+    // Gecikme ölçer açık (diğer ayarlar varsayılan).
+    await page.addInitScript(() => {
+      localStorage.setItem('kafa-kafaya.settings', JSON.stringify({ latencyMeter: true }));
+    });
+    await page.goto('./?debug=1&touch=1&cpu=easy&c1=simsek&c2=pamuk&seed=3&duration=600');
+    await expect.poll(() => isActive(page, 'Match'), { timeout: 20_000 }).toBe(true);
+    await expect
+      .poll(
+        () =>
+          page.evaluate(
+            () =>
+              (
+                window.__KAFA_GAME__?.scene.getScene('Match') as unknown as {
+                  sim: { match: { phase: string } };
+                }
+              ).sim.match.phase,
+          ),
+        { timeout: 15_000 },
+      )
+      .toBe('playing');
+    const p1x = (): Promise<number> =>
+      page.evaluate(
+        () =>
+          (
+            window.__KAFA_GAME__?.scene.getScene('Match') as unknown as {
+              sim: { players: { x: number }[] };
+            }
+          ).sim.players[0]?.x ?? 0,
+      );
+    const right = await touchButtonCss(page, 'right');
+    const kick = await touchButtonCss(page, 'kick');
+    const cdp = await page.context().newCDPSession(page);
+    const before = await p1x();
+    // ▶'nin görselinin dışına (aşağı-sağa) bas: geniş dokunma alanı yakalamalı. Şut ortadan.
+    const nearRight = { x: right.x + 30, y: right.y + 30, id: 1 };
+    await cdp.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [nearRight, { x: kick.x, y: kick.y, id: 2 }],
+    });
+    await page.waitForTimeout(800);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    expect(await p1x()).toBeGreaterThan(before + 20);
+
+    // Birkaç kısa dokunuş daha: ölçer örnek toplar ve göstergeyi yazar.
+    for (let i = 0; i < 6; i++) {
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [{ x: kick.x, y: kick.y, id: 3 }],
+      });
+      await page.waitForTimeout(120);
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await page.waitForTimeout(150);
+    }
+    await expect
+      .poll(
+        () =>
+          page.evaluate(
+            () =>
+              (
+                window.__KAFA_GAME__?.scene.getScene('Match') as unknown as {
+                  latencyMeter: { text: { text: string } } | null;
+                }
+              ).latencyMeter?.text.text ?? '',
+          ),
+        { timeout: 5000 },
+      )
+      .toMatch(/n=\d+/);
+    expect(errors).toEqual([]);
+  });
+});

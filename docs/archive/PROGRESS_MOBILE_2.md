@@ -334,3 +334,112 @@ de her oran × çentik için birim testinde.
 - Dokunmatik butonların boyutu QUALITY_BAR D3'ün (≥ 72 dp) altında (◀ ▶ ≈ 62 dp, sol üst
   butonlar ≈ 32 dp, D1'in 48 dp'sinin de altında); kontroller Faz 2.3'te yeniden tasarlanıyor.
 - 21:9'da dış kenarlarda ışık kulesi yok (dekor sade); final stadyum çizimiyle (Faz 4.1) kapanır.
+
+## Faz 2.3 — Dokunmatik kontroller v2 (2026-11-26, kod tamam — telefon testi bekliyor)
+
+Özet ve bitti kriterleri: [PROGRESS.md § Faz 2.3](../PROGRESS.md).
+
+### Çıkış noktası: telefon testinden gelen istek
+
+"Oynarken bazen ◀ ▶ butonlarına basamıyoruz; yakınlarına basınca da çalışsa iyi olur." Eski
+sistemde her dokunuş yalnızca "görsel yarıçap + 30 px" içinde sayılıyordu ve her olayda yeniden
+değerlendiriliyordu: maç sırasında başparmak butondan biraz kayınca yön bırakılıyordu.
+
+### Yapılanlar
+
+- **Geniş dokunma alanı** (`src/input/touchLayout.ts` → `hitRadius`): maç butonu görselinin %80
+  dışına kadar dinler (◀ ▶ ve Zıpla için 130 px yarıçap ≈ 65 dp; eskiden 92 px); her zaman en az
+  72 dp çap (QUALITY_BAR D3), duraklat ve antrenman butonlarında en az 48 dp (D1). dp ölçeği
+  ekrandan okunur (`ScreenLayout.pxPerDp`). Alanlar kesişirse parmağa (yarıçapa göre) en yakın
+  buton basar. Duraklatın alanı bilerek dar (görsel + 16 px): yanlışlıkla duraklatmasın.
+- **Parmak sahipliği** (`src/input/touchRouter.ts`, saf ve birim testli): parmak ilk indiği grubun
+  (hareket / eylem / arayüz) olur, kalkana kadar orada kalır.
+  - Hareket parmağı ekranın neresine kayarsa kaysın en yakın yön basılı kalır (◀ ▶ arasındaki
+    orta çizgiye göre). Başparmak kayınca girdi kopmaz; Zıpla'ya kayan hareket parmağı zıplatmaz.
+  - Eylem parmağı alanının 1,35 katına kadar basılı kalır; Şut'tan Süper'e kaydırılabilir.
+  - Zıpla ile Şut arasına basmak ikisini birden basar (tek başparmakla zıplayıp vurmak, D7).
+  - Boşa inen parmak kayarak bir alana girince bağlanır.
+- **Varsayılan düzen büyüdü:** ◀ ▶ ve Zıpla yarıçapı 62 → 72 px, Şut 68 → 78, Süper 50 → 60; ◀ ▶
+  aralığı 58 px korundu. Yatay telefonda (~2 px/dp) ◀ ▶ ve Zıpla 72 dp, Şut 78 dp çap.
+- **Kontrol düzenleyicisi** (`src/scenes/ControlsEditorScene.ts`; Ayarlar → Kontroller →
+  Dokunmatik düzen): arka planda canlı demo maç; butonlar sürüklenir, seçili butonun boyutu
+  %70–140 (%10 adım), tüm butonların opaklığı (%15–75, 5 kademe), solak modu (hareket sağda,
+  eylemler solda; ◀ yine ▶'nin solunda), Sıfırla, Kaydet, İptal (Esc). Soluk halka dokunma alanını
+  gösterir. Kurallar: buton tasarım çerçevesinin içinde ve skor tabelası bandının (üst 140 px)
+  altında kalır; başka butona 16 px'ten (8 dp) yakınsa kırmızı görünür, bırakınca son geçerli
+  yerine döner; büyütme çakışırsa reddedilir.
+- **Kayıt** (`src/save/touchPrefs.ts`, anahtar `touchLayout`): konumlar tasarım çerçevesinde (16:9,
+  çentiksiz) ve sağ el düzeninde saklanır, çapalar (sol alt / sağ alt) değişmez → her ekran oranında
+  ve çentik tarafında aynı düzen (Faz 2.2 notu). Alan alan doğrulama; çakışan düzen bütünüyle
+  varsayılana döner.
+- **Basma hissi:** basılı görünüm (altın renk, %93 ölçek, opaklık +0,32) olay anında ayarlanır;
+  butondan yayılan altın halka (170 ms); hafif titreşim — uygulamada `@capacitor/haptics` 8.0.2
+  (MIT; Android Vibrator, `VIBRATE` izni eklentiden), tarayıcıda `navigator.vibrate(8)`. Ayarlar →
+  Kontroller → Titreşim ile kapanır. Web derlemesinde eklenti boş modüle yönlenir
+  (`vite.config.ts` → `resolve.alias`): Capacitor çekirdeği web paketine ve PWA önbelleğine girmez.
+- **Giriş gecikmesi ölçer** (`src/input/latencyProbe.ts`, `src/ui/LatencyMeter.ts`; Ayarlar →
+  Kontroller → Gecikme ölçer): maçta alt ortada canlı satır. Aralıklar: sistem (dokunuş olayının
+  zaman damgası → olay işleyici), oyun bekletmesi (işleyici → girdiyi okuyan simülasyon adımı),
+  dokunuş→kare (dokunuş → o adımın çizildiği karenin gönderilmesi). Son 120 örneğin medyanı ve
+  p95'i. Simülasyon akmıyorken (duraklatma, gol tekrarı) yapılan basış 250 ms sonra atılır.
+- **Yerel 2 oyuncu prototipi:** 2 Oyuncu modunda dokunmatik cihazda her oyuncuya ekranın bir
+  yarısı (`TOUCH.twoPlayer`; P1 sol, P2 ayna). Hareket dış kenara, eylemler ortaya sabitli;
+  yarıçaplar 46–58 px. P2 kodları `Touch2*` (`CONTROLS.touch2`). Ekran
+  `TOUCH.twoPlayer.minDiagonalInch`'ten küçükse (şimdilik 0 = her cihaz) P2 yalnızca gamepad /
+  klavyeyle oynar ve dokunmatikte yalnızca P1 butonları görünür.
+- **Menü:** Ayarlar'daki "Kontrol Şeması" yerine "Kontroller" alt menüsü: Dokunmatik düzen,
+  Titreşim, Gecikme ölçer, Kontrol şeması (yardım sayfası), Geri. Ayarlar listesi uzamadı.
+- **Testler:** `src/input/touchControls.test.ts` (yerleşim, dp tabanları, solak ayna, 2 oyuncu,
+  yönlendirici, düzenleyici kuralları, kayıt doğrulama, gecikme ölçer); `screenFrame.test.ts`'e
+  solak ve 2 oyuncu düzenleri her oran × çentik için; `e2e/smoke.spec.ts`'e gerçek dokunma
+  olaylarıyla (CDP) iki parmak ▶ + Şut, görselin dışına basma ve gecikme ölçer (web + mobil, CI'da
+  koşar); `e2e/screens.spec.ts`'e düzenleyici → sürükle → büyüt → solak → kaydet → maçta solak
+  düzen, 2 oyuncu görüntüleri (20:9, 16:9, 4:3).
+
+### Giriş gecikmesi — tarayıcı ölçümü (referans, gerçek telefon değil)
+
+Masaüstü Chrome, mobil derleme, 1280×720, CDP dokunma olayları, 60 basış, 60 Hz ekran:
+
+| Senaryo                                   | n   | Dokunuş→kare medyan / p95 | Oyun bekletmesi (medyan) | Sistem (medyan) |
+| ----------------------------------------- | --- | ------------------------- | ------------------------ | --------------- |
+| 2 oyuncu, Süper butonu (top teması yok)   | 60  | 20,5 / 27,2 ms            | 9,8 ms                   | 9,7 ms          |
+| CPU maçı, Zıpla (topa vuruş, gol, tekrar) | 19  | 18,4–22,4 / 101–108 ms    | 9,9 ms                   | 9,2 ms          |
+
+- Oyun bekletmesi medyanı ~10 ms, en çok 1 simülasyon adımı (16,7 ms) → QUALITY_BAR D6'nın "oyunun
+  eklediği gecikme ≤ 1 adım" kısmı tarayıcıda sağlanıyor.
+- İkinci senaryodaki p95 uçları vuruş anındaki **hit-stop**'tan: sunum katmanı simülasyonu 40–60 ms
+  bekletiyor, o arada basılan tuş adımı bekliyor. Tasarım gereği; Faz 2.9 / 3.6'da his ayarıyla
+  birlikte değerlendirilmeli (notlarda). Kayıp örnekler (19/60) gol tekrarı sırasında yapılan
+  basışlar — ölçüme girmez.
+- "Dokunuş→kare" ekranın kendisini (GPU, birleştirici, panel) içermez; tam süre telefonda kamerayla
+  ölçülür (aşağıda).
+
+### Telefonda giriş gecikmesi nasıl ölçülür
+
+**A. Uygulama içi ölçer (oyunun ve sistemin payı)**
+
+1. Telefonu USB ile bağla, `npm run cap:sync`, Android Studio'da ▶ Run (README → "Android'de
+   çalıştırma"). Güç tasarrufu kapalı olsun.
+2. Oyunda Ayarlar → Kontroller → Gecikme ölçer: **Açık**.
+3. 2 Oyuncu maçı başlat (top az değsin diye; hit-stop ölçümü şişirmesin).
+4. Süper ya da Şut butonuna 1–2 saniyede bir, toplam 60–80 kez kısa kısa bas (basılı tutma).
+5. Alt ortadaki satırı oku: `Dokunuş→kare A ms (p95 B) · oyun bekletmesi C ms · sistem D ms · n=E`.
+   E ≥ 50 olunca ekran görüntüsü al.
+6. Hedefler: C ≤ 16,7 ms (D6, oyunun payı); A'nın medyanı ≲ 50 ms olmalı ki ekranla birlikte
+   80 ms'nin altında kalsın.
+
+**B. Kamera ile uçtan uca (dokunuştan ekranda görünmeye — D6'nın 80 ms hedefi)**
+
+1. İkinci bir telefonda ağır çekim video aç (240 fps ideal, en az 120 fps). Ekran parlaklığını
+   yüksek tut, ortam aydınlık olsun.
+2. Test telefonunu masaya koy, Antrenman maçını aç. Kamerayı yandan-üstten tut: parmak, buton ve
+   karakter aynı karede görünsün.
+3. Butona hızlı ve net dokun. 10 dokunuş kaydet; aralarında 1–2 saniye bekle.
+4. Videoyu kare kare oynat (galeride ya da bilgisayarda; DaVinci Resolve'da ← → kare atlar). Her
+   dokunuş için:
+   - **K1:** parmağın camla ilk temas ettiği kare (parmak ucu yassılmaya başlar),
+   - **K2:** butonun altın renge döndüğü ya da karakterin hareket ettiği ilk kare.
+5. Gecikme (ms) = (K2 − K1) × 1000 ÷ fps. 240 fps'de bir kare 4,2 ms, 120 fps'de 8,3 ms.
+6. 10 değerin medyanını al. Hedef ≤ 80 ms (QUALITY_BAR D6). Buton rengi ve karakter hareketi için
+   iki ayrı sayı yaz: aradaki fark simülasyon adımı + çizim payıdır.
+7. Sonuçları (telefon modeli, fps, medyan, A'daki satır) yaz: QUALITY_BAR'a ve buraya işlenir.

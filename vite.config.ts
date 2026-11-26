@@ -1,5 +1,6 @@
 /// <reference types="vitest/config" />
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import { PLATFORM } from './src/config/gameConfig.ts';
 import { MOBILE } from './scripts/mobile/target.ts';
@@ -36,6 +37,17 @@ export default defineConfig(({ command, mode, isPreview }) => {
       __NATIVE_APP__: JSON.stringify(mobile),
     },
     base: mobile ? '/' : webBase,
+    // Titreşim eklentisi (Faz 2.3) yalnızca uygulamada: web derlemesinde ve testlerde boş bir
+    // modüle yönlenir; Capacitor çekirdeği web paketine (ve PWA önbelleğine) girmez.
+    resolve: mobile
+      ? {}
+      : {
+          alias: {
+            '@capacitor/haptics': fileURLToPath(
+              new URL('./src/platform/hapticsWebStub.ts', import.meta.url),
+            ),
+          },
+        },
     plugins: [
       // Özel Phaser derlemesi: yalnızca oyunun kullandığı modüller (yalnızca üretim derlemesi).
       customPhaser(),

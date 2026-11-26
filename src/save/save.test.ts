@@ -92,6 +92,8 @@ describe('Kayıt — oyun ayarları', () => {
       replays: false,
       colorblind: true,
       effects: 'low',
+      vibration: false,
+      latencyMeter: true,
     } as const;
     saveSettings(store, s);
     expect(loadSettings(store)).toEqual(s);

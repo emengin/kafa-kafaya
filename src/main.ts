@@ -8,12 +8,14 @@ import { DEV, DISPLAY, PLATFORM } from './config/gameConfig';
 import { getLanguage, onLanguageChange, t } from './i18n';
 import { gamepads } from './input/Gamepads';
 import { initDeviceDetection } from './platform/device';
+import { initHaptics } from './platform/haptics';
 import { installPlatformUi, refreshPlatformTexts } from './platform/fullscreen';
 import { registerServiceWorker } from './platform/pwa';
 import { cutoutInsets, installSafeArea, onSafeAreaChange } from './platform/safeArea';
 import { fitParent } from './platform/screenFrame';
 import { BootScene } from './scenes/BootScene';
 import { CharacterSelectScene } from './scenes/CharacterSelectScene';
+import { ControlsEditorScene } from './scenes/ControlsEditorScene';
 import { MatchScene } from './scenes/MatchScene';
 import { MenuScene } from './scenes/MenuScene';
 import { PreloadScene } from './scenes/PreloadScene';
@@ -24,9 +26,11 @@ import { wantsDebugOverlay } from './scenes/devFlags';
 document.title = t('game.title');
 document.documentElement.lang = getLanguage();
 
-// Platform (Faz 6): dokunmatik algılama, tam ekran düğmesi + dikey ekran uyarısı (i18n), PWA.
+// Platform (Faz 6): dokunmatik algılama, tam ekran düğmesi + dikey ekran uyarısı (i18n), PWA;
+// dokunma titreşimi (Faz 2.3).
 initDeviceDetection();
 installPlatformUi();
+initHaptics();
 onLanguageChange(refreshPlatformTexts);
 registerServiceWorker();
 
@@ -87,6 +91,7 @@ const game = new Phaser.Game({
     MatchScene,
     TournamentScene,
     TrophyScene,
+    ControlsEditorScene,
   ],
 });
 
