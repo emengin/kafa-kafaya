@@ -12,16 +12,20 @@ import {
   buttonRadius,
   clampToBounds,
   conflictOf,
+  autoScale,
   DEFAULT_TOUCH_PREFS,
-  displayedPlacements,
+  defaultPlacements,
+  effectivePlacements,
   GAME_BUTTONS,
   gameAnchor,
   hitRadius,
   insideBounds,
   mirrorPlacements,
+  touchButtons,
   type ButtonPlacement,
   type GameButtonId,
   type Placements,
+  type TouchPrefs,
 } from '../input/touchLayout';
 import { tapHaptic } from '../platform/haptics';
 import { anchorShift, TOP_CENTER, TOP_LEFT, TOP_RIGHT } from '../platform/screenFrame';
@@ -76,6 +80,10 @@ export class ControlsEditorScene extends Phaser.Scene {
   private views: EditView[] = [];
   private selected: GameButtonId = 'kick';
   private drag: Drag | null = null;
+  /** Oyuncu bir butonu taşıdı ya da büyüttü mü? Hayırsa ekrana göre büyüyen varsayılan saklanır. */
+  private custom = false;
+  /** ◀ ▶'nin hareket bölgesi (soluk çerçeve). */
+  private moveZone!: Phaser.GameObjects.Rectangle;
   private sizeText!: Phaser.GameObjects.Text;
   private opacityText!: Phaser.GameObjects.Text;
   private handButton!: PillButton;
@@ -94,11 +102,13 @@ export class ControlsEditorScene extends Phaser.Scene {
     this.selected = 'kick';
     this.hintTimer = null;
     const prefs = getTouchPrefs();
-    this.shown = { ...displayedPlacements(prefs) };
+    this.layout = screenLayout(this);
+    const canonical = effectivePlacements(prefs, this.layout.pxPerDp);
+    this.shown = { ...(prefs.leftHanded ? mirrorPlacements(canonical) : canonical) };
+    this.custom = prefs.custom;
     this.opacity = prefs.opacity;
     this.leftHanded = prefs.leftHanded;
 
-    this.layout = screenLayout(this);
     const pair: [CharacterDef, CharacterDef] = [
       CHARACTERS[0] ?? CHARACTERS[1],
       CHARACTERS[1] ?? CHARACTERS[0],
@@ -109,6 +119,11 @@ export class ControlsEditorScene extends Phaser.Scene {
       .setAlpha(TOUCH.editor.dimAlpha)
       .setDepth(TOUCH.editor.depth - 1);
 
+    this.moveZone = this.add
+      .rectangle(0, 0, 1, 1)
+      .setOrigin(0)
+      .setStrokeStyle(ZONE_LINE, TOUCH.fillColor, TOUCH.editor.hitZoneAlpha * 2)
+      .setDepth(TOUCH.editor.depth);
     for (const id of GAME_BUTTONS) this.views.push(this.createView(id));
     this.createToolbar();
     this.layout.onChange(() => {
@@ -173,7 +188,23 @@ export class ControlsEditorScene extends Phaser.Scene {
     return anchorShift(this.layout.frame, gameAnchor(id, this.leftHanded));
   }
 
+  /** Düzenleyicideki düzen, kayıt biçiminde (sağ el konumları). */
+  private currentPrefs(): TouchPrefs {
+    return {
+      placements: this.leftHanded ? mirrorPlacements(this.shown) : { ...this.shown },
+      custom: true,
+      opacity: this.opacity,
+      leftHanded: this.leftHanded,
+    };
+  }
+
   private placeAll(): void {
+    const zone = touchButtons({
+      prefs: this.currentPrefs(),
+      frame: this.layout.frame,
+      pxPerDp: this.layout.pxPerDp,
+    }).find((b) => b.zone)?.zone;
+    if (zone) this.moveZone.setPosition(zone.x, zone.y).setSize(zone.width, zone.height);
     for (const v of this.views) {
       const p = this.shown[v.id];
       const s = this.shiftOf(v.id);
@@ -366,6 +397,7 @@ export class ControlsEditorScene extends Phaser.Scene {
     const p = this.shown[drag.id];
     const r = buttonRadius(drag.id, p.scale);
     const c = clampToBounds(pointer.worldX - s.x - drag.dx, pointer.worldY - s.y - drag.dy, r);
+    if (c.x !== p.x || c.y !== p.y) this.custom = true;
     this.shown[drag.id] = { x: c.x, y: c.y, scale: p.scale };
     if (conflictOf(this.shown, drag.id) === null) drag.lastValid = this.shown[drag.id];
     this.refreshAll();
@@ -397,6 +429,7 @@ export class ControlsEditorScene extends Phaser.Scene {
       return;
     }
     this.shown[id] = next[id];
+    this.custom = true;
     const v = this.views.find((x) => x.id === id);
     if (v) this.rebuildView(v);
     tapHaptic();
@@ -423,7 +456,8 @@ export class ControlsEditorScene extends Phaser.Scene {
   }
 
   private reset(): void {
-    const defaults = DEFAULT_TOUCH_PREFS.placements;
+    const defaults = defaultPlacements(autoScale(this.layout.pxPerDp));
+    this.custom = false;
     this.shown = { ...(this.leftHanded ? mirrorPlacements(defaults) : defaults) };
     this.opacity = DEFAULT_TOUCH_PREFS.opacity;
     for (const v of this.views) this.rebuildView(v);
@@ -436,9 +470,8 @@ export class ControlsEditorScene extends Phaser.Scene {
     this.leaving = true;
     if (save) {
       setTouchPrefs({
-        placements: this.leftHanded ? mirrorPlacements(this.shown) : { ...this.shown },
-        opacity: this.opacity,
-        leftHanded: this.leftHanded,
+        ...this.currentPrefs(),
+        custom: this.custom,
       });
     } else {
       sfx.menuBack();
@@ -451,6 +484,7 @@ export class ControlsEditorScene extends Phaser.Scene {
 }
 
 const PERCENT = 100;
+const ZONE_LINE = 2;
 const TEXT_STROKE = 3;
 /** Araç çubuğu butonların (3 katman: alan, buton, yazı) üstünde. */
 const TOOLBAR_LAYER = 3;

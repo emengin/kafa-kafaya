@@ -17,8 +17,9 @@ denge tabloları: [docs/archive/PROGRESS_WEB.md](docs/archive/PROGRESS_WEB.md).
 ### Eklenenler
 
 - **Dokunmatik kontroller v2** (mobil yol haritası Faz 2.3): butonlar görselinden büyük bir alanı
-  dinler (en az 72 dp), parmak indiği grupta kalır (hareket parmağı kayınca yön kopmaz), Zıpla ile
-  Şut arasına basmak ikisini birden basar. Ayarlar → Kontroller: kontrol düzenleyicisi (konum,
+  dinler (en az 72 dp), ◀'nin solu ve altı ekran kenarına kadar sol sayılır, parmak indiği grupta
+  kalır (hareket parmağı kayınca yön kopmaz), Zıpla ile Şut arasına basmak ikisini birden basar.
+  Küçük ekranda (iPhone Safari) varsayılan butonlar otomatik büyür. Ayarlar → Kontroller: kontrol düzenleyicisi (konum,
   boyut, opaklık, solak modu), titreşim, giriş gecikmesi ölçer. Basışta halka ve hafif titreşim.
   Yerel 2 oyuncuda dokunmatik prototip (ekranın her yarısı bir oyuncunun).
 - `npm run bench`: üretim derlemelerini yan yana ölçen tezgâh (paket boyutu, açılış süresi, kare

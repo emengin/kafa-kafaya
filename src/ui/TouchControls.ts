@@ -18,6 +18,8 @@ interface ButtonView {
   readonly ring: Phaser.GameObjects.Image;
   /** Halkanın başlangıcından geçen süre (ms); süreyi aşınca gizli. */
   ringMs: number;
+  /** Yazının oluşturulduğu yarıçap (boyut değişince yazı buna göre ölçeklenir). */
+  readonly labelR: number;
 }
 
 export interface TouchControlsOptions {
@@ -73,7 +75,14 @@ export class TouchControls {
     this.layout.onChange(() => {
       const defs = build();
       this.views.forEach((v, i) => {
-        v.def = defs[i] ?? v.def;
+        const next = defs[i] ?? v.def;
+        // Varsayılan düzen ekranın dp ölçeğine göre büyür: ölçek değişince dokular da değişir.
+        if (Math.round(next.r) !== Math.round(v.def.r)) {
+          v.img.setTexture(touchButtonTexture(this.scene, next.id, next.r));
+          v.ring.setTexture(ringTexture(this.scene, next.r, TOUCH.ring.lineWidthPx));
+          v.label.setScale(next.r / v.labelR);
+        }
+        v.def = next;
         v.img.setPosition(v.def.x, v.def.y);
         v.label.setPosition(v.def.x, v.def.y);
         v.ring.setPosition(v.def.x, v.def.y);
@@ -198,7 +207,7 @@ export class TouchControls {
     const label = touchLabel(s, def.id, def.x, def.y, def.r / TOUCH.buttons[def.id].r).setDepth(
       TOUCH.depth + 1,
     );
-    return { def, img, label, ring, ringMs: TOUCH.ring.durationMs };
+    return { def, img, label, ring, ringMs: TOUCH.ring.durationMs, labelR: def.r };
   }
 }
 

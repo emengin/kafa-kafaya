@@ -1082,6 +1082,18 @@ export const TOUCH = {
   /** Eylem grubuna ait parmak, alanın bu katına kadar uzaklaşsa da basmayı sürdürür. */
   keepRatio: 1.35,
   /**
+   * Hareket bölgesi (Faz 2.3 telefon testi: "sola basınca tamamen sola gitsin"): ◀ ▶'yi kapsayan
+   * kutu dış yanda ve altta ekran kenarına kadar, üstte `upPx`, iç yanda (▶'nin ötesi) `innerPx`
+   * uzar; iç yan en yakın eylem butonuna olan boşluğun yarısını geçmez.
+   */
+  moveZone: { upPx: 130, innerPx: 130 },
+  /**
+   * Varsayılan düzende ◀ ▶'nin en küçük görsel çapı (dp; QUALITY_BAR D3). Ekran küçükse (iPhone
+   * Safari: çubuklar yüksekliği yer) varsayılan düzen en çok `maxAutoScale` katına büyür.
+   */
+  minVisualDp: 72,
+  maxAutoScale: 1.4,
+  /**
    * Tek parmakla iki buton: parmak iki butonun kenarına bu kadar yakınsa (px) ikisi birden basar
    * (Zıpla ile Şut arasına basmak = zıplayıp vurmak; QUALITY_BAR D7).
    */

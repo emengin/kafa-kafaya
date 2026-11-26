@@ -635,7 +635,7 @@ Aynı cihazda iki kişi, ödülsüz, çevrimdışı. Lansmanda gamepad ile (iki 
 desteklenir. Telefonda iki kişilik dokunmatik düzen (her oyuncuya ekranın bir yarısı) Faz 2.3'te
 prototiplendi (`TOUCH.twoPlayer`); rahat değilse yalnızca tablette (≥ 7") sunulur.
 
-**Faz 2.3 durumu:** prototip her cihazda açık, karar telefon testinden sonra. Ölçüt: iki kişi telefonu
+**Faz 2.3 kararı:** dokunmatik 2 oyuncu telefonda da açık; iki kişiyle Faz 4.7'de denenecek. Ölçüt: iki kişi telefonu
 masada tutup 90 sn'lik maçı yanlış butona basmadan ve elleri çarpışmadan oynayabiliyor mu? Hayırsa
 `TOUCH.twoPlayer.minDiagonalInch = 7`: telefonda P2 yalnızca gamepad ile (P1 dokunmatik kalır),
 tablette dokunmatik 2 oyuncu açık. Ayrıntı: PROGRESS.md § Faz 2.3.

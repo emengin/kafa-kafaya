@@ -159,7 +159,7 @@ export const tr = {
   'editor.save': 'Kaydet',
   'editor.cancel': 'İptal',
   'editor.percent': '%{n}',
-  'editor.hint': 'Sürükle: taşı · dokun: seç, sonra boyutunu değiştir · soluk halka: dokunma alanı',
+  'editor.hint': 'Sürükle: taşı · dokun: seç, sonra boyutunu değiştir · soluk çizgi: dokunma alanı',
   'editor.blocked': 'Buraya sığmıyor: başka butona çok yakın',
   'latency.waiting': 'Gecikme ölçer: bir butona bas',
   'latency.meter':
@@ -406,7 +406,7 @@ export const en: Record<StringKey, string> = {
   'editor.save': 'Save',
   'editor.cancel': 'Cancel',
   'editor.percent': '{n}%',
-  'editor.hint': 'Drag: move · tap: select, then resize · faint ring: touch area',
+  'editor.hint': 'Drag: move · tap: select, then resize · faint lines: touch area',
   'editor.blocked': "Doesn't fit here: too close to another button",
   'latency.waiting': 'Latency meter: press a button',
   'latency.meter':

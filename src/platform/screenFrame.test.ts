@@ -219,6 +219,8 @@ describe('dokunmatik butonlar (QUALITY_BAR D5)', () => {
           prefs: { ...DEFAULT_TOUCH_PREFS, leftHanded: true },
         }),
         touchButtons({ twoPlayer: true, frame: f }),
+        // Küçük ekranda büyütülmüş varsayılan (iPhone Safari; en büyük çarpan).
+        touchButtons({ training: true, frame: f, pxPerDp: 3 }),
       ];
       for (const buttons of layouts) {
         for (const b of buttons) {

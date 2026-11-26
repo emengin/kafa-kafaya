@@ -80,7 +80,7 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
   - [x] 2.0 Phaser 4'e geçiş — 2026-11-20 → Phaser 4.2.1, karşılaştırma aşağıda
   - [x] 2.1 Capacitor ve Android derleme — 2026-11-26 → gerçek telefonda açılıp oynandı (aşağıda)
   - [x] 2.2 Ekran ve ölçekleme — 2026-11-26 → gerçek telefonda kontrol edildi (aşağıda)
-  - [ ] 2.3 Dokunmatik kontroller v2 — kod tamam 2026-11-26, **telefon testi bekliyor** (aşağıda)
+  - [x] 2.3 Dokunmatik kontroller v2 — 2026-11-26 → telefonda denendi, geri bildirim işlendi (aşağıda)
   - [ ] 2.4 Performans (rollback ≤ 4 ms dahil)
   - [ ] 2.5 Uygulama yaşam döngüsü
   - [ ] 2.6 Sürekli derleme hattı
@@ -248,7 +248,7 @@ altına düşmez.
 | QUALITY_BAR D2 (butonlar arası ≥ 8 dp)                      | ✅ birim testiyle her oranda; telefon testinde ◀ ▶ (≈ 9 dp) yakın bulundu → ≈ 29 dp                |
 | QUALITY_BAR §6 (16:9, 19,5:9, 21:9, 4:3 görüntüleri)        | ✅ `ekran-matrisi/`                                                                                |
 
-### Faz 2.3 — Dokunmatik kontroller v2 (2026-11-26, kod tamam — telefon testi bekliyor)
+### Faz 2.3 — Dokunmatik kontroller v2 (2026-11-26, tamamlandı)
 
 Telefon testindeki "◀ ▶'ye bazen basamıyoruz, yakınına basınca da çalışsın" isteği çıkış noktası.
 Butonlar görselinden büyük bir alanı dinliyor (en az 72 dp) ve parmak indiği grupta kalıyor:
@@ -256,32 +256,37 @@ hareket parmağı ekranın neresine kayarsa kaysın yön kopmuyor. Kontrol düze
 basış halkası, giriş gecikmesi ölçer ve yerel 2 oyuncu prototipi eklendi. Ayrıntılar, tarayıcı
 ölçümü ve telefonda ölçüm yöntemi: [archive/PROGRESS_MOBILE_2.md](archive/PROGRESS_MOBILE_2.md).
 
-**Karar — yerel 2 oyuncu (GAME_DESIGN_MOBILE §7.7):** prototip her cihazda açık
-(`TOUCH.twoPlayer.minDiagonalInch: 0`); kesin karar telefon testinden sonra. Ölçüt: iki kişi
-telefonu masada tutup 90 sn'lik maçı yanlış butona basmadan ve elleri birbirine çarpmadan
-oynayabiliyorsa kalır. Değilse yedek plan: `minDiagonalInch: 7` → dokunmatik 2 oyuncu yalnızca
-tablette (≥ 7"), telefonda P2 gamepad ile (P1 dokunmatik + P2 kol). Tek değer değişikliği; kod
-ikisini de destekliyor. Benzetimdeki değerlendirmem: telefonda elde tutarak rahat değil (her oyuncuya
-~7,5 cm × 7 cm ve tek el), masada oynanabilir; bu yüzden ölçüt "masada" testi.
+**Telefon testi (2026-11-26, geliştirici):** yakına basmak çalışıyor ama alan az bulundu → ◀ ▶ için
+hareket bölgesi: ◀'nin solu ve altı ekran kenarına kadar sol, ▶'nin ötesi ve ikisinin üstü 130 px
+daha (Zıpla'ya olan boşluğun yarısını geçmez). iPhone'da (web, Safari) butonlar çok küçük → varsayılan
+düzen ekranın dp ölçeğine göre büyüyor (◀ ▶ en az 72 dp, en çok ×1,4). Geliştirici bu iki düzeltmeden
+sonra fazın tamamlandı işaretlenmesini istedi; düzeltmeler telefonda ayrıca denenmedi.
+
+**Karar — yerel 2 oyuncu (GAME_DESIGN_MOBILE §7.7):** dokunmatik 2 oyuncu telefonda da açık kalıyor
+(`TOUCH.twoPlayer.minDiagonalInch: 0`). İki kişiyle telefonda denenmedi; 4.7 dikey dilim testinde
+denenecek. Ölçüt: iki kişi telefonu masada tutup 90 sn'lik maçı yanlış butona basmadan oynayabiliyor
+mu? Hayırsa yedek plan tek değer: `minDiagonalInch: 7` → dokunmatik 2 oyuncu yalnızca tablette
+(≥ 7"), telefonda P2 gamepad ile. Benzetimdeki değerlendirmem: elde tutarak rahat değil, masada
+oynanabilir.
 
 **Bitti kriterleri**
 
-| Kriter                                                    | Durum                                                                                             |
-| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| 1. Sol hareket, sağ zıpla/şut/süper                       | ✅ varsayılan düzen; solak modunda tersi                                                          |
-| 2. Düzenleyici: boyut, konum, opaklık, solak modu         | ✅ Ayarlar → Kontroller → Dokunmatik düzen; benzetimde sürükle → büyüt → solak → kaydet           |
-| 3. Çoklu dokunuş, titreşim + görsel geri bildirim         | ✅ birim + gerçek dokunma olaylı e2e testi; titreşim yalnızca telefonda doğrulanabilir            |
-| 4. Giriş gecikmesi ölçümü ve raporu                       | ✅ maç içi ölçer; tarayıcıda oyun bekletmesi ~10 ms; telefon ölçümü bekliyor                      |
-| Yerel 2 oyuncu prototipi ve karar                         | ⏳ prototip hazır, karar ölçütü yukarıda; telefon testi bekliyor                                  |
-| **Faz: kontroller rahat; iki parmakla hareket + şut**     | ⏳ benzetimde ✅ (CDP iki parmak testi); **telefonda denenmedi**                                  |
-| Faz 2.2 kenar sabitleme ve güvenli alan                   | ✅ tüm düzenler her oran × çentik için birim testinde; ekran matrisi (`npm run screens`)          |
-| Determinizm ve tüm testler                                | ✅ 425 birim testi (determinizm dahil), duman testi web + mobil (dokunmatik dahil), matris        |
-| QUALITY_BAR D1 / D3 (48 / 72 dp dokunma alanı)            | ✅ dp ölçeği ekrandan; birim testi 0,8–3 px/dp                                                    |
-| QUALITY_BAR D2 (butonlar arası ≥ 8 dp)                    | ✅ varsayılan, solak, 2 oyuncu ve düzenleyicide (çakışan konum reddedilir)                        |
-| QUALITY_BAR D6 (≤ 1 adım; dokunuştan ekrana ≤ 80 ms)      | kısmen: tarayıcıda oyun payı ✅ (medyan ~10 ms); vuruşta hit-stop p95'i uzatıyor; ekran ölçülmedi |
-| QUALITY_BAR D7 (iki parmak hareket + şut + zıplama)       | ✅ benzetimde; Zıpla ile Şut arasına basmak ikisini birden basar                                  |
-| QUALITY_BAR A4 (basılı durum aynı kare, titreşim ≤ 50 ms) | ✅ basılı görünüm olay anında; titreşim süresi telefonda ölçülmedi                                |
-| Web yayını bozulmadı                                      | ✅ web paketinde Capacitor yok; masaüstü yerleşim aynı; duman testi yeşil                         |
+| Kriter                                                    | Durum                                                                                      |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| 1. Sol hareket, sağ zıpla/şut/süper                       | ✅ telefonda; solak modunda tersi                                                          |
+| 2. Düzenleyici: boyut, konum, opaklık, solak modu         | ✅ Ayarlar → Kontroller → Dokunmatik düzen; benzetimde sürükle → büyüt → solak → kaydet    |
+| 3. Çoklu dokunuş, titreşim + görsel geri bildirim         | ✅ birim + gerçek dokunma olaylı e2e testi                                                 |
+| 4. Giriş gecikmesi ölçümü ve raporu                       | ✅ maç içi ölçer + telefonda ölçüm yöntemi; tarayıcıda oyun bekletmesi ~10 ms              |
+| Yerel 2 oyuncu prototipi ve karar                         | ✅ karar yukarıda (telefonda açık; 4.7'de iki kişiyle denenecek)                           |
+| **Faz: kontroller rahat; iki parmakla hareket + şut**     | ✅ telefonda (geliştirici); geri bildirimdeki alan ve iPhone boyutu düzeltildi             |
+| Faz 2.2 kenar sabitleme ve güvenli alan                   | ✅ tüm düzenler her oran × çentik için birim testinde; ekran matrisi (`npm run screens`)   |
+| Determinizm ve tüm testler                                | ✅ 431 birim testi (determinizm dahil), duman testi web + mobil (dokunmatik dahil), matris |
+| QUALITY_BAR D1 / D3 (48 / 72 dp)                          | ✅ dokunma alanı ve varsayılan ◀ ▶ görseli ekranın dp ölçeğiyle; birim testi 0,8–3 px/dp   |
+| QUALITY_BAR D2 (butonlar arası ≥ 8 dp)                    | ✅ varsayılan, büyütülmüş, solak, 2 oyuncu ve düzenleyicide (çakışan konum reddedilir)     |
+| QUALITY_BAR D6 (≤ 1 adım; dokunuştan ekrana ≤ 80 ms)      | kısmen: tarayıcıda oyun payı ✅ (medyan ~10 ms); telefonda ölçülmedi → 2.4 notu            |
+| QUALITY_BAR D7 (iki parmak hareket + şut + zıplama)       | ✅ Zıpla ile Şut arasına basmak ikisini birden basar                                       |
+| QUALITY_BAR A4 (basılı durum aynı kare, titreşim ≤ 50 ms) | ✅ basılı görünüm olay anında; titreşim süresi ölçülmedi                                   |
+| Web yayını bozulmadı                                      | ✅ web paketinde Capacitor yok; masaüstü yerleşim aynı; duman testi yeşil                  |
 
 ## Sonraki fazlar için notlar
 
@@ -389,6 +394,10 @@ sonra hâlâ görülen riskler:
   (§6.1 eklem sistemi, @2x, y yukarı). Parçalar şablon sayfası boyutunda dışa aktarılıyor; atlas
   aracının kırpma payını (orijinal boyut + konum) koruması şart. Eklemleri §6.1 ile karşılaştıran
   test 3.2'de.
+- **4.7 — Yerel 2 oyuncu (2.3'ten):** dikey dilim testinde iki kişiyle telefonda dokunmatik 2 oyuncu
+  denenmeli; rahat değilse `TOUCH.twoPlayer.minDiagonalInch = 7` (yalnızca tablet).
+- **2.3 düzeltmeleri telefonda (2.3'ten):** hareket bölgesi ve iPhone'da otomatik büyütme telefon
+  testinden sonra eklendi, cihazda ayrıca denenmedi; 2.4'teki cihaz turunda bakılmalı.
 - **4.x — Geçici ikon ve açılış ekranı (2.1'den):** `android/app/src/main/res/mipmap-*` ve
   `drawable*/splash.png` kodla üretilmiş yer tutucu. Final ikon (ART_BIBLE §11.7, §13.2) ve açılış
   ekranı gelince: `npx capacitor-assets generate --android --assetPath <klasör>`, ASSET_LOG kaydı,

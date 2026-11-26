@@ -16,8 +16,9 @@ type Owner =
  * Parmakları butonlara dağıtır (Faz 2.3) — saf, Phaser ve DOM'dan bağımsız (birim testli).
  *
  * 1. **Geniş dokunma alanı:** parmak ilk indiğinde dokunma alanı (`hitR`, görselden büyük)
- *    içinde olduğu butonlardan, yarıçapına göre en yakın olanın grubuna bağlanır. Hiçbir alana
- *    düşmeyen parmak, kayarak bir alana girince bağlanır.
+ *    içinde olduğu butonlardan, yarıçapına göre en yakın olanın grubuna bağlanır. Hiçbir butonun
+ *    alanında değil ama ◀ ▶'nin hareket bölgesindeyse (dış yanda ve altta ekran kenarına kadar)
+ *    hareket grubuna bağlanır. Hiçbir yere düşmeyen parmak, kayarak bir alana girince bağlanır.
  * 2. **Grup sahipliği:** parmak kalkana kadar o grubun olur.
  *    - Hareket: ekranın neresine kayarsa kaysın en yakın yön (◀ / ▶) basılı kalır; maç
  *      sırasında başparmağın butondan kayması girdiyi koparmaz.
@@ -64,9 +65,20 @@ function acquire(pt: TouchPoint, buttons: readonly TouchButton[]): Owner | null 
       bestRatio = ratio;
     }
   }
-  if (!best) return null;
+  if (!best) {
+    // Hiçbir butonun alanında değil: ◀ ▶'nin hareket bölgesinde mi (ekran kenarına kadar)?
+    const z = buttons.find((b) => b.zone && inside(pt, b.zone));
+    return z ? { kind: 'move', player: z.player } : null;
+  }
   if (best.group === 'ui') return { kind: 'ui', key: best.key };
   return { kind: best.group, player: best.player };
+}
+
+function inside(
+  pt: TouchPoint,
+  r: { readonly x: number; readonly y: number; readonly width: number; readonly height: number },
+): boolean {
+  return pt.x >= r.x && pt.x <= r.x + r.width && pt.y >= r.y && pt.y <= r.y + r.height;
 }
 
 function resolve(

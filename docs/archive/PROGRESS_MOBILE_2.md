@@ -335,7 +335,7 @@ de her oran × çentik için birim testinde.
   butonlar ≈ 32 dp, D1'in 48 dp'sinin de altında); kontroller Faz 2.3'te yeniden tasarlanıyor.
 - 21:9'da dış kenarlarda ışık kulesi yok (dekor sade); final stadyum çizimiyle (Faz 4.1) kapanır.
 
-## Faz 2.3 — Dokunmatik kontroller v2 (2026-11-26, kod tamam — telefon testi bekliyor)
+## Faz 2.3 — Dokunmatik kontroller v2 (2026-11-26, tamamlandı)
 
 Özet ve bitti kriterleri: [PROGRESS.md § Faz 2.3](../PROGRESS.md).
 
@@ -395,6 +395,29 @@ değerlendiriliyordu: maç sırasında başparmak butondan biraz kayınca yön b
   olaylarıyla (CDP) iki parmak ▶ + Şut, görselin dışına basma ve gecikme ölçer (web + mobil, CI'da
   koşar); `e2e/screens.spec.ts`'e düzenleyici → sürükle → büyüt → solak → kaydet → maçta solak
   düzen, 2 oyuncu görüntüleri (20:9, 16:9, 4:3).
+
+### Telefon testi ve düzeltmeler (2026-11-26)
+
+Geliştiricinin bulguları ve yapılanlar:
+
+- **"Yakına basmak çalışıyor ama çok az dışında; sola basınca tamamen sola gitsin, solda basılacak
+  başka yer yok. Sağda da biraz daha büyüsün ama yanlış basılmasın."** → `TOUCH.moveZone`: ◀ ▶'yi
+  kapsayan hareket bölgesi dış yanda ve altta **ekran kenarına kadar** (çentik tarafındaki görünür
+  kenar dahil), üstte 130 px, ▶'nin ötesinde 130 px uzar; iç yan en yakın eylem butonuna olan
+  boşluğun yarısını geçmez (varsayılan düzende bölge x ≈ 522'de biter, Zıpla 938'de başlar).
+  Butonların kendi dokunma alanı önceliklidir; bölge yalnızca hiçbir alana düşmeyen parmağı yakalar.
+  Solakta ve 2 oyuncuda da her oyuncunun kendi kenarına uzanır (2 oyuncuda iç yan dar: kendi
+  Zıpla'sına olan boşluğun yarısı). Düzenleyicide soluk çerçeveyle görünür.
+- **"iPhone'da butonlar aşırı küçük."** iPhone'da oyun web sürümüyle (Safari) açılıyor; butonlar oyun
+  pikseliyle, yani ekran yüksekliğiyle orantılı ve Safari'nin çubukları yüksekliği yiyor. →
+  `autoScale`: varsayılan düzen ◀ ▶ en az 72 dp (iOS'ta pt) çapta olacak kadar büyür (0,1 adım, en
+  çok ×1,4); butonlar ve köşeye uzaklıkları birlikte büyüdüğü için düzen geçerli kalır. Oyuncu
+  düzenleyicide düzeni değiştirip kaydettiyse onun boyutları korunur (`custom`); "Sıfırla" ekrana
+  göre büyüyen varsayılana döner. Kayıt artık konumları yalnızca düzen değiştirildiyse tutar; eski
+  kayıtlardaki konumlar oyuncunun düzeni sayılır. Örnek: 2,6 px/dp (≈ 277 pt yükseklik) → ×1,3.
+
+Geliştirici bu iki düzeltmeden sonra fazın tamamlandı işaretlenmesini istedi. Düzeltmeler, telefonda
+gecikme ölçümü ve iki kişiyle 2 oyuncu cihazda ayrıca denenmedi (PROGRESS.md notları: 2.4, 4.7).
 
 ### Giriş gecikmesi — tarayıcı ölçümü (referans, gerçek telefon değil)
 

@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { DISPLAY, STORAGE, TOUCH } from '../config/gameConfig';
-import { DESIGN_FRAME } from '../platform/screenFrame';
+import { computeFrame, DESIGN_FRAME } from '../platform/screenFrame';
 import { loadTouchPrefs, parseTouchPrefs, saveTouchPrefs, snapScale } from '../save/touchPrefs';
 import type { KeyValueStore } from '../save/store';
 import { LatencyProbe, percentile } from './latencyProbe';
 import {
+  autoScale,
   buttonRadius,
   clampToBounds,
   conflictOf,
@@ -234,6 +235,85 @@ describe('Dokunmatik düzen v2 — parmak yönlendirici', () => {
   });
 });
 
+describe('Hareket bölgesi ve küçük ekranda büyütme (telefon testi geri bildirimi)', () => {
+  const buttons = touchButtons({ training: true });
+  const L = byKey(buttons, 'left');
+  const R = byKey(buttons, 'right');
+  const J = byKey(buttons, 'jump');
+  const zone = L.zone;
+  if (!zone) throw new Error('hareket bölgesi yok');
+
+  it('◀ solu ve altı: ekran kenarına kadar sol', () => {
+    expect(zone.x).toBe(DESIGN_FRAME.view.x);
+    expect(zone.y + zone.height).toBe(DISPLAY.height);
+    for (const pt of [
+      { x: 1, y: L.y - L.r - 20 },
+      { x: 2, y: DISPLAY.height - 1 },
+      { x: L.x, y: DISPLAY.height - 1 },
+    ]) {
+      expect(pressed(new TouchRouter(), [{ id: 1, ...pt }], buttons)).toEqual(['left']);
+    }
+  });
+
+  it('▶ ötesi ve ◀ ▶ üstü biraz daha geniş, Zıplaya taşmıyor', () => {
+    const beyond = { id: 1, x: R.x + R.hitR + 40, y: R.y };
+    expect(Math.hypot(beyond.x - R.x, beyond.y - R.y)).toBeGreaterThan(R.hitR);
+    expect(pressed(new TouchRouter(), [beyond], buttons)).toEqual(['right']);
+    const above = { id: 2, x: L.x, y: L.y - L.hitR - 30 };
+    expect(pressed(new TouchRouter(), [above], buttons)).toEqual(['left']);
+    expect(zone.x + zone.width).toBeLessThan(J.x - J.r);
+    const outside = { id: 3, x: zone.x + zone.width + 5, y: R.y };
+    expect(pressed(new TouchRouter(), [outside], buttons)).toEqual([]);
+    expect(pressed(new TouchRouter(), [{ id: 4, x: L.x, y: zone.y - 5 }], buttons)).toEqual([]);
+  });
+
+  it('geniş ve çentikli ekranda bölge çentik tarafındaki ekran kenarına uzanır; solakta sağa', () => {
+    const f = computeFrame(
+      { width: 1600, height: 720 },
+      { left: 64, top: 24, right: 24, bottom: 24 },
+    );
+    const wide = touchButtons({ frame: f });
+    const lz = byKey(wide, 'left').zone;
+    expect(lz?.x).toBe(f.view.x);
+    const lefty = touchButtons({ frame: f, prefs: { ...DEFAULT_TOUCH_PREFS, leftHanded: true } });
+    const rz = byKey(lefty, 'right').zone;
+    expect(rz ? rz.x + rz.width : 0).toBe(f.view.x + f.view.width);
+    const edge = { id: 1, x: f.view.x + f.view.width - 1, y: DISPLAY.height - 2 };
+    expect(pressed(new TouchRouter(), [edge], lefty)).toEqual(['right']);
+  });
+
+  it('yerel 2 oyuncuda bölge kendi eylem butonlarına olan boşluğun yarısında biter', () => {
+    const two = touchButtons({ twoPlayer: true });
+    const z = byKey(two, 'right').zone;
+    const r = byKey(two, 'right');
+    const j = byKey(two, 'jump');
+    expect(z ? z.x + z.width : 0).toBeLessThanOrEqual((r.x + r.r + j.x - j.r) / 2 + EPS);
+    const z2 = byKey(two, 'p2.left').zone;
+    expect(z2 ? z2.x + z2.width : 0).toBe(DISPLAY.width);
+  });
+
+  it('küçük ekranda (iPhone Safari) varsayılan düzen büyür; ◀ ▶ en az 72 dp', () => {
+    expect(autoScale(1.75)).toBe(1);
+    expect(autoScale(2)).toBe(1);
+    expect(autoScale(2.03)).toBe(1);
+    expect(autoScale(2.12)).toBe(1.1);
+    expect(autoScale(2.6)).toBe(1.3);
+    expect(autoScale(5)).toBe(TOUCH.maxAutoScale);
+    for (const pxPerDp of [2, 2.2, 2.4, 2.6, 2.8]) {
+      const l = byKey(touchButtons({ pxPerDp }), 'left');
+      expect((l.r * 2) / pxPerDp).toBeGreaterThanOrEqual(TOUCH.minVisualDp - EPS);
+    }
+    for (let k = 1; k <= TOUCH.maxAutoScale + EPS; k += 0.1) {
+      expect(placementsValid(defaultPlacements(Math.round(k * 10) / 10))).toBe(true);
+    }
+    // Oyuncunun kendi düzeni büyütülmez.
+    const custom: TouchPrefs = { ...DEFAULT_TOUCH_PREFS, custom: true };
+    expect(byKey(touchButtons({ prefs: custom, pxPerDp: 2.6 }), 'left').r).toBe(
+      TOUCH.buttons.left.r,
+    );
+  });
+});
+
 describe('Kontrol düzenleyicisi kuralları', () => {
   it('sınır: skor tabelası bandının ve ekranın dışına çıkılamaz', () => {
     const r = buttonRadius('kick', 1);
@@ -269,7 +349,7 @@ describe('Kontrol düzeni kaydı', () => {
   it('geçerli düzen korunur; kaydet → yükle aynı düzeni verir', () => {
     const placements = { ...defaultPlacements() };
     placements.left = { x: 140, y: 590, scale: 1.2 };
-    const prefs: TouchPrefs = { placements, opacity: 0.6, leftHanded: true };
+    const prefs: TouchPrefs = { placements, custom: true, opacity: 0.6, leftHanded: true };
     expect(placementsValid(placements)).toBe(true);
     const store = memoryStore();
     saveTouchPrefs(store, prefs);
@@ -300,6 +380,20 @@ describe('Kontrol düzeni kaydı', () => {
       placements: { ...d, kick: { x: d.jump.x + 4, y: d.jump.y, scale: 1 } },
     });
     expect(p.placements).toEqual(d);
+  });
+
+  it('düzenlenmemiş düzen konum saklamaz; eski kayıttaki konumlar oyuncunun sayılır', () => {
+    const store = memoryStore();
+    saveTouchPrefs(store, { ...DEFAULT_TOUCH_PREFS, opacity: 0.45 });
+    const raw = JSON.parse(store.get(STORAGE.keys.touchLayout) ?? '{}') as Record<string, unknown>;
+    expect(raw.placements).toBeUndefined();
+    expect(loadTouchPrefs(store)).toEqual({ ...DEFAULT_TOUCH_PREFS, opacity: 0.45 });
+    const old = parseTouchPrefs({
+      placements: defaultPlacements(),
+      opacity: 0.3,
+      leftHanded: false,
+    });
+    expect(old.custom).toBe(true);
   });
 
   it('boyut adıma yuvarlanır ve aralığa kırpılır', () => {
