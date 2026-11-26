@@ -258,7 +258,7 @@ kodla üretilmiş yer tutucu. Final ikon (ART_BIBLE §11.7, §13.2) ve açılı�
 - `npm audit`: 7 orta düzey uyarı typescript-eslint → minimatch zincirinden (Faz 2.1'den önce de
   vardı; Capacitor'dan değil).
 
-## Faz 2.2 — Ekran ve ölçekleme (2026-11-26, telefonda kontrol bekliyor)
+## Faz 2.2 — Ekran ve ölçekleme (2026-11-26, tamamlandı)
 
 Özet ve "boş kenarlar" kararı: [PROGRESS.md § Faz 2.2](../PROGRESS.md).
 
@@ -320,9 +320,17 @@ değiştiriyor (otomatik test); dikey telefonda (390×844, web) "telefonu çevir
   kenar arayüzü değil); tablette üstte/altta dekor görünür.
 - Çentikli 16:9: dekor yerine siyah şerit (oyun alanı çentiğin altına düşmesin).
 
+### Telefon testi (2026-11-26, geliştiricinin telefonu)
+
+Çentik tarafı, iki yatay yön (180° dönüş), sistem çubukları (kenardan kaydırma, bildirim paneli,
+uygulamaya dönüş), köşeler ve gol tekrarı: sorunsuz. Tek bulgu: ◀ ▶ birbirine çok yakın (kenarlar
+arası 18 px ≈ 9 dp). Düzeltme: ▶ x 250 → 290 (aralık 58 px ≈ 29 dp, `TOUCH.moveGapPx`); dokunma
+toleransı 16 → 30 px (parmak ◀'den ▶'ye kayarken arada girdi kopmasın, en yakın buton basar).
+Antrenman butonları (sol üst) da 12 px aralıklıydı → 16 px (`TOUCH.minGapPx`, QUALITY_BAR D2). İkisi
+de her oran × çentik için birim testinde.
+
 ### Bilinen sorunlar
 
-- Gerçek telefonda henüz denenmedi (çentik tarafı, iki yatay yön, sistem çubukları).
-- Kenardan kaydırınca geçici görünen sistem çubukları güvenli alanı değiştirirse arayüz bir an
-  kayabilir; telefonda gözlenmeli.
+- Dokunmatik butonların boyutu QUALITY_BAR D3'ün (≥ 72 dp) altında (◀ ▶ ≈ 62 dp, sol üst
+  butonlar ≈ 32 dp, D1'in 48 dp'sinin de altında); kontroller Faz 2.3'te yeniden tasarlanıyor.
 - 21:9'da dış kenarlarda ışık kulesi yok (dekor sade); final stadyum çizimiyle (Faz 4.1) kapanır.

@@ -32,6 +32,9 @@ const SCREENS = [
   { name: '16:10', w: 1280, h: 800 },
 ] as const;
 
+/** Kayan nokta payı (px). */
+const EPS = 1e-6;
+
 /** Tipik çentik: kısa kenarda ~32 CSS px (yatayda sol ya da sağ). */
 const NOTCH_PX = 32;
 
@@ -185,12 +188,20 @@ describe('dokunmatik butonlar (QUALITY_BAR D5)', () => {
     }
     for (const [i, a] of buttons.entries()) {
       for (const b of buttons.slice(i + 1)) {
-        expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThan(a.r + b.r);
+        expect(Math.hypot(a.x - b.x, a.y - b.y) - a.r - b.r).toBeGreaterThanOrEqual(
+          TOUCH.minGapPx - EPS,
+        );
       }
     }
+    const left = buttons.find((b) => b.id === 'left');
+    const right = buttons.find((b) => b.id === 'right');
+    if (!left || !right) throw new Error('◀ ▶ butonları yok');
+    expect(right.x - left.x - left.r - right.r).toBeGreaterThanOrEqual(TOUCH.moveGapPx - EPS);
+    // Kayan parmak arada girdi kaybetmesin: iki tolerans aralığı kapatır.
+    expect(TOUCH.hitSlackPx * 2).toBeGreaterThanOrEqual(TOUCH.moveGapPx);
   });
 
-  it('16:9 çentiksiz: konumlar Faz 2.2 öncesiyle aynı', () => {
+  it('16:9 çentiksiz: konumlar tasarım değerleriyle (gameConfig) aynı', () => {
     for (const b of touchButtons(true, DESIGN_FRAME)) {
       expect({ x: b.x, y: b.y }).toEqual({ x: TOUCH.buttons[b.id].x, y: TOUCH.buttons[b.id].y });
     }

@@ -1048,8 +1048,18 @@ export const TOUCH = {
   depth: 400,
   alpha: 0.3,
   pressedAlpha: 0.62,
-  /** Dokunuşun buton yarıçapından bu kadar dışarıda da sayılması (px). */
-  hitSlackPx: 16,
+  /**
+   * Dokunuşun buton yarıçapından bu kadar dışarıda da sayılması (px). ◀ ▶ aralığının yarısından
+   * büyük (2 × 30 ≥ `moveGapPx`): parmak ◀'den ▶'ye kayarken arada girdi kopmaz, en yakın basar.
+   */
+  hitSlackPx: 30,
+  /**
+   * Butonların kenarları arasında en az boşluk (px; yatay telefonda ~2 px/dp): 16 px ≈ 8 dp
+   * (QUALITY_BAR D2). ◀ ile ▶ arası daha geniş (`moveGapPx` ≈ 29 dp): başparmak ikisini
+   * birlikte örtüp yanlış yöne basmasın (Faz 2.2 telefon testi: 18 px çok yakın bulundu).
+   */
+  minGapPx: 16,
+  moveGapPx: 58,
   fillColor: 0xffffff,
   pressedColor: 0xffd23f,
   strokeColor: 0x0b1340,
@@ -1066,13 +1076,13 @@ export const TOUCH = {
   ],
   buttons: {
     left: { x: 108, y: 612, r: 62 },
-    right: { x: 250, y: 612, r: 62 },
+    right: { x: 290, y: 612, r: 62 },
     jump: { x: 1022, y: 628, r: 62 },
     kick: { x: 1168, y: 560, r: 68 },
     super: { x: 1170, y: 408, r: 50 },
     pause: { x: 50, y: 50, r: 32 },
-    reset: { x: 126, y: 50, r: 32 },
-    fill: { x: 202, y: 50, r: 32 },
+    reset: { x: 130, y: 50, r: 32 },
+    fill: { x: 210, y: 50, r: 32 },
   },
 } as const;
 

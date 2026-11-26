@@ -79,7 +79,7 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
 - **Bölüm 2 — Mobil temel [CC]** (Bölüm 1 ile paralel)
   - [x] 2.0 Phaser 4'e geçiş — 2026-11-20 → Phaser 4.2.1, karşılaştırma aşağıda
   - [x] 2.1 Capacitor ve Android derleme — 2026-11-26 → gerçek telefonda açılıp oynandı (aşağıda)
-  - [ ] 2.2 Ekran ve ölçekleme — kod bitti (2026-11-26), telefonda kontrol bekliyor (aşağıda)
+  - [x] 2.2 Ekran ve ölçekleme — 2026-11-26 → gerçek telefonda kontrol edildi (aşağıda)
   - [ ] 2.3 Dokunmatik kontroller v2
   - [ ] 2.4 Performans (rollback ≤ 4 ms dahil)
   - [ ] 2.5 Uygulama yaşam döngüsü
@@ -215,7 +215,7 @@ kararlar ve bilinen sorunlar: [archive/PROGRESS_MOBILE_2.md](archive/PROGRESS_MO
 | QUALITY_BAR B3 (ağ yokken açılış)                           | ✅ tasarım gereği (tüm dosyalar APK içinde); cihazda ağsız açılış ayrıca kaydedilmedi |
 | QUALITY_BAR A1–A3 (açılış süreleri), D5 (güvenli alan)      | ölçülmedi (telefon testi açılış ve oynanışı kapsadı); A1–A3 Faz 2.4, D5 Faz 2.2       |
 
-### Faz 2.2 — Ekran ve ölçekleme (2026-11-26, telefonda kontrol bekliyor)
+### Faz 2.2 — Ekran ve ölçekleme (2026-11-26, tamamlandı)
 
 Oyun alanı ve fizik değişmedi: 1280×720 çekirdek her cihazda tam görünür ve ortadadır (`DISPLAY`
 aynı, determinizm testleri yeşil). Yalnızca çerçeve ve arayüz yerleşimi uyum sağlar. Yapılanlar,
@@ -238,13 +238,14 @@ altına düşmez.
 | Kriter                                                      | Durum                                                                                              |
 | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | 1. Sabit yatay ekran                                        | ✅ uygulama `userLandscape` (2.1); mobil tarayıcıda dikey → "telefonu çevir" + maç duraklar (test) |
-| 2. Çentik ve güvenli alan                                   | ✅ benzetimde (CSS değişkeni); telefonda kontrol bekliyor                                          |
+| 2. Çentik ve güvenli alan                                   | ✅ telefonda: çentik tarafı, iki yatay yön, sistem çubukları sorunsuz                              |
 | 3. 16:9–21:9 telefon, 4:3 ve 16:10 tablet; kenara sabitleme | ✅ `ScreenLayout`: menüler, maç HUD'u, tekrar kaplaması, dokunmatik butonlar                       |
 | 4. Oran test matrisi ve ekran görüntüleri                   | ✅ `npm run screens` → `ekran-matrisi/` (7 oran × çentikli/çentiksiz × 4 ekran)                    |
-| **Faz: hiçbir oranda kesilen veya taşan arayüz yok**        | benzetimde ✅ (birim testi + görüntüler); **gerçek telefonda kontrol edilmeden işaretlenmedi**     |
+| **Faz: hiçbir oranda kesilen veya taşan arayüz yok**        | ✅ benzetimde (birim testi + görüntüler) ve geliştiricinin telefonunda (2026-11-26)                |
 | Determinizm ve tüm testler                                  | ✅ 382 birim testi (determinizm dahil), duman testi web + mobil                                    |
 | Web yayını bozulmadı                                        | ✅ masaüstü 16:9'da yerleşim birebir eskisi gibi (birim testiyle sabit); duman testi yeşil         |
-| QUALITY_BAR D5 (çentik/yuvarlak köşe)                       | benzetimde ✅; dokunmatikte her kenarda en az 12 CSS px köşe payı; telefonda kontrol bekliyor      |
+| QUALITY_BAR D5 (çentik/yuvarlak köşe)                       | ✅ telefonda; dokunmatikte her kenarda en az 12 CSS px köşe payı                                   |
+| QUALITY_BAR D2 (butonlar arası ≥ 8 dp)                      | ✅ birim testiyle her oranda; telefon testinde ◀ ▶ (≈ 9 dp) yakın bulundu → ≈ 29 dp                |
 | QUALITY_BAR §6 (16:9, 19,5:9, 21:9, 4:3 görüntüleri)        | ✅ `ekran-matrisi/`                                                                                |
 
 ## Sonraki fazlar için notlar
