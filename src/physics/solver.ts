@@ -33,6 +33,10 @@ export interface SolverOptions {
   readonly epsilon: number;
 }
 
+/**
+ * Çözüm sonucu. Paylaşılan tek bir nesnedir (her temasta bellek ayrılmasın, Faz 2.7): bir sonraki
+ * `resolveContact` çağrısına kadar geçerlidir; saklamak için kopyalayın.
+ */
 export interface ContactResult {
   /** Uygulanan normal impuls büyüklüğü (0 = cisimler zaten ayrılıyordu). */
   readonly impulse: number;
@@ -40,7 +44,13 @@ export interface ContactResult {
   readonly approachSpeed: number;
 }
 
-const NO_IMPULSE: ContactResult = { impulse: 0, approachSpeed: 0 };
+const shared = { impulse: 0, approachSpeed: 0 };
+
+function result(impulse: number, approachSpeed: number): ContactResult {
+  shared.impulse = impulse;
+  shared.approachSpeed = approachSpeed;
+  return shared;
+}
 
 /**
  * Bir teması çözer: (1) çakışmayı ters kütle oranında paylaştırarak giderir, (2) yaklaşma
@@ -65,7 +75,7 @@ export function resolveContact(
   const invMassA = a.invMass;
   const invMassB = b ? b.invMass : 0;
   const invMassSum = invMassA + invMassB;
-  if (invMassSum <= 0) return NO_IMPULSE;
+  if (invMassSum <= 0) return result(0, 0);
   const { nx, ny } = contact;
 
   // 1) Pozisyon düzeltmesi: çakışma ters kütle oranında paylaştırılır.
@@ -92,7 +102,7 @@ export function resolveContact(
   let rvx = a.vx - a.angVel * ray - (bvx - bw * rby);
   let rvy = a.vy + a.angVel * rax - (bvy + bw * rbx);
   const vn = rvx * nx + rvy * ny;
-  if (vn >= 0) return NO_IMPULSE;
+  if (vn >= 0) return result(0, 0);
 
   const approachSpeed = -vn;
   const restitution = approachSpeed < options.restingSpeed ? 0 : material.restitution;
@@ -106,14 +116,14 @@ export function resolveContact(
 
   // 3) Sürtünme. Normal impuls bağıl hızın normal bileşenini jn·invMassSum kadar değiştirdi;
   // daire temasında dönme kolu normale paraleldir, açısal hız etkilenmez.
-  if (material.friction <= 0) return { impulse: jn, approachSpeed };
+  if (material.friction <= 0) return result(jn, approachSpeed);
   rvx += nx * jn * invMassSum;
   rvy += ny * jn * invMassSum;
   const vnAfter = rvx * nx + rvy * ny;
   const tvx = rvx - vnAfter * nx;
   const tvy = rvy - vnAfter * ny;
   const vt = Math.sqrt(tvx * tvx + tvy * tvy);
-  if (vt <= options.epsilon) return { impulse: jn, approachSpeed };
+  if (vt <= options.epsilon) return result(jn, approachSpeed);
 
   const tx = tvx / vt;
   const ty = tvy / vt;
@@ -133,5 +143,5 @@ export function resolveContact(
     b.vy -= jy * invMassB;
     b.angVel -= (rbx * jy - rby * jx) * invInertiaB;
   }
-  return { impulse: jn, approachSpeed };
+  return result(jn, approachSpeed);
 }

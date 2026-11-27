@@ -15,7 +15,15 @@ import {
   type SuperType,
 } from '../config/gameConfig';
 import { EMPTY_INPUT, type InputState } from '../input/InputState';
-import { circleVsCircle, computeSubSteps, moveToward, resolveContact } from '../physics';
+import {
+  circleVsCircle,
+  computeSubSteps,
+  dcos,
+  dhypot,
+  dsin,
+  moveToward,
+  resolveContact,
+} from '../physics';
 import { SeededRandom } from './ai/random';
 import {
   applyCrossbarRest,
@@ -49,11 +57,26 @@ import {
   type MatchRules,
   type MatchSnapshot,
 } from './rules/MatchFlow';
-import { copyFields, type SimState } from './simState';
+import { copyFields, type FieldBag, type SimState } from './simState';
+import { stateChecksum } from './stateChecksum';
 import type { PlayerIndex, SimEvent } from './types';
 
 /** Simülasyonun sabit adım süresi. Gerçek zamandan bağımsızdır (determinizm). */
 export const STEP_SECONDS = 1 / LOOP.stepHz;
+
+/** Yeni kurulmuş bir topun alanları: havuzdan alınan yanılsama önce buna döner. */
+const FRESH_BALL: FieldBag = {};
+copyFields(FRESH_BALL, new Ball());
+
+/**
+ * Balonu `into`'ya kopyalar (ikisi de varsa yerinde, bellek ayırmadan); kaynak yoksa null.
+ * @returns Kopya (yeni balon ya da `into`).
+ */
+function copyBalloon(source: Balloon | null, into: Balloon | null): Balloon | null {
+  if (!source) return null;
+  if (!into) return { ...source };
+  return Object.assign(into, source);
+}
 
 const STATIC_PARTS: readonly PlayerPart[] = ['head', 'body'];
 /** Top–oyuncu çözüm sırası için Knuth çarpımsal karıştırma sabiti ve en üst bit. */
@@ -180,6 +203,13 @@ export class GameSim {
   private readonly rng: SeededRandom;
   private readonly powerUpsEnabled: boolean;
   private soloMode = false;
+  /**
+   * Sönen yanılsamaların havuzu (rollback'te her geri sarmada yeni top kurulmasın, Faz 2.7). Havuz
+   * durumun parçası değildir: havuzdan alınan yanılsama önce yeni kurulmuş bir topa döndürülür.
+   */
+  private readonly decoyPool: Decoy[] = [];
+  /** `checksum` için yeniden kullanılan durum kopyası. */
+  private checksumState: SimState | undefined;
 
   constructor(options: GameSimOptions = {}) {
     const [l1, l2] = options.loadouts ?? [NEUTRAL_LOADOUT, NEUTRAL_LOADOUT];
@@ -217,7 +247,7 @@ export class GameSim {
    */
   resetBall(): void {
     this.holdBallAtCenter();
-    this.decoys.length = 0;
+    this.clearDecoys();
   }
 
   /** Antrenman kısayolu: oyuncunun güç barını doldurur (süper hazırsa değişmez). */
@@ -324,7 +354,8 @@ export class GameSim {
    */
   private applyPowerUpModifiers(dt: number): void {
     const pu = POWERUPS;
-    for (const p of this.players) {
+    for (let i = 0; i < 2; i++) {
+      const p = this.players[i as PlayerIndex];
       const opp = this.players[p.index === 0 ? 1 : 0];
       const target =
         (p.powerUps.bigHead > 0 ? pu.bigHeadScale : 1) *
@@ -333,7 +364,8 @@ export class GameSim {
       p.speedScale = p.powerUps.speed > 0 ? pu.speedScale : 1;
       p.doubleJumpEnabled = p.powerUps.doubleJump > 0;
     }
-    for (const goal of this.pitch.goals) {
+    for (let i = 0; i < 2; i++) {
+      const goal = this.pitch.goals[i as PlayerIndex];
       const attacker = this.players[goal.defender === 0 ? 1 : 0];
       const base = PITCH.goal.mouthHeight;
       const target = attacker.powerUps.growGoal > 0 ? base + pu.goalGrowPx : base;
@@ -350,7 +382,7 @@ export class GameSim {
     const t = SUPER_SHOTS.tornado;
     const victim = this.players[ball.superOwner === 0 ? 1 : 0];
     if (!this.present(victim)) return;
-    const d = Math.hypot(victim.x - ball.x, victim.y - ball.y);
+    const d = dhypot(victim.x - ball.x, victim.y - ball.y);
     if (d >= t.radiusPx) return;
     const dir = ball.superDir;
     const strength = (1 - d / t.radiusPx) * (victim.grounded ? 1 : t.airborneFactor);
@@ -360,22 +392,25 @@ export class GameSim {
   }
 
   private maxPointSpeed(): number {
-    let max = this.ball.speed;
-    for (const p of this.players) max = Math.max(max, p.maxPointSpeed());
-    return max;
+    const max = Math.max(this.ball.speed, this.players[0].maxPointSpeed());
+    return Math.max(max, this.players[1].maxPointSpeed());
   }
 
   private subStep(h: number): void {
-    for (const p of this.players) p.integrate(h);
+    // Oyuncular hep aynı sırayla (P1, P2); dizinli erişim: yineleyici nesnesi kurulmaz.
+    const p1 = this.players[0];
+    const p2 = this.players[1];
+    p1.integrate(h);
+    p2.integrate(h);
     this.ball.integrate(h);
 
-    for (const p of this.players) this.collidePlayerStatic(p);
+    this.collidePlayerStatic(p1);
+    this.collidePlayerStatic(p2);
     if (!this.soloMode) this.collidePlayers();
     // Aynı alt adımda iki oyuncu da topa değerse önce çözülen avantajlı olur (eşzamanlı
     // kafa/şut düellosu, ör. simetrik santra). Sıra adım numarasının karıştırılmış bir bitiyle
     // seçilir: deterministik (tekrar bozulmaz) ama santra gibi düzenli zamanlamalarla hizalanmaz.
     // (Basit parite hizalanıyordu: simetrik AI maçlarında bir taraf ~%55 kazanıyordu.)
-    const [p1, p2] = this.players;
     const p1First = Math.imul(this.tick, ORDER_HASH) >>> ORDER_SHIFT === 0;
     // Işınlanan top görünmezdir ve oyuncuların içinden geçer.
     if (!this.ball.phased) {
@@ -390,8 +425,10 @@ export class GameSim {
     this.checkBalloon();
     if (pinned) {
       // Top bir yüzeye dayalıyken oyuncu onu içine itemez: oyuncuyu toptan dışarı it.
-      for (const p of this.players) if (this.present(p)) this.pushPlayerOutOfBall(p);
-      for (const p of this.players) this.collidePlayerStatic(p);
+      if (this.present(p1)) this.pushPlayerOutOfBall(p1);
+      if (this.present(p2)) this.pushPlayerOutOfBall(p2);
+      this.collidePlayerStatic(p1);
+      this.collidePlayerStatic(p2);
     }
   }
 
@@ -499,7 +536,7 @@ export class GameSim {
     const ball = this.ball;
     const type = p.loadout.superType;
     p.superArmed = false;
-    this.decoys.length = 0;
+    this.clearDecoys();
     launchSuper(ball, type, p.index, p.facing);
     const opp = this.players[p.index === 0 ? 1 : 0];
     if (type === 'mirage') this.spawnDecoys();
@@ -519,8 +556,8 @@ export class GameSim {
     const vy = ball.vy;
     for (let slot = 0; slot < MIRAGE_SLOTS; slot++) {
       const angle = (slot - 1) * m.spreadRad;
-      const c = Math.cos(angle);
-      const s = Math.sin(angle);
+      const c = dcos(angle);
+      const s = dsin(angle);
       const rvx = vx * c - vy * s;
       const rvy = vx * s + vy * c;
       if (slot === real) {
@@ -528,13 +565,37 @@ export class GameSim {
         ball.vy = rvy;
         continue;
       }
-      const decoy = new Ball();
-      decoy.resetTo(ball.x, ball.y);
-      decoy.vx = rvx;
-      decoy.vy = rvy;
-      decoy.angVel = ball.angVel;
-      this.decoys.push({ ball: decoy, ttl: m.duration });
+      const decoy = this.takeDecoy();
+      decoy.ball.resetTo(ball.x, ball.y);
+      decoy.ball.vx = rvx;
+      decoy.ball.vy = rvy;
+      decoy.ball.angVel = ball.angVel;
+      decoy.ttl = m.duration;
+      this.decoys.push(decoy);
     }
+  }
+
+  /** Havuzdan (boşsa yeni) bir yanılsama; topu yeni kurulmuş bir topun değerlerine döner. */
+  private takeDecoy(): Decoy {
+    const d = this.decoyPool.pop() ?? { ball: new Ball(), ttl: 0 };
+    copyFields(d.ball, FRESH_BALL);
+    d.ttl = 0;
+    return d;
+  }
+
+  /** Tüm yanılsamaları söndürür (havuza döner). */
+  private clearDecoys(): void {
+    for (const d of this.decoys) this.decoyPool.push(d);
+    this.decoys.length = 0;
+  }
+
+  /** `i`. yanılsamayı söndürür; kalanların sırası korunur (bellek ayırmaz). */
+  private removeDecoy(i: number): void {
+    const d = this.decoys[i];
+    if (!d) return;
+    this.decoys.copyWithin(i, i + 1);
+    this.decoys.length--;
+    this.decoyPool.push(d);
   }
 
   /**
@@ -544,7 +605,7 @@ export class GameSim {
   private stepDecoys(dt: number): void {
     if (this.decoys.length === 0) return;
     if (this.ball.superType !== 'mirage') {
-      this.decoys.length = 0;
+      this.clearDecoys();
       return;
     }
     const margin = SUPER_SHOTS.mirage.decoyGoalMarginPx;
@@ -557,7 +618,7 @@ export class GameSim {
       const nearGoal =
         b.x - b.radius < PITCH.goal.depth + margin ||
         b.x + b.radius > this.pitch.width - PITCH.goal.depth - margin;
-      if (d.ttl <= 0 || nearGoal || this.touchesPlayer(b)) this.decoys.splice(i, 1);
+      if (d.ttl <= 0 || nearGoal || this.touchesPlayer(b)) this.removeDecoy(i);
     }
   }
 
@@ -597,11 +658,8 @@ export class GameSim {
 
   /** Güçlendirici süreleri, balon zamanlayıcısı ve ömrü. Yalnızca oyun akarken işler. */
   private updatePowerUps(dt: number): void {
-    for (const p of this.players) {
-      for (const key of Object.keys(p.powerUps) as PowerUpType[]) {
-        if (p.powerUps[key] > 0) p.powerUps[key] = Math.max(0, p.powerUps[key] - dt);
-      }
-    }
+    this.players[0].tickPowerUps(dt);
+    this.players[1].tickPowerUps(dt);
     if (!this.powerUpsEnabled) return;
     if (this.balloon) {
       this.balloon.age += dt;
@@ -711,10 +769,14 @@ export class GameSim {
     // Santra beklemesinde top ortada tutulur; düdükle birlikte serbest düşer.
     if (match.ballHeld) this.holdBallAtCenter();
     if (match.goalsAllowed) {
-      for (const p of this.players) p.addPower(POWER.chargePerSecond * dt);
+      this.players[0].addPower(POWER.chargePerSecond * dt);
+      this.players[1].addPower(POWER.chargePerSecond * dt);
       this.updatePowerUps(dt);
     }
-    if (match.playersActive) for (const p of this.players) p.tickStatus(dt);
+    if (match.playersActive) {
+      this.players[0].tickStatus(dt);
+      this.players[1].tickStatus(dt);
+    }
     if (applyCrossbarRest(this.ball, this.pitch, dt)) this.events.push({ type: 'crossbarPush' });
 
     const scorer = match.goalsAllowed ? this.detectGoal() : null;
@@ -746,7 +808,7 @@ export class GameSim {
     this.players[1].resetTo(width - spawnX, standY);
     for (const p of this.players) p.clearStatus();
     this.holdBallAtCenter();
-    this.decoys.length = 0;
+    this.clearDecoys();
     this.balloon = null;
   }
 
@@ -802,12 +864,14 @@ export class GameSim {
     copyFields(s.players[1], this.players[1]);
     copyFields(s.ball, this.ball);
     s.decoys.length = this.decoys.length;
-    this.decoys.forEach((d, i) => {
+    for (let i = 0; i < this.decoys.length; i++) {
+      const d = this.decoys[i];
+      if (!d) continue;
       const slot = (s.decoys[i] ??= { ball: {}, ttl: 0 });
       copyFields(slot.ball, d.ball);
       slot.ttl = d.ttl;
-    });
-    s.balloon = this.balloon ? { ...this.balloon } : null;
+    }
+    s.balloon = copyBalloon(this.balloon, s.balloon);
     s.balloonTimer = this.balloonTimer;
     s.goalMouths[0] = this.pitch.goals[0].mouthHeight;
     s.goalMouths[1] = this.pitch.goals[1].mouthHeight;
@@ -833,18 +897,28 @@ export class GameSim {
     copyFields(this.players[0], s.players[0]);
     copyFields(this.players[1], s.players[1]);
     copyFields(this.ball, s.ball);
-    this.decoys.length = 0;
+    this.clearDecoys();
     for (const d of s.decoys) {
-      const ball = new Ball();
-      copyFields(ball, d.ball);
-      this.decoys.push({ ball, ttl: d.ttl });
+      const slot = this.takeDecoy();
+      copyFields(slot.ball, d.ball);
+      slot.ttl = d.ttl;
+      this.decoys.push(slot);
     }
-    this.balloon = s.balloon ? { ...s.balloon } : null;
+    this.balloon = copyBalloon(s.balloon, this.balloon);
     this.balloonTimer = s.balloonTimer;
     setGoalMouthHeight(this.pitch.goals[0], s.goalMouths[0]);
     setGoalMouthHeight(this.pitch.goals[1], s.goalMouths[1]);
     this.rng.state = s.rngState;
     this.soloMode = s.solo;
+  }
+
+  /**
+   * Kanonik durum özeti (16 onaltılık hane, bkz. `stateChecksum`): aynı durum her JS motorunda
+   * aynı özeti verir. Online maçta desync tespiti (Faz 9.2, 9.3) ve çapraz motor testi (2.7b).
+   */
+  checksum(): string {
+    this.checksumState = this.saveState(this.checksumState);
+    return stateChecksum(this.checksumState);
   }
 
   snapshot(): SimSnapshot {

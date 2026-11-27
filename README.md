@@ -78,17 +78,18 @@ npm install
 npm run dev          # geliştirme sunucusu (http://localhost:5173)
 ```
 
-| Komut                 | Ne yapar                                                                  |
-| --------------------- | ------------------------------------------------------------------------- |
-| `npm run build`       | Tip denetimi + üretim derlemesi (`dist/`, PWA dosyaları dahil)            |
-| `npm run preview`     | Derlenmiş sürümü yerelde sun (`/kafa-kafaya/` altında)                    |
-| `npm test`            | Vitest birim testleri                                                     |
-| `npm run test:e2e`    | Playwright duman testi, web ve mobil derlemede (önce iki derleme de)      |
-| `npm run screenshots` | README ekran görüntülerini yeniden al (`docs/screenshots/`)               |
-| `npm run screens`     | En-boy oranı test matrisi (Faz 2.2) → `ekran-matrisi/` (önce iki derleme) |
-| `npm run lint`        | ESLint (tip denetimli, sihirli sayı yasağı) + Prettier denetimi           |
-| `npm run format`      | Prettier ile biçimlendir                                                  |
-| `npm run simulate`    | AI vs AI headless maçlar: skor dağılımı, süperler, sıkışma raporu, denge  |
+| Komut                 | Ne yapar                                                                                        |
+| --------------------- | ----------------------------------------------------------------------------------------------- |
+| `npm run build`       | Tip denetimi + üretim derlemesi (`dist/`, PWA dosyaları dahil)                                  |
+| `npm run preview`     | Derlenmiş sürümü yerelde sun (`/kafa-kafaya/` altında)                                          |
+| `npm test`            | Vitest birim testleri                                                                           |
+| `npm run test:e2e`    | Playwright duman testi, web ve mobil derlemede (önce iki derleme de)                            |
+| `npm run screenshots` | README ekran görüntülerini yeniden al (`docs/screenshots/`)                                     |
+| `npm run screens`     | En-boy oranı test matrisi (Faz 2.2) → `ekran-matrisi/` (önce iki derleme)                       |
+| `npm run lint`        | ESLint (tip denetimli, sihirli sayı yasağı) + Prettier denetimi                                 |
+| `npm run format`      | Prettier ile biçimlendir                                                                        |
+| `npm run simulate`    | AI vs AI headless maçlar: skor dağılımı, süperler, sıkışma raporu, denge                        |
+| `npm run feel`        | Fizik hissi ölçümü (zıplama, şut, süper hızları, top yolu); `--compare` iki kaydı karşılaştırır |
 
 `npm run simulate -- --characters --matches 40 --jobs 10` 45 karakter eşleşmesini iki tarafta da
 oynatır; `--matrix` zorluk eşleşmelerini, `--p1 hard --p2 easy` belirli seviyeleri, `--c1 kor --c2
@@ -227,7 +228,8 @@ src/
   save/       localStorage kaydı (alan alan doğrulama)
   platform/   dokunmatik algılama, tam ekran, dikey ekran uyarısı, PWA kaydı, derleme hedefi (web / mobil)
   i18n/       TR/EN metinler
-scripts/      simulate.ts, bench/ (derleme karşılaştırma), pwa/ (manifest, simgeler, SW), phaser/ (özel derleme),
+scripts/      simulate.ts, feel.ts (fizik hissi), bench/ (derleme karşılaştırma), lint/ (determinizm kuralı),
+              pwa/ (manifest, simgeler, SW), phaser/ (özel derleme),
               mobile/ (Capacitor derleme ayarları, geçici simge ve açılış ekranı)
 android/      Capacitor Android projesi (capacitor.config.ts)
 e2e/          Playwright duman testi ve ekran görüntüleri
@@ -246,9 +248,12 @@ Katkılar memnuniyetle karşılanır. Bir değişiklik göndermeden önce:
 2. **Sihirli sayı yok:** yeni bir değer `src/config/gameConfig.ts`'e (ya da dosya sonunda adlandırılmış
    bir sabite) girer; lint bunu zorlar.
 3. **Metinler `src/i18n/strings.ts`'te**, iki dilde birden; anahtar eşitliği testle denetlenir.
-4. **Determinizmi bozma:** simülasyon kodunda `Math.random`, gerçek zaman ya da Phaser kullanılmaz;
-   rastgelelik tohumlu `SeededRandom`'dan gelir. Fizik/yapay zekâ değişikliklerinde determinizm ve
-   tekrar testleri geçmeli; denge etkisini `npm run simulate -- --characters` ile ölç. Motor ya da
+4. **Determinizmi bozma:** simülasyon kodunda (`src/physics`, `src/game`) `Math.random`, gerçek
+   zaman ya da Phaser kullanılmaz; rastgelelik tohumlu `SeededRandom`'dan gelir. Sonucu JS motoruna
+   göre değişen `Math.sin/cos/atan2/exp/pow/hypot/log` ve `**` yerine `src/physics/detMath.ts`
+   (`dsin`, `dcos`, `datan2`, `dexp`, `dpow`, `dhypot`, `dlog`); lint kuralı (`kafa/deterministic-sim`)
+   bunları zorlar. Fizik/yapay zekâ değişikliklerinde determinizm ve tekrar testleri geçmeli; his
+   farkını `npm run feel -- --compare`, denge etkisini `npm run simulate -- --characters` ile ölç. Motor ya da
    çizim değişikliklerinde `npm run bench -- --dirs eski-dist,dist` iki derlemeyi yan yana ölçer
    (paket boyutu, açılış, kare süresi, tarayıcıda adım adım determinizm).
 5. **Harici varlık yok:** görseller Canvas 2D ile kodla, sesler Web Audio ile üretilir.

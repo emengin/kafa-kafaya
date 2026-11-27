@@ -1,6 +1,6 @@
 import { KICK, PLAYER, POWER, POWERUPS, type PowerUpType } from '../../config/gameConfig';
 import { EMPTY_INPUT, type InputState } from '../../input/InputState';
-import { moveToward, type Circle, type ContactBody, type Vec2 } from '../../physics';
+import { dcos, dsin, moveToward, type Circle, type ContactBody, type Vec2 } from '../../physics';
 import { NEUTRAL_LOADOUT, type Loadout, type PlayerParams } from '../characters';
 import type { Facing, PlayerIndex } from '../types';
 
@@ -38,13 +38,22 @@ export const KICK_PEAK_ANG_VEL = (KICK_SPAN * HALF_PI) / KICK.swingSeconds;
 export const PLAYER_STAND_OFFSET = PLAYER.body.offsetY + PLAYER.body.radius;
 
 /**
+ * Dinlenen ayağın açısının sin/cos'u: oyuncular çoğu zaman şut çekmez, ayak parçası alt adım
+ * başına birkaç kez sorulur. Önceden hesaplanmış değer `dsin(restAngle)` ile birebir aynıdır.
+ */
+const REST_SIN = dsin(KICK.restAngle);
+const REST_COS = dcos(KICK.restAngle);
+const footSin = (angle: number): number => (angle === KICK.restAngle ? REST_SIN : dsin(angle));
+const footCos = (angle: number): number => (angle === KICK.restAngle ? REST_COS : dcos(angle));
+
+/**
  * Ayak merkezinin kafa merkezine göre ofseti. Açı 0 = kalçadan dümdüz aşağı; açı arttıkça
  * ayak bakış yönünde öne, sonra yukarı savrulur. Çizim de bu fonksiyonu kullanır.
  */
 export function footOffset(angle: number, facing: Facing): Vec2 {
   return {
-    x: facing * Math.sin(angle) * PLAYER.foot.legLength,
-    y: PLAYER.foot.hipOffsetY + Math.cos(angle) * PLAYER.foot.legLength,
+    x: facing * footSin(angle) * PLAYER.foot.legLength,
+    y: PLAYER.foot.hipOffsetY + footCos(angle) * PLAYER.foot.legLength,
   };
 }
 
@@ -164,6 +173,17 @@ export class Player implements ContactBody {
     this.frozenTimer = Math.max(0, this.frozenTimer - dt);
     this.freezeImmunity = Math.max(0, this.freezeImmunity - dt);
     this.jumpLockTimer = Math.max(0, this.jumpLockTimer - dt);
+  }
+
+  /** Kazanılan güçlendiricilerin kalan süreleri azalır (0'da durur). */
+  tickPowerUps(dt: number): void {
+    const t = this.powerUps;
+    if (t.bigHead > 0) t.bigHead = Math.max(0, t.bigHead - dt);
+    if (t.shrinkOpponent > 0) t.shrinkOpponent = Math.max(0, t.shrinkOpponent - dt);
+    if (t.speed > 0) t.speed = Math.max(0, t.speed - dt);
+    if (t.growGoal > 0) t.growGoal = Math.max(0, t.growGoal - dt);
+    if (t.freezeOpponent > 0) t.freezeOpponent = Math.max(0, t.freezeOpponent - dt);
+    if (t.doubleJump > 0) t.doubleJump = Math.max(0, t.doubleJump - dt);
   }
 
   /** Donma ve zıplama kilidini kaldırır (santra). Güçlendiriciler sürer. */
@@ -333,8 +353,8 @@ export class Player implements ContactBody {
     if (this.kickPhase === 'swing') {
       if (this.kickTimer < KICK.swingSeconds) {
         const u = this.kickTimer / KICK.swingSeconds;
-        this.footAngle = KICK.restAngle + KICK_SPAN * Math.sin(u * HALF_PI);
-        this.footAngVel = KICK_PEAK_ANG_VEL * Math.cos(u * HALF_PI);
+        this.footAngle = KICK.restAngle + KICK_SPAN * dsin(u * HALF_PI);
+        this.footAngVel = KICK_PEAK_ANG_VEL * dcos(u * HALF_PI);
         return;
       }
       this.kickTimer -= KICK.swingSeconds;
@@ -353,8 +373,8 @@ export class Player implements ContactBody {
 
     if (this.kickTimer < KICK.returnSeconds) {
       const u = this.kickTimer / KICK.returnSeconds;
-      this.footAngle = KICK.maxAngle - KICK_SPAN * (1 - Math.cos(u * Math.PI)) * 0.5;
-      this.footAngVel = ((-KICK_SPAN * Math.PI) / (KICK.returnSeconds * 2)) * Math.sin(u * Math.PI);
+      this.footAngle = KICK.maxAngle - KICK_SPAN * (1 - dcos(u * Math.PI)) * 0.5;
+      this.footAngVel = ((-KICK_SPAN * Math.PI) / (KICK.returnSeconds * 2)) * dsin(u * Math.PI);
       return;
     }
     this.kickPhase = 'idle';
@@ -371,8 +391,8 @@ export class Player implements ContactBody {
   /** Ayağın savrulma yönündeki birim teğeti (açı artış yönü). */
   footTangent(): Vec2 {
     return {
-      x: this.facing * Math.cos(this.footAngle),
-      y: -Math.sin(this.footAngle),
+      x: this.facing * dcos(this.footAngle),
+      y: -dsin(this.footAngle),
     };
   }
 
@@ -398,8 +418,8 @@ export class Player implements ContactBody {
       case 'foot': {
         const c = this.circles.foot;
         const a = this.footAngle;
-        c.x = this.x + this.facing * Math.sin(a) * PLAYER.foot.legLength;
-        c.y = this.y + (PLAYER.foot.hipOffsetY + Math.cos(a) * PLAYER.foot.legLength);
+        c.x = this.x + this.facing * footSin(a) * PLAYER.foot.legLength;
+        c.y = this.y + (PLAYER.foot.hipOffsetY + footCos(a) * PLAYER.foot.legLength);
         return c;
       }
     }

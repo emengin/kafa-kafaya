@@ -21,9 +21,10 @@
  *   `prestep` → `postrender` arası (güncelleme + çizim gönderimi, ana iş parçacığı). CPU yavaşlatma
  *   DevTools `Emulation.setCPUThrottlingRate` ile (düşük güçlü cihaz benzetimi).
  * - **determinism:** aynı tohumlu AI vs AI maçlarında her `CHECK_EVERY` adımda bir tam
- *   simülasyon durumunun (`GameSim.saveState`) özeti. Derlemeler birbiriyle ve kendi tekrarıyla
- *   (gol tekrarı aynı adımı yeniden simüle eder) karşılaştırılır. Kare hızı ve zamanlama farklı
- *   olsa da durum her adımda birebir aynı olmalıdır.
+ *   simülasyon durumunun kanonik özeti (`GameSim.checksum`, Faz 2.7; bu yöntemi olmayan eski
+ *   derlemelerde `JSON.stringify(saveState())` özeti — iki tür birbiriyle karşılaştırılamaz).
+ *   Derlemeler birbiriyle ve kendi tekrarıyla (gol tekrarı aynı adımı yeniden simüle eder)
+ *   karşılaştırılır. Kare hızı ve zamanlama farklı olsa da durum her adımda birebir aynı olmalıdır.
  * - **shots:** menü, karakter seçimi, maç ve mobil görünüm ekran görüntüleri (görsel karşılaştırma).
  * - **alloc** (Faz 2.4): aynı maç senaryosunda kare başına bellek ayırma (DevTools örnekleyici yığın
  *   profili, GC'de toplananlar dahil), en çok ayıran işlevler, GC duraklamaları (iz kaydındaki
@@ -168,7 +169,11 @@ interface BenchSim {
   tick: number;
   step: (this: BenchSim, inputs: unknown) => unknown;
   saveState: (this: BenchSim) => unknown;
+  /** Faz 2.7'den beri: kanonik durum özeti. Eski derlemelerde yok. */
+  checksum?: (this: BenchSim) => string;
 }
+/** Determinizm özetinin türü: kanonik (`checksum`) ya da eski derlemelerde JSON özeti. */
+type DigestKind = 'checksum' | 'json';
 interface BenchWindow {
   __KAFA_GAME__?: BenchGame;
   __BENCH__?: {
@@ -179,6 +184,7 @@ interface BenchWindow {
     hashes: Record<number, string>;
     conflicts: number;
     firstTick: number;
+    kind?: DigestKind;
   };
 }
 
@@ -225,6 +231,7 @@ interface DeterminismRun {
   checks: number;
   conflicts: number;
   hashes: Record<number, string>;
+  kind: DigestKind;
 }
 
 // ───────────── Argümanlar ─────────────
@@ -808,6 +815,8 @@ async function runDeterminism(
       const w = window as BenchWindow;
       const sim = w.__KAFA_GAME__?.scene.getScene('Match')?.sim;
       if (!sim) throw new Error('simülasyon yok');
+      const proto = Object.getPrototypeOf(sim) as BenchSim;
+      const canonical = typeof proto.checksum === 'function';
       const b = {
         frames: [],
         intervals: [],
@@ -816,6 +825,7 @@ async function runDeterminism(
         hashes: {},
         conflicts: 0,
         firstTick: sim.tick,
+        kind: canonical ? ('checksum' as const) : ('json' as const),
       };
       w.__BENCH__ = b;
       const hashes = b.hashes as Record<number, string>;
@@ -827,12 +837,12 @@ async function runDeterminism(
         }
         return (h >>> 0).toString(16).padStart(8, '0');
       };
-      const proto = Object.getPrototypeOf(sim) as BenchSim;
       const step = proto.step;
       proto.step = function (this: BenchSim, inputs: unknown): unknown {
         const events = step.call(this, inputs);
         if (this.tick % every === 0) {
-          const h = fnv(JSON.stringify(this.saveState()));
+          const h =
+            canonical && this.checksum ? this.checksum() : fnv(JSON.stringify(this.saveState()));
           const prev = hashes[this.tick];
           if (prev === undefined) hashes[this.tick] = h;
           else if (prev !== h) b.conflicts++;
@@ -855,6 +865,7 @@ async function runDeterminism(
         firstTick: b?.firstTick ?? -1,
         conflicts: b?.conflicts ?? -1,
         hashes: b?.hashes ?? {},
+        kind: b?.kind ?? 'json',
       };
     });
     if (errors.length > 0) throw new Error(`${build.label}: ${errors.join(' | ')}`);
@@ -873,6 +884,7 @@ async function runDeterminism(
       checks: Object.keys(hashes).length,
       conflicts: run.conflicts,
       hashes,
+      kind: run.kind,
     };
   } finally {
     await close();
@@ -1134,16 +1146,18 @@ async function main(): Promise<void> {
             `${run.conflicts}`,
             i === 0
               ? '(referans)'
-              : diff.length === 0
-                ? 'birebir aynı'
-                : `${diff.length} fark (ilk: adım ${diff[0]})`,
-            digest,
+              : run.kind !== ref.kind
+                ? `özet türü farklı (${run.kind} ↔ ${ref.kind}), karşılaştırılamaz`
+                : diff.length === 0
+                  ? 'birebir aynı'
+                  : `${diff.length} fark (ilk: adım ${diff[0]})`,
+            `${digest} (${run.kind})`,
           ]);
         }
       }
       results.determinism = raw;
       report.push(
-        `\n### Determinizm (adım ${HOOK_DEADLINE_TICK}–${opts.ticks}, her ${CHECK_EVERY} adımda saveState özeti)\n`,
+        `\n### Determinizm (adım ${HOOK_DEADLINE_TICK}–${opts.ticks}, her ${CHECK_EVERY} adımda durum özeti)\n`,
         table(
           ['Senaryo', 'Derleme', 'Denetim', 'Tekrar çelişkisi', 'Referansa göre', 'Son özet'],
           rows,

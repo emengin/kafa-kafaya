@@ -26,7 +26,8 @@
     "screenshots": "playwright test -c playwright.screenshots.config.ts",
     "screens": "playwright test -c playwright.screens.config.ts",
     "simulate": "node scripts/run-ts.js scripts/simulate.ts",
-    "bench": "node scripts/run-ts.js scripts/bench/bench.ts"
+    "bench": "node scripts/run-ts.js scripts/bench/bench.ts",
+    "feel": "node scripts/run-ts.js scripts/feel.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.2",

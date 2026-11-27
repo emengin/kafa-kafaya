@@ -1,4 +1,5 @@
 /** Uçan cisim (top) için yerçekimi, hava direnci ve Magnus (falso) entegrasyonu. */
+import { dexp } from './detMath';
 
 export interface BallisticBody {
   x: number;
@@ -35,7 +36,7 @@ export function integrateBallistic(b: BallisticBody, p: BallisticParams, h: numb
   const ay = p.gravity - drag * b.vy + p.magnus * b.angVel * b.vx;
   b.vx += ax * h;
   b.vy += ay * h;
-  b.angVel *= Math.exp(-p.spinDamping * h);
+  b.angVel *= dexp(-p.spinDamping * h);
   b.x += b.vx * h;
   b.y += b.vy * h;
   b.angle += b.angVel * h;

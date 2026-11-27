@@ -1,5 +1,5 @@
 import { KICK, type SuperType } from '../config/gameConfig';
-import { clamp } from '../physics';
+import { clamp, datan2, dcos, dsin } from '../physics';
 import { superKickScales } from './superEffects';
 import type { Facing } from './types';
 
@@ -40,7 +40,7 @@ export interface KickResult {
  */
 export function computeKick(k: KickInput): KickResult {
   // Temas normalinin yükselme açısı (yukarı pozitif) → şut açısı.
-  const contactElevation = Math.atan2(-k.ny, Math.abs(k.nx));
+  const contactElevation = datan2(-k.ny, Math.abs(k.nx));
   let elevation = clamp(
     KICK.baseLift + contactElevation * KICK.contactAngleFactor,
     KICK.minElevation,
@@ -50,8 +50,8 @@ export function computeKick(k: KickInput): KickResult {
   elevation /= k.power;
   const scales = k.superType ? superKickScales(k.superType) : null;
   if (scales) elevation *= scales.elevation;
-  const dirX = k.facing * Math.cos(elevation);
-  const dirY = -Math.sin(elevation);
+  const dirX = k.facing * dcos(elevation);
+  const dirY = -dsin(elevation);
 
   const runUp = Math.max(0, k.playerVx * dirX + k.playerVy * dirY) * KICK.playerVelocityTransfer;
   const swing = KICK.minSpeed + (KICK.maxSpeed - KICK.minSpeed) * k.swingFactor;

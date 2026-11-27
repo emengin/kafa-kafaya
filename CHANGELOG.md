@@ -24,6 +24,12 @@ denge tabloları: [docs/archive/PROGRESS_WEB.md](docs/archive/PROGRESS_WEB.md).
   Yerel 2 oyuncuda dokunmatik prototip (ekranın her yarısı bir oyuncunun).
 - `npm run bench`: üretim derlemelerini yan yana ölçen tezgâh (paket boyutu, açılış süresi, kare
   işi, tarayıcıda determinizm, ekran görüntüleri).
+- **Determinizm sertleştirme, 1. bölüm** (mobil yol haritası Faz 2.7a): fizik ve yapay zekâ,
+  sonucu tarayıcı motoruna göre değişebilen `Math.sin/cos/atan2/exp/pow/hypot` yerine kendi
+  deterministik fonksiyonlarını kullanıyor (online maç ve tekrarlar için); simülasyon kodunda bu
+  işlevleri yasaklayan lint kuralı; kanonik durum özeti (`GameSim.checksum`). Oyun hissi aynı
+  (ölçülen 365 değerin 364'ü bit düzeyinde aynı). `npm run feel`: fizik hissi ölçümü ve iki sürümün
+  karşılaştırması.
 
 ## [1.0.0] — 2026-11-19
 

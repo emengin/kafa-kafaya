@@ -1,5 +1,6 @@
 import { AI, LOOP, PITCH } from '../../config/gameConfig';
 import type { InputState } from '../../input/InputState';
+import { dhypot } from '../../physics';
 import { PLAYER_STAND_OFFSET, type Player } from '../entities/Player';
 import type { GameSim } from '../GameSim';
 import type { PlayerIndex } from '../types';
@@ -94,7 +95,7 @@ export class StuckMonitor {
     const ball = sim.ball;
     const [a, b] = sim.players;
 
-    const moved = Math.hypot(ball.x - this.frozenX, ball.y - this.frozenY) > m.ballFrozenRadiusPx;
+    const moved = dhypot(ball.x - this.frozenX, ball.y - this.frozenY) > m.ballFrozenRadiusPx;
     if (moved) {
       this.frozenX = ball.x;
       this.frozenY = ball.y;
@@ -173,7 +174,7 @@ function touchesBall(p: Player, sim: GameSim): boolean {
   const ball = sim.ball;
   for (const part of ['head', 'body', 'foot'] as const) {
     const c = p.partCircle(part);
-    if (Math.hypot(ball.x - c.x, ball.y - c.y) <= ball.radius + c.radius + TOUCH_SLACK) return true;
+    if (dhypot(ball.x - c.x, ball.y - c.y) <= ball.radius + c.radius + TOUCH_SLACK) return true;
   }
   return false;
 }
@@ -189,5 +190,5 @@ function onCrossbar(p: Player, sim: GameSim): boolean {
 function ballOnHead(p: Player, sim: GameSim): boolean {
   const ball = sim.ball;
   if (ball.y >= p.y) return false;
-  return Math.hypot(ball.x - p.x, ball.y - p.y) <= p.headRadius + ball.radius + TOUCH_SLACK;
+  return dhypot(ball.x - p.x, ball.y - p.y) <= p.headRadius + ball.radius + TOUCH_SLACK;
 }

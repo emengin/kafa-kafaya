@@ -1,5 +1,5 @@
 import { BALL, DISPLAY, PITCH, SUPER, SUPER_SHOTS, type SuperType } from '../config/gameConfig';
-import { clamp, moveToward, type BallisticParams, type Material } from '../physics';
+import { clamp, dcos, dsin, moveToward, type BallisticParams, type Material } from '../physics';
 import type { BallSuperState } from './entities/Ball';
 import type { Facing, PlayerIndex } from './types';
 
@@ -75,7 +75,7 @@ export function applySuperForces(ball: SuperBall, h: number): void {
       // y = −A·(1 − cos ωt) → ÿ = −A·ω²·cos ωt: top önce yükselir, sonra çıkış yüksekliğine iner.
       const z = SUPER_SHOTS.zigzag;
       const w = TWO_PI * z.frequencyHz;
-      ball.vy += -z.amplitudePx * w * w * Math.cos(w * ball.superTime) * h;
+      ball.vy += -z.amplitudePx * w * w * dcos(w * ball.superTime) * h;
       break;
     }
     case 'magnet': {
@@ -199,6 +199,6 @@ function aimRainbow(ball: SuperBall, owner: PlayerIndex): void {
 function aimQuake(ball: SuperBall, dir: Facing): void {
   const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
   const e = SUPER_SHOTS.quake.elevation;
-  ball.vx = dir * Math.cos(e) * speed;
-  ball.vy = -Math.sin(e) * speed;
+  ball.vx = dir * dcos(e) * speed;
+  ball.vy = -dsin(e) * speed;
 }

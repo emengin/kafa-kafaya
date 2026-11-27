@@ -6,6 +6,9 @@ import type { Circle, Rect, Segment } from './shapes';
  * Bir temasın geometrisi. Normal (nx, ny) birim vektördür ve **B'den A'ya** bakar:
  * A'yı çakışmadan çıkarmak için A, n yönünde `depth` kadar itilmelidir.
  * Tüm fonksiyonlarda A ilk parametredeki dairedir.
+ *
+ * Dönen temas paylaşılan tek bir nesnedir (alt adım başına onlarca temas bellek ayırmasın, Faz
+ * 2.7): bir sonraki çarpışma testine kadar geçerlidir; saklamak için kopyalayın.
  */
 export interface Contact {
   readonly nx: number;
@@ -14,6 +17,14 @@ export interface Contact {
 }
 
 const EPS = PHYSICS.epsilon;
+const shared = { nx: 0, ny: 0, depth: 0 };
+
+function contact(nx: number, ny: number, depth: number): Contact {
+  shared.nx = nx;
+  shared.ny = ny;
+  shared.depth = depth;
+  return shared;
+}
 
 /** Daire–nokta: nokta dairenin içindeyse noktadan merkeze doğru normal. */
 function circleVsPoint(
@@ -28,9 +39,9 @@ function circleVsPoint(
   const d2 = dx * dx + dy * dy;
   if (d2 >= c.radius * c.radius) return null;
   const d = Math.sqrt(d2);
-  if (d > EPS) return { nx: dx / d, ny: dy / d, depth: c.radius - d };
+  if (d > EPS) return contact(dx / d, dy / d, c.radius - d);
   // Merkez tam noktanın üstünde: yön belirsiz, deterministik bir yedek yön kullan.
-  return { nx: fallbackNx, ny: fallbackNy, depth: c.radius };
+  return contact(fallbackNx, fallbackNy, c.radius);
 }
 
 /** Daire–daire. Normal b'den a'ya. Merkezler çakışıksa a yukarı itilir. */
@@ -41,8 +52,8 @@ export function circleVsCircle(a: Circle, b: Circle): Contact | null {
   const d2 = dx * dx + dy * dy;
   if (d2 >= r * r) return null;
   const d = Math.sqrt(d2);
-  if (d > EPS) return { nx: dx / d, ny: dy / d, depth: r - d };
-  return { nx: 0, ny: -1, depth: r };
+  if (d > EPS) return contact(dx / d, dy / d, r - d);
+  return contact(0, -1, r);
 }
 
 /**
@@ -59,7 +70,7 @@ export function circleVsRect(c: Circle, r: Rect): Contact | null {
     const d2 = dx * dx + dy * dy;
     if (d2 >= c.radius * c.radius) return null;
     const d = Math.sqrt(d2);
-    if (d > EPS) return { nx: dx / d, ny: dy / d, depth: c.radius - d };
+    if (d > EPS) return contact(dx / d, dy / d, c.radius - d);
     // Merkez tam kenarın üzerinde: aşağıdaki "içeride" yoluyla çöz.
   }
 
@@ -84,7 +95,7 @@ export function circleVsRect(c: Circle, r: Rect): Contact | null {
     nx = 1;
     ny = 0;
   }
-  return { nx, ny, depth: min + c.radius };
+  return contact(nx, ny, min + c.radius);
 }
 
 /**
@@ -110,7 +121,7 @@ export function circleVsSegment(c: Circle, s: Segment): Contact | null {
     const dist = relX * fnx + relY * fny;
     if (t >= 0 && t <= 1) {
       if (dist >= c.radius) return null;
-      return { nx: fnx, ny: fny, depth: c.radius - dist };
+      return contact(fnx, fny, c.radius - dist);
     }
     if (dist < 0) return null;
   }

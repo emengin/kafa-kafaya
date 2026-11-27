@@ -1,3 +1,4 @@
+import { dcos, dlog } from '../../physics';
 /** mulberry32 sabitleri (algoritmanın parçası; ayar değeri değildir). */
 const INCREMENT = 0x6d2b79f5;
 const SHIFT_A = 15;
@@ -53,7 +54,7 @@ export class SeededRandom {
   gaussian(): number {
     const u = 1 - this.next(); // (0, 1]: log(0) olmasın
     const v = this.next();
-    return Math.sqrt(BOX_MULLER_K * Math.log(u)) * Math.cos(2 * Math.PI * v);
+    return Math.sqrt(BOX_MULLER_K * dlog(u)) * dcos(2 * Math.PI * v);
   }
 }
 

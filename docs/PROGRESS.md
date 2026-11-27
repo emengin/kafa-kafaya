@@ -43,7 +43,8 @@ Canlı: https://emengin.github.io/kafa-kafaya/ · ölçümler, denge tabloları,
 
 - Gerçek düşük güçlü telefonda, iOS Safari'de ve gerçek gamepad'le ölçülmedi (benzetimle doğrulandı).
 - Determinizm JS motorları arasında garanti değil (`Math.sin/cos/exp` sonuçları motora göre
-  değişir) → Faz 2.7.
+  değişir) → Faz 2.7. (2.7a: simülasyon artık kendi `dsin/dcos/datan2/dexp/dpow`'unu kullanıyor;
+  motorlar arası test 2.7b'de.)
 - Telefonda yazılar küçük (~0,54 ölçek); tek telefonda dokunmatikle 2 oyuncu yok.
 - iOS Safari'de tam ekran yok; yalnızca gamepad'le ses başlamıyor (autoplay kuralı).
 - Denge AI vs AI vekil ölçümüne dayanıyor: Ayaz %57, en dengesiz eşleşme Bora–Toprak %71 → Faz 2.9.
@@ -87,7 +88,9 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
         (aşağıda)
   - [x] 2.6 Sürekli derleme hattı — 2026-11-28 → `v1.0.0-rc.1` etiketiyle imzalı AAB oluştu
         (aşağıda)
-  - [ ] 2.7 Determinizm sertleştirme
+  - [ ] 2.7 Determinizm sertleştirme — **2.7a tamam, 2.7b bekliyor** (2.7a, 2026-11-28: denetim,
+        deterministik matematik, PRNG, lint, durum özeti; 2.7b: zaman efektleri, çapraz motor
+        testi) (aşağıda)
   - [ ] 2.8 Gözlemlenebilirlik temeli
   - [ ] 2.9 His ve denge yeniden ayarı
 - **Bölüm 3 — Görsel ve ses altyapısı [CC]**
@@ -532,6 +535,109 @@ itildi, iki iş yeşil, imza doğrulandı, artefakt `kafa-kafaya-v1.0.0-rc.1-aab
 variable" olarak eklenmişti → imza adımı açık hatayla durdu; düzeltip yeniden çalıştırınca geçti.
 Ayrıntı: [OPS.md § 3.5](OPS.md).
 
+### Faz 2.7a — Determinizm sertleştirme, 1. oturum (2026-11-28; 2.7b bekliyor)
+
+Faz 2.7 iki oturuma bölündü. **2.7a** (bu oturum): madde 1 (denetim), 2 (deterministik matematik),
+3 (PRNG), 4 (lint), 6 (durum özeti) ve 2.4'ten kalan "simülasyonda ayırma" notu. **2.7b**: madde 5
+(zaman efektleri sunuma) ve 7 (çapraz motor testi). Fazın bitti kriteri (çapraz motor testi CI'da
+yeşil) 2.7b'de; faz tamamlandı işaretlenmedi.
+
+**Simülasyon bölgesi:** `src/physics/**`, `src/game/**` (yapay zekâ dahil), `src/input/InputState.ts`
+ve `src/config/gameConfig.ts` (sabitler yüklenirken hesaplanır); testler hariç. Yapay zekâ girdi
+üretir ve tekrarda girdileri kaydedilir, ama AI vs AI maçları (denge simülasyonu, 2.7b'de tekrar
+üretimi, online kuyrukta yapay zekâ) da motorlar arasında aynı olsun diye bölgeye alındı. Sunum
+katmanı (`ui`, `fx`, `audio`, `scenes`) dışarıda: oradaki `Math.random`/`Math.sin` oyun durumunu
+değiştirmez.
+
+**1. Denetim**
+
+| Yer                                     | Bulunan                                                      | Yapılan                                                |
+| --------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------ |
+| `game/entities/Player.ts`               | ayak savrulması ve ayak dairesi: `Math.sin/cos` (alt adımda) | `dsin/dcos`; dinlenen ayağın sin/cos'u önceden hesaplı |
+| `game/kick.ts`                          | şut açısı: `Math.atan2`, `cos`, `sin`                        | `datan2`, `dcos`, `dsin`                               |
+| `game/superEffects.ts`                  | Zikzak dalgası (`cos`), Sarsıntı açısı (`cos/sin`)           | `dcos/dsin`                                            |
+| `game/powerups.ts`                      | balon salınımı (`sin`)                                       | `dsin`; isabet testi konum nesnesi kurmuyor            |
+| `game/GameSim.ts`                       | Kasırga mesafesi `Math.hypot`, Serap yönleri `cos/sin`       | `dhypot`, `dcos/dsin`                                  |
+| `physics/ballistics.ts`                 | dönüş sönümü `Math.exp` (her alt adımda)                     | `dexp`                                                 |
+| `game/ai/random.ts`                     | `gaussian`: `Math.log`, `Math.cos`                           | `dlog`, `dcos`                                         |
+| `game/ai/AiController.ts`, StuckMonitor | `Math.hypot` ×15, `cos/sin`                                  | `dhypot`, `dcos/dsin`                                  |
+| `config/gameConfig.ts`                  | yalnızca `Math.PI`                                           | —                                                      |
+| Diğer                                   | `Math.ceil/sign/imul/trunc`, `%`, `Object.keys`/`for…in`     | ECMAScript'te tam tanımlı (izinli); `sort`, `Date` yok |
+
+- **3. PRNG:** simülasyon zaten tohumlu mulberry32 (`SeededRandom`) kullanıyordu ve durumu
+  `saveState`/`loadState`'teydi (`rngState`); simülasyonda `Math.random` yoktu. Yeni: `gaussian`
+  deterministik, lint `Math.random`'ı engelliyor, durum özeti testi rollback sonrasında PRNG, balon
+  ve yanılsamaların devamını her karede doğruluyor.
+- **Simülasyonda ayırma (2.4 notu):** temas (`Contact`) ve çözüm sonucu paylaşılan nesne; yanılsama
+  topları havuzda (havuzdan alınan top yeni kurulmuş topa döndürülür, havuz sonucu etkilemez —
+  testle); balon kaydı yerinde kopyalanıyor; `copyFields` `for…in` ile (anahtar dizisi yok); güç
+  sayaçları ve sıcak döngüler yineleyicisiz. Ölçüm (Node 24, AI vs AI, GC'siz pencere,
+  `scripts/feel.ts --alloc`): yalnızca adım **6,14 → 2,59 kB/kare** (−%58); adım + kayıt + 8 adım
+  rollback 17,66 → 14,67 kB/kare. Kalan ayırma V8'in sayı kutulaması; Phaser içi ~265 kB/kare (P2
+  notu) yanında küçük.
+
+**2. Deterministik matematik** — [src/physics/detMath.ts](../src/physics/detMath.ts): `dsin`, `dcos`,
+`datan`, `datan2`, `dexp`, `dlog`, `dpow`, `dhypot`, `pow2`. Yalnızca `+ − × ÷`, `Math.sqrt` ve tam
+sonuçlu `floor/round/abs`; algoritma ve katsayılar fdlibm'den (Cody–Waite indirgeme + minimax
+polinomları), bit işlemleri değer karşılaştırmasına çevrildi. Doğruluk (Node, 20.000 örnek,
+`Math`'e göre):
+
+| İşlev                        | En büyük fark                                                 |
+| ---------------------------- | ------------------------------------------------------------- |
+| `dsin`, `dcos` (\|x\| ≤ 10⁵) | 1 ulp (örneklerin ~%99'unda 0)                                |
+| `datan`, `datan2`, `dexp`    | 0 ulp; özel değerler (±0, ±∞, NaN) birebir                    |
+| `dlog`                       | 1 ulp                                                         |
+| `dpow` tam sayı üs           | 2–3 için ≤ 1 ulp (kare alarak çarpım)                         |
+| `dpow` kesirli üs            | göreli ≤ (1 + \|y·ln x\|)·2⁻⁵² (ör. 3^2,5: 5 ulp); oyunda yok |
+
+Testler ([detMath.test.ts](../src/physics/detMath.test.ts), 20): eşik 2 ulp (motordan bağımsız),
+özel değerler, simetri ve özdeşlikler, **altın özet** (sabit girdilerde çıktı bitlerinin FNV-1a
+özeti; 2.7b'de WebKit'te de aynı çıkmalı). Testler bir hata yakaladı: `dpow(−∞, 0,5)` NaN
+dönüyordu (doğrusu +∞) → düzeltildi.
+
+**4. Lint kuralı** — [scripts/lint/determinism.js](../scripts/lint/determinism.js),
+`kafa/deterministic-sim` (izin listesi): izinli olanlar `+ − × ÷`, `sqrt`,
+`abs/min/max/floor/ceil/round/trunc/sign/fround`, `imul/clz32` ve sabitler. Geri kalan her `Math`
+üyesi (`sin`, `atan2`, `exp`, `pow`, `hypot`, `log`, `cbrt`…), `Math.random`, `**`/`**=`,
+`Math['…']` ve `Math` takma adı / yapı bozma (`const { sin } = Math`) hata; mesaj yerine kullanılacak
+işlevi söyler. Derlemeyi kırar: ESLint (`npm run lint`, deploy.yml) ve
+[determinism.test.ts](../scripts/lint/determinism.test.ts) bütün simülasyon dosyalarını kuralla
+tarar (`npm test`: deploy.yml ve android-release.yml). `kick.ts`'e kasıtlı `Math.sin(1) + 2 ** 3`
+eklenince ikisi de kırıldı (denendi, geri alındı).
+
+**6. Durum özeti** — [src/game/stateChecksum.ts](../src/game/stateChecksum.ts), `GameSim.checksum()`:
+alan sırası sabit listelerden (`PLAYER_FIELDS`, `BALL_FIELDS`, `BALLOON_FIELDS`; Player/Ball'a alan
+eklenip listeye eklenmezse test kırılır), sayılar Float64'ün 8 baytı (küçük uçlu), −0 ≠ 0, NaN
+kanonik, her değerde tür etiketi; 64 bit (Murmur3 + xxHash32 turları), 16 onaltılık hane. Testler
+(7): alan kapsamı; aynı girdi → her karede aynı özet; `saveState` → `loadState` sonrası 120 adım her
+karede aynı (yanılsama + balon + Işınlanma anları, havuzu dolu gölge simülasyon); her alanın en
+küçük farkı özeti değiştirir (>100 değişken); −0 ve NaN; anahtar sırasından bağımsızlık.
+`npm run bench -- --only determinism` artık `GameSim.checksum` kullanıyor (eski derlemelerde JSON
+özetine düşer, iki tür karşılaştırılmaz). Chromium'da: 2 senaryo × 79 denetim, gol tekrarı
+çelişkisi **0**.
+
+**Fizik hissi (2.9 için)** — `npm run feel` ([scripts/feel.ts](../scripts/feel.ts)): 10 karakterin
+zıplaması (basılı / tek dokunuş tepesi, havada kalış), iki temas yüksekliğinde şut (hız, açı,
+dönüş, yol, gol adımı), 10 süper (çıkış hızı, 15/30/60 adımda konum), 3 serbest top fırlatışı
+(sekme, yol, dönüş sönümü) ve 3 AI maçı. Önce (6023dd1) ↔ sonra: **365 ölçümün 364'ü bit
+düzeyinde aynı.** V8'in `Math.sin/exp/atan2`'si de fdlibm tabanlı; oyundaki değerlerde aynı bitler
+çıkıyor. Tek fark AI maçı 1'in süresi (8.417 → 7.147 adım, skor 3–4 aynı): `Math.hypot` →
+√(x² + y²) son bitte farklı, yapay zekânın bir kararı değişiyor, maç kaotik olarak ayrışıyor.
+**His değişmedi;** 2.9'da bu faz yüzünden ayar gerekmiyor.
+
+**Rollback (Node, kayıt + 8 adım, 5.400 kare × 3 koşu):** önce ort. 0,076–0,080 ms, p99
+0,13–0,23 ms; sonra ort. 0,079–0,080 ms, p99 0,13–0,16 ms → fark gürültü içinde. Telefonda 2.7b
+sonunda (not).
+
+**Faz sonu kontrolü (QUALITY_BAR, 2.7a)**
+
+| Satır                         | Ölçüm                                                                     | Durum                     |
+| ----------------------------- | ------------------------------------------------------------------------- | ------------------------- |
+| K6 Motorlar arası determinizm | simülasyon yalnızca tam tanımlı işlemler; lint + altın özet; CI testi yok | ◐ çapraz motor testi 2.7b |
+| P7 Kare başına ayırma         | simülasyon 6,14 → 2,59 kB/kare (Node); Phaser içi değişmedi               | ◐ (P2 notu sürüyor)       |
+| P9 Rollback                   | Node'da değişmedi (ort. 0,08 ms)                                          | telefonda 2.7b sonunda    |
+| Determinizm testleri          | 494 birim testi, 8 duman testi yeşil; tarayıcı tezgâhında çelişki 0       | ✅                        |
+
 ## Sonraki fazlar için notlar
 
 Faz 0.3'teki açık sorular Faz 0.4'te, 1.1'e bırakılanlar Faz 1.1'de (K13–K17) karara bağlandı;
@@ -565,10 +671,30 @@ sonra hâlâ görülen riskler:
   12.4'ün kayıt altyapısıyla Bölüm 6 ya da 11'e eklenmeli.
 - **12.6 — Günlük sıfırlama saati:** 00:00 TSİ uzak bölgelerde günün ortasına denk gelir; bölgesel
   sıfırlama kararı test lansmanından önce.
-- **2.7 — Rollback ölçümünü tekrarla (2.4'ten):** Faz 2.4'te telefonda kayıt + 8 adım p99 1,1–1,2 ms,
-  p99,9 2,1 ms (bütçe 4 ms) — 2.7'nin kendi `sin/cos/atan2/exp/pow` fonksiyonlarından önce. 2.7
-  sonunda geliştirici derlemesinde `?devtest=rollback` (ya da Stres testi) ile tekrarlanmalı.
-- **2.7 / 3.6 — Sunum katmanında hit-stop:** simülasyon akarken görüntüyü 40–60 ms dondurmak,
+- **2.7b — Rollback ölçümünü telefonda tekrarla (2.4'ten):** Faz 2.4'te telefonda kayıt + 8 adım p99
+  1,1–1,2 ms, p99,9 2,1 ms (bütçe 4 ms). 2.7a'da kendi `dsin/dcos/datan2/dexp`'imize geçildi; Node'da
+  maliyet değişmedi (ort. 0,08 ms). 2.7b sonunda geliştirici derlemesinde `?devtest=rollback` (ya da
+  Stres testi) ile telefonda tekrarlanmalı.
+- **2.7b — Çapraz motor testi için hazır olanlar (2.7a'dan):** `GameSim.checksum()` (kanonik özet);
+  detMath altın özeti (`detMath.test.ts` `GOLDEN`) WebKit'te de aynı çıkmalı — testin ilk adımı
+  olabilir; tezgâhın tarayıcı kancası (adım başına özet, gol tekrarı çelişkisi) örnek. Yapay zekâ
+  da lint bölgesinde: AI vs AI maçları tüm karakter ve süperleri kapsayan tekrarları üretmek için
+  kullanılabilir (girdiler kaydedilip fixture olarak saklanmalı; AI'ın kendisi de motorlar arası
+  aynı olmalı). Madde 5 için: `MatchFlow` gol kutlamasını `timeScale` ile "gerçek süre eşdeğeri"
+  sayıyor (`phaseTime += dt / timeScale`) — kare sayısına çevrilecek.
+- **2.9 — His karşılaştırması (2.7a'dan):** `npm run feel -- --json önce.json` ve
+  `npm run feel -- --compare önce.json sonra.json` (2.9 madde 1). 2.7a'da his değişmedi (365
+  ölçümün 364'ü bit düzeyinde aynı); 2.7b'nin zaman efektleri değişikliğinden sonra yeniden alınmalı.
+- **Simülasyona yeni kod (2.7a'dan):** Player/Ball'a alan eklenince `stateChecksum.ts`'teki alan
+  listesine de eklenmeli (test kırılarak hatırlatır). Trigonometri/üs gerekiyorsa
+  `src/physics/detMath.ts`; yeni bir işlev gerekirse izinli işlemlerle, doğruluk testi ve altın
+  özete katkısıyla aynı dosyaya.
+- **9.x — Durum aktarımı (2.7a'dan):** yarım maç kaydı (`matchResume`, JSON) −0'ı 0'a çeviriyor;
+  çevrimdışı devam için sorun değil, ama online'da durum aktarımı ya da doğrulaması JSON ile değil
+  kanonik ikili biçimle yapılmalı. `checksum()` 16 karakterlik metin döndürür (ayırma yapar); her
+  karede ağda kullanılacaksa sayı çifti döndüren bir sürümü eklenebilir. Özet kriptografik değil
+  (9.3'teki kasıtlı bozuk özet notu geçerli).
+- **2.7b / 3.6 — Sunum katmanında hit-stop:** simülasyon akarken görüntüyü 40–60 ms dondurmak,
   ardından 2–4 karelik sıçrama ya da geçici görsel gecikme demek; rollback düzeltmeleriyle üst üste
   binince his bozulabilir. 2.7'de prototiplenmeli. Ağır çekimin doğal yeri gol sonrası deterministik
   duraklama (tekrar oynatma).
@@ -657,10 +783,6 @@ sonra hâlâ görülen riskler:
 - **Capacitor 9 (2.1'den):** 9.0 RC şablonu AGP 9.4 + Gradle 9.8, minSdk 26, compileSdk 37. Geçişte
   Gradle 10 uyarıları da kapanır; `android/` şablon farkı elle birleştirilir (`MainActivity`, manifest,
   `styles.xml`, `colors.xml` özelleştirildi).
-- **2.7 — Simülasyonda ayırma (2.4'ten):** `collideStatic`/`circleVsCircle` her temasta yeni temas
-  nesnesi, `resolveContact` yeni sonuç nesnesi döndürüyor; `loadState` yanılsamalar için yeni `Ball`
-  kuruyor (rollback'te her geri sarmada). Masaüstünde kare başına ~6 kB; 2.7 denetiminde ön ayrılmış
-  sonuç nesnelerine çevrilebilir (aritmetik aynı, determinizm testleri doğrular).
 - **3.1 / 4.5 — Bellek bütçesi (2.4'ten):** normal maçta toplam PSS ~366–371 MB (P6 sınırı 400),
   hedef boyutlu stres sahnesinde ~428–452 MB. Kodla çizilen dokular WebView'da iki kez yer tutuyor
   (çizici süreçte tuval, GPU'da doku); final görseller PNG olarak gelince de çözülmüş görüntü
@@ -692,10 +814,6 @@ sonra hâlâ görülen riskler:
   Phaser'a yama ya da sorun bildirimi. 3.2'deki parçalı karakterler (karakter başına ~22 resim) bu yükü
   artıracak; geliştirici derlemesindeki takılma günlüğüyle (`__KAFA_PERF__.report().hitches`)
   doğrulanmalı.
-- **2.7 — Durum özeti:** tezgâhın determinizm bölümü `JSON.stringify(saveState())` özetini
-  kullanıyor; bu kanonik değil (`-0` → `0`, `NaN` → `null`, alan sırası nesne kurulum sırasına bağlı).
-  2.7'nin checksum'ı için alan sırası sabit, ikili (Float64) bir serileştirme gerekir; tezgâhtaki
-  tarayıcı kancası (adım başına özet, gol tekrarı çelişki denetimi) çapraz motor testine örnek.
 - **3.6 — Phaser 4 filtreleri:** parlama, bulanıklık, gölge vb. artık her nesne ve kamerada var,
   ama her filtre ayrı bir dokuya çizim geçişi; efekt bütçesine ve düşük seviye cihaz ölçümüne bağlı
   kullanılmalı. Özel derlemede filtre düğümleri zaten paketin içinde (`RenderNodeManager`).

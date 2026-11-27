@@ -43,11 +43,15 @@ const NESTED = new Set(['powerUps']);
 /**
  * `source`'un düz alanlarını `target`'a kopyalar (sayı, mantık, metin, null); `NESTED`
  * listesindeki alt nesneleri alan alan kopyalar. Ayırma yapmaz (hedef yeniden kullanılır).
+ *
+ * `for…in`: `Object.keys` gibi her çağrıda anahtar dizisi kurmaz (rollback'te kare başına onlarca
+ * kopya). Sınıf yöntemleri ve erişimcileri numaralandırılamaz olduğu için yalnızca kendi alanları
+ * gezilir; sıra ES2020'den beri tanımlı (ekleme sırası), motorlar arasında aynı.
  */
 export function copyFields(target: object, source: object): void {
   const t = target as FieldBag;
   const s = source as FieldBag;
-  for (const key of Object.keys(s)) {
+  for (const key in s) {
     const value = s[key];
     if (value === null || typeof value !== 'object') {
       t[key] = value;

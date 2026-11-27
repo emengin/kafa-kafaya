@@ -2,6 +2,7 @@ import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import prettier from 'eslint-config-prettier';
 import globals from 'globals';
+import { determinism, SIM_FILES, SIM_IGNORES } from './scripts/lint/determinism.js';
 
 export default tseslint.config(
   { ignores: ['dist', 'dist-mobile', 'android', 'node_modules', 'coverage'] },
@@ -36,6 +37,14 @@ export default tseslint.config(
         },
       ],
     },
+  },
+  {
+    // Faz 2.7 — Determinizm: simülasyon her JS motorunda bit düzeyinde aynı sonucu vermeli.
+    // Motora göre değişen Math işlevleri, `**` ve Math.random yasak (scripts/lint/determinism.js).
+    files: [...SIM_FILES],
+    ignores: [...SIM_IGNORES],
+    plugins: { kafa: determinism },
+    rules: { 'kafa/deterministic-sim': 'error' },
   },
   {
     files: ['**/*.js', '**/*.cjs'],

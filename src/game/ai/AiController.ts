@@ -13,7 +13,7 @@ import {
   type SuperType,
 } from '../../config/gameConfig';
 import { EMPTY_INPUT, type InputSource, type InputState } from '../../input/InputState';
-import { clamp, lerp } from '../../physics';
+import { clamp, dcos, dhypot, dsin, lerp } from '../../physics';
 import type { PlayerParams } from '../characters';
 import { Ball, type BallSuperState } from '../entities/Ball';
 import { PLAYER_STAND_OFFSET } from '../entities/Player';
@@ -589,7 +589,7 @@ export class AiController {
       this.noiseY *= AI.noiseDecayPerRefresh;
     }
     const s = this.seen;
-    const speed = Math.hypot(s.bvx, s.bvy);
+    const speed = dhypot(s.bvx, s.bvy);
     const st = this.startState;
     st.x = s.bx;
     st.y = s.by;
@@ -700,7 +700,7 @@ export class AiController {
    */
   private looseBallBonus(a: Analysis): number {
     const u = AI.utility;
-    const slow = Math.hypot(this.traj.vx(0), this.traj.vy(0)) < u.looseBallSpeed;
+    const slow = dhypot(this.traj.vx(0), this.traj.vy(0)) < u.looseBallSpeed;
     // Rakip topun dibindeyse (top onun ayağında) sahipsiz değildir; uzaklaşırken bonus sürer.
     const oppOnBall = Math.abs(this.opponentX() - a.ballX) < u.looseBallOpponentPx;
     if (!slow || (oppOnBall && this.looseSince < 0)) {
@@ -822,9 +822,7 @@ export class AiController {
   /** Tahmine göre top k. adımda yerde ve neredeyse duruyor mu? */
   private restingAt(k: number): boolean {
     const t = this.traj;
-    return (
-      t.y(k) >= AI.kick.groundBallMinY && Math.hypot(t.vx(k), t.vy(k)) < AI.utility.looseBallSpeed
-    );
+    return t.y(k) >= AI.kick.groundBallMinY && dhypot(t.vx(k), t.vy(k)) < AI.utility.looseBallSpeed;
   }
 
   /** Rakibin topa (kendi vuruş tarafından) ulaşma süresi (adım). Donmuşsa donma süresi eklenir. */
@@ -857,8 +855,8 @@ export class AiController {
     const h = AI.header;
     const n = Math.min(secToSteps(h.maxLeadSeconds), t.remaining);
     const headR = this.headR;
-    const offX = this.headBall * Math.cos(angle);
-    const offY = this.headBall * Math.sin(angle);
+    const offX = this.headBall * dcos(angle);
+    const offY = this.headBall * dsin(angle);
     const maxRise = Math.min(h.maxRise, this.jump.apexRise - h.minRise);
     const oppBarBottom = PITCH.groundY - this.predictor.field.goals[1].mouthHeight;
     for (let k = h.minLeadTicks; k <= n; k++) {
@@ -1062,9 +1060,9 @@ export class AiController {
     for (let k = 1; k <= sd.dodgeLookTicks; k++) {
       const bx = t.x(k);
       const by = t.y(k);
-      const head = Math.hypot(bx - me.x, by - me.y) < this.headBall + sd.dodgeMarginPx;
+      const head = dhypot(bx - me.x, by - me.y) < this.headBall + sd.dodgeMarginPx;
       const body =
-        Math.hypot(bx - me.x, by - (me.y + PLAYER.body.offsetY)) < this.bodyBall + sd.dodgeMarginPx;
+        dhypot(bx - me.x, by - (me.y + PLAYER.body.offsetY)) < this.bodyBall + sd.dodgeMarginPx;
       if (head || body) {
         hitK = k;
         break;
@@ -1132,9 +1130,9 @@ export class AiController {
       const bx = t.x(k);
       if (bx > px - s.goalSideMarginPx) continue;
       const by = t.y(k);
-      const head = Math.hypot(bx - px, by - me.y) < this.headBall + s.contactMarginPx;
+      const head = dhypot(bx - px, by - me.y) < this.headBall + s.contactMarginPx;
       const body =
-        Math.hypot(bx - px, by - (me.y + PLAYER.body.offsetY)) < this.bodyBall + s.contactMarginPx;
+        dhypot(bx - px, by - (me.y + PLAYER.body.offsetY)) < this.bodyBall + s.contactMarginPx;
       if (head || body) return true;
     }
     return false;
@@ -1190,7 +1188,7 @@ export class AiController {
     if (bx < OWN_LINE + k.dangerZonePx) return true;
     const ox = this.opponentX();
     const oy = this.seen.oy;
-    if (Math.hypot(bx - ox, by - oy) < k.pressureDistancePx) return true;
+    if (dhypot(bx - ox, by - oy) < k.pressureDistancePx) return true;
     // Top bana doğru hızla geliyorsa (vole) beklemek yok.
     return this.traj.vx(0) < -k.incomingSpeed && bx > me.x;
   }
@@ -1251,9 +1249,9 @@ export class AiController {
       if (sp.phased(i)) continue;
       const bx = sp.x(i);
       const by = sp.y(i);
-      const head = Math.hypot(bx - ox, by - oy) < oppHeadBall + k.blockMarginPx;
+      const head = dhypot(bx - ox, by - oy) < oppHeadBall + k.blockMarginPx;
       const body =
-        Math.hypot(bx - ox, by - (oy + PLAYER.body.offsetY)) < this.bodyBall + k.blockMarginPx;
+        dhypot(bx - ox, by - (oy + PLAYER.body.offsetY)) < this.bodyBall + k.blockMarginPx;
       if (head || body) return this.blockedScore(superType);
     }
     if (entry >= 0) return 1;
@@ -1339,8 +1337,8 @@ export class AiController {
       Math.abs(this.traj.vy(0)) < st.ballOnHeadMaxVy;
     this.headTimer = onHead ? this.headTimer + STEP : 0;
 
-    const ballSlow = Math.hypot(this.traj.vx(0), this.traj.vy(0)) < st.idleBallMaxSpeed;
-    const near = Math.hypot(bx - me.x, by - me.y) < st.idleRadiusPx;
+    const ballSlow = dhypot(this.traj.vx(0), this.traj.vy(0)) < st.idleBallMaxSpeed;
+    const near = dhypot(bx - me.x, by - me.y) < st.idleRadiusPx;
     if (!near || !ballSlow || Math.abs(me.x - this.idleAnchorX) > st.idleTravelPx) {
       this.idleAnchorX = me.x;
       this.idleTimer = 0;
