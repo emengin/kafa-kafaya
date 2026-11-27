@@ -34,7 +34,7 @@ jobs:
       - run: npm test
       - run: npm run build
       # Mobil (Capacitor) derlemesi ayrı klasöre (dist-mobile/); yalnızca duman testi için,
-      # Pages'e yüklenmez. Android APK derlemesi Faz 2.6'da.
+      # Pages'e yüklenmez. İmzalı Android AAB etiketle android-release.yml'da üretilir.
       - run: npm run build:mobile
 
       - name: Playwright tarayıcısı

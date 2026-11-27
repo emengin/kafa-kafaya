@@ -1,9 +1,11 @@
 name: GitHub Release
 
-# `v*` etiketi itildiğinde sürüm notunu CHANGELOG.md'den çıkarıp GitHub Release oluşturur.
+# `vX.Y.Z` etiketi itildiğinde sürüm notunu CHANGELOG.md'den çıkarıp GitHub Release oluşturur.
+# `vX.Y.Z-rc.N` (aday / deneme) etiketleri burada çalışmaz; onlar yalnızca Android AAB üretir
+# (android-release.yml, etiket kuralı docs/OPS.md § 3.2).
 on:
   push:
-    tags: ['v*']
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
 
 permissions:
   contents: write

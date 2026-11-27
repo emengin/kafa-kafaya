@@ -85,7 +85,8 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
         (aşağıda)
   - [ ] 2.5 Uygulama yaşam döngüsü — kod tamam, adb ön testleri geçti; telefonda kesinti testi bekliyor
         (aşağıda)
-  - [ ] 2.6 Sürekli derleme hattı
+  - [ ] 2.6 Sürekli derleme hattı — kod tamam; anahtar + GitHub sırları ve deneme etiketi bekliyor
+        (aşağıda)
   - [ ] 2.7 Determinizm sertleştirme
   - [ ] 2.8 Gözlemlenebilirlik temeli
   - [ ] 2.9 His ve denge yeniden ayarı
@@ -494,6 +495,39 @@ kayıyordu (gri şerit) → temiz yeniden başlatma.
 | A3 sıcak açılış             | durum korunuyor ✅ (adb); süre telefon testi 5'te                                    |
 | K5 kesintiler               | ◐ arka plan, düşük bellek, süreç/çizici kaybı ✅ (adb); çağrı, bildirim, kulaklık ⏳ |
 
+### Faz 2.6 — Sürekli derleme hattı (2026-11-27, kod tamam — anahtar ve deneme etiketi bekliyor)
+
+`vX.Y.Z` ya da `vX.Y.Z-rc.N` etiketi itilince `.github/workflows/android-release.yml` imzalı AAB
+üretir. Kurulum, yedekleme, Play App Signing ve etiket kuralı: [OPS.md § 2–3](OPS.md).
+
+**Ne yapıldı**
+
+- **İmzalı AAB (iki iş):** "İmzasız AAB derle" işi `npm ci` → `npm test` → `cap:sync` →
+  `bundleRelease`; hiç sır görmez. "İmzala" işi `android-release` ortamında, yalnızca JDK
+  `jarsigner` ile imzalar ve `jar verified.` metnini kontrol eder (imzasız dosyada da `-verify`
+  0 döndüğü için), sertifika parmak izini özete yazar. Artefakt 30 gün.
+- **Sürüm numarası:** `android/app/build.gradle` `package.json`'u okur;
+  `versionCode = X·10⁶ + Y·10⁴ + Z·100 + D` (D: yerel 0, rc N, sürüm 99). Etiket `package.json`
+  ile uyuşmazsa derleme durur. `:app:printAppVersion` görevi hesabı yazar.
+- **Herkese açık depo güvenliği:** etiket dışında tetikleyici yok; sırlar `v*` etiketlerine kısıtlı
+  ortamda; şifre `env` ile (`-storepass:env`), komut satırında ve betik metninde yok; eylemler SHA'ya
+  sabit, önbellek yok, `persist-credentials: false`. Ayrıntı OPS § 3.4.
+- **Mevcut CI:** `deploy.yml` aynı (yalnızca yorum). `release.yml` artık yalnızca `vX.Y.Z`
+  etiketlerinde çalışır; `-rc` etiketleri GitHub Release oluşturmaz.
+
+**Yerel prova (2026-11-27)**
+
+| Kontrol                                                     | Sonuç                                                           |
+| ----------------------------------------------------------- | --------------------------------------------------------------- |
+| `printAppVersion`: etiketsiz / `v1.0.0-rc.1` / `v1.0.0`     | ✅ `1.0.0-dev` 1000000 / `1.0.0-rc.1` 1000001 / `1.0.0` 1000099 |
+| Hatalı etiket: `v1.0.1`, `v1.0.0-beta.1`, `-rc.99`, `1.0.0` | ✅ hepsinde derleme Türkçe hata ile duruyor                     |
+| `bundleRelease -PreleaseTag=v1.0.0-rc.1`                    | ✅ 3,7 MB AAB; birleştirilmiş manifestte versionCode 1000001    |
+| Atılacak test anahtarıyla `jarsigner` (CI komutlarıyla)     | ✅ `jar verified.`; yanlış şifrede açık hata, şifre görünmüyor  |
+| Base64 → anahtar (sonda CRLF ile)                           | ✅ bayt bayt aynı (`base64 -d -i`)                              |
+
+**Bitti kriteri:** her etiketlenen sürümde imzalı AAB otomatik oluşuyor → ⏳ geliştirici anahtarı
+oluşturup sırları ekleyince `v1.0.0-rc.1` deneme etiketi itilecek.
+
 ## Sonraki fazlar için notlar
 
 Faz 0.3'teki açık sorular Faz 0.4'te, 1.1'e bırakılanlar Faz 1.1'de (K13–K17) karara bağlandı;
@@ -589,10 +623,13 @@ sonra hâlâ görülen riskler:
 - **12.3 — Eski Android'de açılış ekranı ve ses odağı (2.5'ten):** açılış ekranı ve ses odağı yalnızca
   Android 15'te (referans cihaz) denendi. Android 7–11'de core-splashscreen kendi görünümünü çiziyor,
   ses odağı eski API ile isteniyor; cihaz matrisinde açılış (boş ekran yok) ve çağrı senaryosu denenmeli.
-- **2.6 — CI'da APK (2.1'den):** Capacitor CLI Node ≥ 22 istiyor (CI 24). Gradle 9.1 JDK 17–25 ile
-  çalışır (`actions/setup-java`). `npx cap sync` öncesi `build:mobile` şart (`cap:sync` betiği yapıyor).
-- **12.1 — Sürüm hattı (2.1'den):** `versionCode`/`versionName` `package.json`'dan okunmalı (şu an
-  sabit 1 / "1.0"); release imza anahtarı depo dışında (`.gitignore` `*.jks`, `*.keystore`).
+- **12.1 — Sürüm hattı (2.6'dan):** imzalı AAB ve sürüm numarası hazır (OPS § 3). Kalanlar:
+  kademeli dağıtım, çökme sembolleri (R8 açılırsa `mapping.txt`, yerel kod yok), sürüm notları
+  şablonu, AAB'nin Play'e otomatik yüklenmesi (Play Developer API hizmet hesabı; o zaman yeni bir
+  ortam sırrı). Sürüm sınırı Y, Z ≤ 99.
+- **12.3 — Release derlemesi telefonda (2.6'dan):** CI'ın AAB'si henüz telefonda denenmedi (AAB doğrudan
+  kurulmaz; Play iç test kanalı ya da `bundletool build-apks --connected-device` gerekir). İlk Play
+  yüklemesinde release derlemesi (`minifyEnabled false`, debug WebView kapalı) cihazda oynanmalı.
 - **8.1 — Yedekleme (2.1'den):** `android:allowBackup="true"` (şablon varsayılanı) → localStorage
   kaydı Google yedeğine gidiyor; veri haritasına yazılmalı ya da `dataExtractionRules` ile
   sınırlanmalı.
