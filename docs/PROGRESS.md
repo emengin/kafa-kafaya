@@ -85,7 +85,7 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
         (aşağıda)
   - [ ] 2.5 Uygulama yaşam döngüsü — kod tamam, adb ön testleri geçti; telefonda kesinti testi bekliyor
         (aşağıda)
-  - [ ] 2.6 Sürekli derleme hattı — kod tamam; anahtar + GitHub sırları ve deneme etiketi bekliyor
+  - [x] 2.6 Sürekli derleme hattı — 2026-11-28 → `v1.0.0-rc.1` etiketiyle imzalı AAB oluştu
         (aşağıda)
   - [ ] 2.7 Determinizm sertleştirme
   - [ ] 2.8 Gözlemlenebilirlik temeli
@@ -495,7 +495,7 @@ kayıyordu (gri şerit) → temiz yeniden başlatma.
 | A3 sıcak açılış             | durum korunuyor ✅ (adb); süre telefon testi 5'te                                    |
 | K5 kesintiler               | ◐ arka plan, düşük bellek, süreç/çizici kaybı ✅ (adb); çağrı, bildirim, kulaklık ⏳ |
 
-### Faz 2.6 — Sürekli derleme hattı (2026-11-27, kod tamam — anahtar ve deneme etiketi bekliyor)
+### Faz 2.6 — Sürekli derleme hattı (2026-11-28, tamamlandı)
 
 `vX.Y.Z` ya da `vX.Y.Z-rc.N` etiketi itilince `.github/workflows/android-release.yml` imzalı AAB
 üretir. Kurulum, yedekleme, Play App Signing ve etiket kuralı: [OPS.md § 2–3](OPS.md).
@@ -525,8 +525,12 @@ kayıyordu (gri şerit) → temiz yeniden başlatma.
 | Atılacak test anahtarıyla `jarsigner` (CI komutlarıyla)     | ✅ `jar verified.`; yanlış şifrede açık hata, şifre görünmüyor  |
 | Base64 → anahtar (sonda CRLF ile)                           | ✅ bayt bayt aynı (`base64 -d -i`)                              |
 
-**Bitti kriteri:** her etiketlenen sürümde imzalı AAB otomatik oluşuyor → ⏳ geliştirici anahtarı
-oluşturup sırları ekleyince `v1.0.0-rc.1` deneme etiketi itilecek.
+**Bitti kriteri:** her etiketlenen sürümde imzalı AAB otomatik oluşuyor → ✅ geliştirici yükleme
+anahtarını kendisi oluşturup `android-release` ortam sırlarına ekledi; `v1.0.0-rc.1` etiketi
+itildi, iki iş yeşil, imza doğrulandı, artefakt `kafa-kafaya-v1.0.0-rc.1-aab` (3,6 MB).
+`release.yml` rc etiketinde çalışmadı (beklenen). İlk denemede şifre sır yerine "environment
+variable" olarak eklenmişti → imza adımı açık hatayla durdu; düzeltip yeniden çalıştırınca geçti.
+Ayrıntı: [OPS.md § 3.5](OPS.md).
 
 ## Sonraki fazlar için notlar
 

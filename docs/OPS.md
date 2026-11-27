@@ -76,7 +76,7 @@ parametrelerle atılacak bir test anahtarıyla denendi.
 ### 2.3 GitHub'a ekleme (web arayüzü)
 
 Sırlar **depo sırrı değil, ortam (environment) sırrı** olarak eklenir: ortam yalnızca `v*`
-etiketlerine izin verdiği için başka bir dal ya da iş akışı bu sırları okuyamaz. (denenmedi)
+etiketlerine izin verdiği için başka bir dal ya da iş akışı bu sırları okuyamaz. 2026-11-27/28'de denendi.
 
 **A. Ortamı oluştur**
 
@@ -99,7 +99,17 @@ etiketlerine izin verdiği için başka bir dal ya da iş akışı bu sırları 
    yöneticisinden yapıştır → **Add secret**.
 4. Panoyu temizle: `Set-Clipboard -Value ' '`. Pano geçmişi açıksa Win+V → **Tümünü temizle**.
 
+> ⚠️ Aynı sayfada hemen altta **Environment variables** / **Add environment variable** bölümü de var;
+> şifre oraya **eklenmez**. Variable şifreli değildir: değeri sayfada düz metin görünür, loglarda
+> gizlenmez ve iş akışı onu `secrets` içinde bulamaz ("sırları gerekli" hatası). Kural: **değerini
+> görebiliyorsan sır değildir.** İlk denemede bu oldu; variable silinip sır olarak eklendi.
+>
+> Doğru kurulumda **Environment secrets** tablosunda iki satır olur (değer görünmez),
+> **Environment variables** tablosu boştur.
+
 Kaydedilen sır bir daha görüntülenemez (yalnızca değiştirilebilir); bu yüzden GitHub **yedek değildir**.
+Sırrı düzelttikten sonra yeni etiket gerekmez: Actions → çalışma → **Re-run jobs** → **Re-run failed
+jobs** güncel sırları kullanır (imzasız AAB artefaktı 1 gün saklanır).
 
 **C. Depo genel ayarları** (Settings → Actions → General)
 
@@ -219,8 +229,13 @@ içerir; bunu bilerek etiket it.
 
 ### 3.5 Deneme kaydı
 
-- **`v1.0.0-rc.1`** — hattın ilk denemesi (bekliyor). `1.0.0` web sürümü zaten yayınlanmıştı; bu etiket
-  yalnızca hattı denemek içindir, Play'e yüklenmez.
+- **`v1.0.0-rc.1`** (2026-11-27/28) — hattın ilk denemesi ✅.
+  [Çalışma](https://github.com/emengin/kafa-kafaya/actions/runs/46065193384): 1. deneme imza adımında
+  durdu (şifre sır yerine variable olarak eklenmişti, § 2.3 uyarısı); düzeltilip **Re-run failed jobs**
+  ile 2. denemede iki iş de yeşil, imza doğrulandı (`jar verified.`), artefakt
+  `kafa-kafaya-v1.0.0-rc.1-aab` (3,6 MB, 30 gün). `release.yml` çalışmadı, GitHub Release
+  oluşmadı (beklenen). `1.0.0` web sürümü zaten yayınlanmıştı; bu etiket yalnızca hattı denemek
+  içindir, Play'e yüklenmez.
 
 ## 4. iOS derleme
 
