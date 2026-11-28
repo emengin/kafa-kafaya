@@ -930,6 +930,23 @@ başka bir WebView uygulaması açılmışsa) hiç trafik yok. DATA_MAP'e yazıl
 Firebase'e / bizim adımıza veri giden hiçbir istek yok" ✅; "cihazdan hiçbir bayt çıkmıyor" yalnızca
 yazı tipi önbelleği doluyken ✅.
 
+**Telefonda, gerçek Firebase projesiyle (2026-11-28)** — realme RMX3890, `kafadarlar-964e6`,
+`com.emengin.kafadarlar`. Kayıt 4–6 (gizlenmiş; depo herkese açık, ham kayıtlar yalnızca yerelde).
+Gerçek telefonda proxy'den bütün uygulamaların trafiği geçiyor ve birçoğu kendi Firebase'ini
+kullanıyor; bu yüzden sahiplik ölçümü eklendi: proxy portuna bağlı soketlerin UID'si (~20/sn) +
+logcat.
+
+| Senaryo                                                                                              | Bu uygulamanın soketleri / sayacı            | Görülen Firebase bağlantılarının sahibi                                                                                        |
+| ---------------------------------------------------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Veri temizlendi → rıza ekranı 30 sn → "İzin verme" → test JS hatası → **test çökmesi** → yeniden aç  | **0 / +0 bayt**                              | başka iki uygulama (Remote Config; arka planda başlatılan bir uygulamanın Crashlytics'i)                                       |
+| "İzin verme" kayıtlı, 3 açılış-kapanış                                                               | **0 örnek / +0 bayt**                        | önceden yüklü bir uygulamanın Crashlytics'i (logcat'te kendi adıyla), başka bir uygulamanın Remote Config'i                    |
+| Veri temizlendi → **"İzin ver"** → Hızlı Maç (yarıda bırakıldı) → test JS hatası → test çökmesi → aç | ilk soket rıza verilen saniyede / **+20 kB** | bu uygulama: Crashlytics ayarları, `app-measurement.com` (maç olayları), çökme raporu (çökmeden 1 sn sonra), Firebase Sessions |
+
+Bu uygulamanın logcat'i rızasız açılışta: "App measurement disabled", "Sessions SDK disabled
+through data collection. Events will not be sent." Ayrıca görülen: realme'nin sistem bileşeni
+(`DropBoxCrashInfoHelper`) çöken uygulamanın çökme bilgisini rızamızdan bağımsız kendi kaydına
+alıyor (işletim sisteminin işlemesi; çökme mesajlarımızda kişisel veri yok).
+
 **Doğrulama**
 
 | Kontrol                                                            | Sonuç                                                                          |
@@ -942,12 +959,12 @@ yazı tipi önbelleği doluyken ✅.
 | Emülatörde rıza ekranı, Gizlilik menüsü                            | ✅ metin panele sığıyor; iki anahtar rıza durumunu gösteriyor                  |
 | Emülatörde test çökmesi / JS hatası                                | ✅ çökme gerçekleşiyor, uygulama yeniden açılıyor; rızasız hiçbir şey gitmiyor |
 | **Rıza verilince test çökmesi + analiz olayı Firebase konsolunda** | ⏳ **geliştirici**: Firebase projesi (OPS § 4.2–4.5) + telefon testi (§ 4.6)   |
-| Telefonda, gerçek yapılandırmayla ağ kaydı                         | ⏳ telefon bağlanınca (`node scripts/mobile/netlog.js`)                        |
+| Telefonda, gerçek yapılandırmayla ağ kaydı                         | ✅ rızasız 0 soket / 0 bayt; rızayla rıza saniyesinde başlıyor (yukarıda)      |
 
 **Bitti kriteri:** "Rıza verilince test çökmesi ve bir analiz olayı Firebase konsolunda görünüyor"
 → ⏳ konsolda görülmeden işaretlenmeyecek. "Rıza yokken hiçbir istek gitmediği ağ kaydıyla
-doğrulandı" → ✅ emülatörde (sahte yapılandırma; WebView yazı tipi notuyla), telefonda gerçek
-yapılandırmayla tekrarlanacak.
+doğrulandı" → ✅ emülatörde (sahte yapılandırma; WebView yazı tipi notuyla) ve telefonda gerçek
+yapılandırmayla (soket sahipliğiyle).
 
 **Faz sonu kontrolü (QUALITY_BAR)**
 

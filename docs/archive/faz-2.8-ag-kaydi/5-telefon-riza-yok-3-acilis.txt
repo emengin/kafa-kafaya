@@ -1,0 +1,30 @@
+# Gizlenmiş kopya: Google/Firebase dışındaki sunucu adları ve cihaz seri numarası çıkarıldı (depo herkese açık).
+# "←" sahibi: telefonda proxy portuna bağlı soketlerin UID örneklemesi (~20/sn) ve logcat.
+
+2026-11-28T16:13:43.999Z  +  35.2s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:13:51.296Z  +  42.5s  CONNECT firebase-settings.crashlytics.com:443   ← önceden yüklü başka uygulama C (logcat: kendi Crashlytics 20.0.6'sı ve crashlyticsreports-pa isteği)
+2026-11-28T16:13:51.461Z  +  42.6s  CONNECT crashlyticsreports-pa.googleapis.com:443   ← önceden yüklü başka uygulama C (logcat: kendi Crashlytics 20.0.6'sı ve crashlyticsreports-pa isteği)
+2026-11-28T16:13:51.523Z  +  42.7s  CONNECT firebaseremoteconfigrealtime.googleapis.com:443   ← başka uygulama B (kendi Firebase Remote Config'i; logcat süreci B'ye ait)
+2026-11-28T16:13:52.139Z  +  43.3s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:13:52.139Z  +  43.3s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:14:02.390Z  +  53.6s  CONNECT play.googleapis.com:443
+2026-11-28T16:14:07.574Z  +  58.8s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:14:07.577Z  +  58.8s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:14:25.430Z  +  76.6s  CONNECT firebaseremoteconfigrealtime.googleapis.com:443   ← başka uygulama B (kendi Firebase Remote Config'i; logcat süreci B'ye ait)
+2026-11-28T16:14:59.176Z  + 110.4s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+
+Süre: 110 sn · cihaz: realme RMX3890 · uygulama UID: 10001
+Toplam bağlantı: 11 · farklı hedef: 9
+Firebase sunucularına bağlantı: 4
+  2026-11-28T16:13:51.296Z  +  42.5s  CONNECT firebase-settings.crashlytics.com:443   ← önceden yüklü başka uygulama C (logcat: kendi Crashlytics 20.0.6'sı ve crashlyticsreports-pa isteği)
+  2026-11-28T16:13:51.461Z  +  42.6s  CONNECT crashlyticsreports-pa.googleapis.com:443   ← önceden yüklü başka uygulama C (logcat: kendi Crashlytics 20.0.6'sı ve crashlyticsreports-pa isteği)
+  2026-11-28T16:13:51.523Z  +  42.7s  CONNECT firebaseremoteconfigrealtime.googleapis.com:443   ← başka uygulama B (kendi Firebase Remote Config'i; logcat süreci B'ye ait)
+  2026-11-28T16:14:25.430Z  +  76.6s  CONNECT firebaseremoteconfigrealtime.googleapis.com:443   ← başka uygulama B (kendi Firebase Remote Config'i; logcat süreci B'ye ait)
+Uygulama UID ağ sayacı farkı (rx+tx): 0 bayt
+
+Farklı hedefler:
+  (başka uygulamanın sunucusu, gizlendi)
+  crashlyticsreports-pa.googleapis.com:443
+  firebase-settings.crashlytics.com:443
+  firebaseremoteconfigrealtime.googleapis.com:443
+  play.googleapis.com:443

@@ -1,0 +1,53 @@
+# Gizlenmiş kopya: Google/Firebase dışındaki sunucu adları ve cihaz seri numarası çıkarıldı (depo herkese açık).
+# "←" sahibi: telefonda proxy portuna bağlı soketlerin UID örneklemesi (~20/sn) ve logcat.
+
+2026-11-28T16:16:24.279Z  +  21.2s  CONNECT firebase-settings.crashlytics.com:443   ← BU UYGULAMA (İzin ver 19:16:24)
+2026-11-28T16:16:24.359Z  +  21.3s  CONNECT firebaseinstallations.googleapis.com:443   ← BU UYGULAMA
+2026-11-28T16:16:25.400Z  +  22.3s  CONNECT app-measurement.com:443   ← BU UYGULAMA
+2026-11-28T16:17:02.455Z  +  59.4s  CONNECT app-measurement.com:443   ← BU UYGULAMA (maç olayları)
+2026-11-28T16:17:02.751Z  +  59.7s  CONNECT app-measurement.com:443   ← BU UYGULAMA
+2026-11-28T16:17:03.188Z  +  60.1s  CONNECT app-measurement.com:443   ← BU UYGULAMA
+2026-11-28T16:17:03.621Z  +  60.5s  CONNECT app-measurement.com:443   ← BU UYGULAMA
+2026-11-28T16:17:04.031Z  +  61.0s  CONNECT app-measurement.com:443   ← BU UYGULAMA
+2026-11-28T16:17:13.622Z  +  70.5s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:17:13.646Z  +  70.6s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:17:13.653Z  +  70.6s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:17:22.284Z  +  79.2s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:17:22.285Z  +  79.2s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:18:07.693Z  + 124.6s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:18:07.702Z  + 124.6s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:18:31.749Z  + 148.7s  CONNECT firebase-settings.crashlytics.com:443   ← BU UYGULAMA (çökme raporu; Firebase gönderim işi uygulamayı başlattı)
+2026-11-28T16:18:31.860Z  + 148.8s  CONNECT crashlyticsreports-pa.googleapis.com:443   ← BU UYGULAMA
+2026-11-28T16:19:26.345Z  + 203.3s  CONNECT play.googleapis.com:443
+2026-11-28T16:19:26.717Z  + 203.6s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:19:33.967Z  + 210.9s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:19:37.757Z  + 214.7s  CONNECT firebaselogging-pa.googleapis.com:443   ← BU UYGULAMA (Firebase Sessions)
+2026-11-28T16:19:38.064Z  + 215.0s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:19:38.641Z  + 215.6s  CONNECT mobileconfiguration-pa.googleapis.com:443   ← başka uygulama (arka plan işi)
+
+Süre: 220 sn · cihaz: realme RMX3890 · uygulama UID: 10001
+Toplam bağlantı: 23 · farklı hedef: 16
+Firebase sunucularına bağlantı: 11
+  2026-11-28T16:16:24.279Z  +  21.2s  CONNECT firebase-settings.crashlytics.com:443   ← BU UYGULAMA (İzin ver 19:16:24)
+  2026-11-28T16:16:24.359Z  +  21.3s  CONNECT firebaseinstallations.googleapis.com:443   ← BU UYGULAMA
+  2026-11-28T16:16:25.400Z  +  22.3s  CONNECT app-measurement.com:443   ← BU UYGULAMA
+  2026-11-28T16:17:02.455Z  +  59.4s  CONNECT app-measurement.com:443   ← BU UYGULAMA (maç olayları)
+  2026-11-28T16:17:02.751Z  +  59.7s  CONNECT app-measurement.com:443   ← BU UYGULAMA
+  2026-11-28T16:17:03.188Z  +  60.1s  CONNECT app-measurement.com:443   ← BU UYGULAMA
+  2026-11-28T16:17:03.621Z  +  60.5s  CONNECT app-measurement.com:443   ← BU UYGULAMA
+  2026-11-28T16:17:04.031Z  +  61.0s  CONNECT app-measurement.com:443   ← BU UYGULAMA
+  2026-11-28T16:18:31.749Z  + 148.7s  CONNECT firebase-settings.crashlytics.com:443   ← BU UYGULAMA (çökme raporu; Firebase gönderim işi uygulamayı başlattı)
+  2026-11-28T16:18:31.860Z  + 148.8s  CONNECT crashlyticsreports-pa.googleapis.com:443   ← BU UYGULAMA
+  2026-11-28T16:19:37.757Z  + 214.7s  CONNECT firebaselogging-pa.googleapis.com:443   ← BU UYGULAMA (Firebase Sessions)
+Uygulama UID ağ sayacı farkı (rx+tx): 20438 bayt
+
+Farklı hedefler:
+  app-measurement.com:443
+  crashlyticsreports-pa.googleapis.com:443
+  firebase-settings.crashlytics.com:443
+  firebaseinstallations.googleapis.com:443
+  firebaselogging-pa.googleapis.com:443
+  (başka uygulamanın sunucusu, gizlendi)
+  (başka uygulamanın sunucusu, gizlendi)
+  mobileconfiguration-pa.googleapis.com:443
+  play.googleapis.com:443

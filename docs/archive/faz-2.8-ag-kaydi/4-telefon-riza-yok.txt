@@ -1,0 +1,42 @@
+# Gizlenmiş kopya: Google/Firebase dışındaki sunucu adları ve cihaz seri numarası çıkarıldı (depo herkese açık).
+# "←" sahibi: telefonda proxy portuna bağlı soketlerin UID örneklemesi (~20/sn) ve logcat.
+
+2026-11-28T16:09:04.903Z  +  13.9s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:09:07.052Z  +  16.0s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:09:07.913Z  +  16.9s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:09:11.354Z  +  20.3s  CONNECT firebaseremoteconfigrealtime.googleapis.com:443   ← başka uygulama B (kendi Firebase Remote Config'i; logcat süreci B'ye ait)
+2026-11-28T16:09:19.127Z  +  28.1s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:09:56.956Z  +  65.9s  CONNECT firebase-settings.crashlytics.com:443   ← başka uygulama A (1 sn önce arka plan işiyle başlatıldı, kendi Crashlytics'i)
+2026-11-28T16:09:57.047Z  +  66.0s  CONNECT firebaseinstallations.googleapis.com:443   ← başka uygulama A (1 sn önce arka plan işiyle başlatıldı, kendi Crashlytics'i)
+2026-11-28T16:09:57.244Z  +  66.2s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:09:57.256Z  +  66.2s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:09:57.409Z  +  66.4s  CONNECT crashlyticsreports-pa.googleapis.com:443   ← başka uygulama A (1 sn önce arka plan işiyle başlatıldı, kendi Crashlytics'i)
+2026-11-28T16:09:57.597Z  +  66.6s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:09:58.044Z  +  67.0s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:09:58.166Z  +  67.1s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:09:58.234Z  +  67.2s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:09:58.893Z  +  67.8s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:09:59.023Z  +  68.0s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:09:59.199Z  +  68.2s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:09:59.359Z  +  68.3s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:09:59.457Z  +  68.4s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:09:59.459Z  +  68.4s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:10:07.714Z  +  76.7s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:10:07.754Z  +  76.7s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+2026-11-28T16:10:47.041Z  + 116.0s  CONNECT (başka uygulamanın sunucusu, gizlendi)
+
+Süre: 150 sn · cihaz: realme RMX3890 · uygulama UID: 10001
+Toplam bağlantı: 23 · farklı hedef: 19
+Firebase sunucularına bağlantı: 4
+  2026-11-28T16:09:11.354Z  +  20.3s  CONNECT firebaseremoteconfigrealtime.googleapis.com:443   ← başka uygulama B (kendi Firebase Remote Config'i; logcat süreci B'ye ait)
+  2026-11-28T16:09:56.956Z  +  65.9s  CONNECT firebase-settings.crashlytics.com:443   ← başka uygulama A (1 sn önce arka plan işiyle başlatıldı, kendi Crashlytics'i)
+  2026-11-28T16:09:57.047Z  +  66.0s  CONNECT firebaseinstallations.googleapis.com:443   ← başka uygulama A (1 sn önce arka plan işiyle başlatıldı, kendi Crashlytics'i)
+  2026-11-28T16:09:57.409Z  +  66.4s  CONNECT crashlyticsreports-pa.googleapis.com:443   ← başka uygulama A (1 sn önce arka plan işiyle başlatıldı, kendi Crashlytics'i)
+Uygulama UID ağ sayacı farkı (rx+tx): 0 bayt
+
+Farklı hedefler:
+  (başka uygulamanın sunucusu, gizlendi)
+  crashlyticsreports-pa.googleapis.com:443
+  firebase-settings.crashlytics.com:443
+  firebaseinstallations.googleapis.com:443
+  firebaseremoteconfigrealtime.googleapis.com:443
