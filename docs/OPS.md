@@ -268,7 +268,7 @@ sırrından** yazılır (`android-release.yml` → `build` işi). Etiketli sür�
 Bu değer sırsız `build` işine verilir çünkü gerçek bir sır değildir; asıl sır olan imza anahtarı
 yine yalnızca `sign` işinde (§ 3.4).
 
-### 4.2 Firebase projesini açma (konsol, bir kez) — (denenmedi)
+### 4.2 Firebase projesini açma (konsol, bir kez) — (yapıldı 2026-11-28: `kafadarlar-964e6`)
 
 Firebase konsolu Türkçe görünebilir; aşağıda düğmelerin Türkçe adı, yanında parantez içinde
 İngilizcesi var. Ekran biraz farklıysa en üstteki arama kutusuna adını yazarak bulabilirsin.
@@ -276,11 +276,14 @@ Firebase konsolu Türkçe görünebilir; aşağıda düğmelerin Türkçe adı, 
 1. <https://console.firebase.google.com> adresine git, oyunun Google hesabıyla gir. (Bu hesapta
    iki adımlı doğrulama açık olsun.)
 2. **Proje oluştur** (Create a project) → proje adı: `kafadarlar` → **Devam**.
-3. "Firebase'de Gemini" / yapay zekâ yardımı sorulursa **kapalı** bırak → **Devam**.
+3. "Firebase'de Gemini" / yapay zekâ yardımı (Enable Gemini in Firebase) sorulursa **kapat** →
+   **Devam**. (Açıkken Crashlytics raporları Gemini'ye gidebilir ve yazılanlar model eğitiminde
+   kullanılabilir; ek veri işleme.)
 4. **Bu projede Google Analytics'i etkinleştir** (Enable Google Analytics) **açık** kalsın (Analytics
    için gerekli) → **Devam**.
 5. Analytics hesabı: **Yeni hesap oluştur** → ad: `Kafadarlar`. **Analytics konumu**: Türkiye.
-   Bu ekranda veri paylaşımıyla ilgili onay kutuları varsa **hepsinin işaretini kaldır**. Google
+   Bu ekranda **"Use the default settings for sharing Google Analytics data"** kutusunun işaretini
+   kaldır; altındaki dört paylaşım kutusu da **boş** kalsın. Google
    Analytics şartlarını kabul et → **Proje oluştur**. Bitince **Devam**.
 6. Proje ana sayfasında **Android simgesine** (Uygulamanıza Firebase ekleyin → Android) tıkla:
    - **Android paket adı:** `com.emengin.kafadarlar` (harfi harfine; sonra değiştirilemez).
@@ -292,6 +295,8 @@ Firebase konsolu Türkçe görünebilir; aşağıda düğmelerin Türkçe adı, 
    `git status` bu dosyayı göstermemeli (`.gitignore`'da).
 8. Sol menüde **Crashlytics**'i aç (menüde yoksa aramaya "Crashlytics" yaz). "Crashlytics'i
    etkinleştir" gibi bir düğme varsa tıkla. Panel ilk raporu bekler; telefon testi (§ 4.6) ile dolar.
+   "Heap dump" / bellek sorunları için **Join Early Access** önerisi çıkarsa **Dismiss** (çökme
+   anındaki uygulama belleğini gönderir; veri en az ilkesine aykırı).
 
 ### 4.3 Gizlilik ayarları — en kısıtlayıcı hâl (denenmedi)
 
@@ -357,7 +362,7 @@ taklit edebilir. Kısıtlama kötüye kullanımı engellemez, zorlaştırır.
    sınırlar; listeyi koru. Listede Firebase dışı bir API (ör. Gemini, Maps) görürsen çıkar.
    **Kaydet** (etkisi birkaç dakika sürebilir).
 
-### 4.5 CI sırrını ekleme (denenmedi)
+### 4.5 CI sırrını ekleme (sır eklendi 2026-11-28; etiketli derlemede henüz denenmedi)
 
 1. PowerShell'de proje klasöründe dosyayı base64'e çevirip panoya kopyala:
    `[Convert]::ToBase64String([IO.File]::ReadAllBytes("$PWD\android\app\google-services.json")) | Set-Clipboard`
@@ -367,7 +372,7 @@ taklit edebilir. Kısıtlama kötüye kullanımı engellemez, zorlaştırır.
 3. Sonraki `v*` etiketinde `android-release.yml` dosyayı yazar ve paket adını denetler. Sır yoksa
    iş anlaşılır bir hatayla durur.
 
-### 4.6 Telefonda doğrulama: test çökmesi ve analiz olayı (denenmedi)
+### 4.6 Telefonda doğrulama: test çökmesi ve analiz olayı (denendi 2026-11-28, konsolda görüldü)
 
 Faz 2.8'in bitti kriteri. Geliştirici derlemesinde Ayarlar → Gizlilik altında iki test düğmesi var
 (yayın derlemesinde yok).

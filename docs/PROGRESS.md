@@ -94,8 +94,8 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
   - [x] 2.7 Determinizm sertleştirme — 2026-11-28 → çapraz motor testi CI'da yeşil (Node + Chromium +
         WebKit), telefonun Android WebView'ında geçti; zaman efektleri görüntüde; rollback telefonda
         p99 1,1 ms (aşağıda)
-  - [ ] 2.8 Gözlemlenebilirlik temeli — kod tamam; rızasız ağ kaydı emülatörde temiz; Firebase
-        konsolunda test çökmesi ve analiz olayı bekliyor (aşağıda)
+  - [x] 2.8 Gözlemlenebilirlik temeli [CC] — 2026-11-28 → test çökmesi, JS hatası ve maç olayları
+        Firebase konsolunda görüldü; rızasız ağ kaydı emülatörde ve telefonda temiz (aşağıda)
   - [ ] 2.9 His ve denge yeniden ayarı
 - **Bölüm 3 — Görsel ve ses altyapısı [CC]**
   - [ ] 3.1 Asset manifest ve placeholder sistemi
@@ -846,7 +846,7 @@ Bitince yayın derlemesine dön: `npm run cap:sync` → ▶ Run.
 | D6 Giriş gecikmesi            | hit-stop simülasyonu bekletmiyor; görsel gecikme p99 33 ms, en kötü 67 ms     | ✅ eskisinden kötü değil    |
 | P1 Kare işi                   | telefonda stres 5 dk: 59,6 FPS, iş 7,4 ms, %99,95 bütçede, aralık p99 18,9 ms | ✅ (P2 takılmaları sürüyor) |
 
-### Faz 2.8 — Gözlemlenebilirlik temeli (2026-11-28, kod tamam — Firebase konsolunda doğrulama bekliyor)
+### Faz 2.8 — Gözlemlenebilirlik temeli (2026-11-28, tamamlandı)
 
 Firebase Crashlytics + Analytics, yalnızca Android uygulamasında ve yalnızca rıza varsa. Konsol
 kurulumu, gizlilik ayarları, API anahtarı, CI sırrı ve telefon testi: [OPS.md § 4](OPS.md). Toplanan
@@ -958,22 +958,39 @@ alıyor (işletim sisteminin işlemesi; çökme mesajlarımızda kişisel veri y
 | `assembleDebug` Firebase'siz / sahte yapılandırmayla               | ✅ ikisi de; Firebase'siz derlemede Gizlilik menüsü ve rıza ekranı yok         |
 | Emülatörde rıza ekranı, Gizlilik menüsü                            | ✅ metin panele sığıyor; iki anahtar rıza durumunu gösteriyor                  |
 | Emülatörde test çökmesi / JS hatası                                | ✅ çökme gerçekleşiyor, uygulama yeniden açılıyor; rızasız hiçbir şey gitmiyor |
-| **Rıza verilince test çökmesi + analiz olayı Firebase konsolunda** | ⏳ **geliştirici**: Firebase projesi (OPS § 4.2–4.5) + telefon testi (§ 4.6)   |
+| **Rıza verilince test çökmesi + analiz olayı Firebase konsolunda** | ✅ geliştirici konsolda gördü (aşağıda)                                        |
 | Telefonda, gerçek yapılandırmayla ağ kaydı                         | ✅ rızasız 0 soket / 0 bayt; rızayla rıza saniyesinde başlıyor (yukarıda)      |
 
+**Firebase konsolu (2026-11-28, geliştiricinin ekran görüntüleri)** — proje `kafadarlar-964e6`,
+realme telefondan, rızayla:
+
+- **Crashlytics:** Crash `java.lang.RuntimeException – Kafadarlar test çökmesi (Faz 2.8)`
+  (`TelemetryPlugin`, 1.0.0-dev, 1 olay). Telefonda 3 test çökmesi yapıldı (2'si rızasız): konsolda
+  **yalnızca 1** → rızasız biriken raporlar rıza anında gönderilmeden silindi (`deleteUnsentReports`).
+  Non-fatal `TelemetryPlugin$JsError – Error: Kafadarlar test JS hatası (Faz 2.8)`, kaynak
+  `assets/install-….js:2`.
+- **DebugView:** `match_start` → `match_end` (`outcome=abandon`, 23 sn) → `client_error`; ayrıca
+  otomatik `session_start`, `first_open`, `app_exception` (hepsi sözlükte belgeli). Kullanıcı
+  özelliği `non_personalized_ads = 1` (reklam kişiselleştirmesi kapalı). Telefonda FA günlüğü: her
+  yükleme `204`; olay parametreleri yalnızca sözlüktekiler.
+- **Analytics yüklemesini Google Play hizmetleri yapıyor** (`FA-SVC`, `service_upload: true`):
+  trafik uygulamanın değil Play hizmetlerinin UID'sine yazılır, uygulama UID sayacı Analytics'i
+  göstermez. Rızasız kayıtlarda bu yüzden ek olarak: `app-measurement.com`'a hiç bağlantı yok ve
+  uygulamanın logcat'i "App measurement disabled".
+
 **Bitti kriteri:** "Rıza verilince test çökmesi ve bir analiz olayı Firebase konsolunda görünüyor"
-→ ⏳ konsolda görülmeden işaretlenmeyecek. "Rıza yokken hiçbir istek gitmediği ağ kaydıyla
+→ ✅. "Rıza yokken hiçbir istek gitmediği ağ kaydıyla
 doğrulandı" → ✅ emülatörde (sahte yapılandırma; WebView yazı tipi notuyla) ve telefonda gerçek
 yapılandırmayla (soket sahipliğiyle).
 
 **Faz sonu kontrolü (QUALITY_BAR)**
 
-| Satır                 | Ölçüm                                                                                | Durum                        |
-| --------------------- | ------------------------------------------------------------------------------------ | ---------------------------- |
-| K4 JS hataları        | JS hatası, Promise reddi, çizici süreç kaybı Crashlytics'e kodlandı                  | ◐ konsolda görülmedi         |
-| K1 Çökmesiz kullanıcı | kaynak (Crashlytics) hazır; yalnızca rıza veren kullanıcılar sayılır                 | ◐ ölçüm canlıda              |
-| B3 Çevrimdışı açılış  | sahte yapılandırmada Firebase istekleri reddedilirken çökme yok; uçak modu denenmedi | ◐                            |
-| P1 / A2               | Firebase SDK'ları açılışta başlıyor; telefonda ölçülmedi                             | ölçülmedi → telefon testinde |
+| Satır                 | Ölçüm                                                                                  | Durum                      |
+| --------------------- | -------------------------------------------------------------------------------------- | -------------------------- |
+| K4 JS hataları        | JS hatası konsolda non-fatal olarak görüldü; Promise reddi ve çizici kaybı aynı yoldan | ✅ kaynak çalışıyor        |
+| K1 Çökmesiz kullanıcı | kaynak (Crashlytics) hazır; yalnızca rıza veren kullanıcılar sayılır                   | ◐ ölçüm canlıda            |
+| B3 Çevrimdışı açılış  | sahte yapılandırmada Firebase istekleri reddedilirken çökme yok; uçak modu denenmedi   | ◐                          |
+| P1 / A2               | Firebase SDK'ları açılışta başlıyor; telefonda ölçülmedi                               | ölçülmedi → 4.6 performans |
 
 **Bilinen sorunlar**
 
@@ -985,6 +1002,10 @@ yapılandırmayla (soket sahipliğiyle).
   adb'nin adını değiştirmek (geliştiricinin kararı).
 - Geliştirici derlemesi de aynı Firebase projesine gönderir (`build_type = debug`, sürüm adı `-dev`
   ile ayrılır) → 6.8 notu.
+- **Açık, geliştiricide (engel değil):** GA4 gizlilik ayarları (OPS § 4.3: saklama 2 ay, Google
+  sinyalleri, ayrıntılı konum, reklam kişiselleştirme, veri işleme şartları) ve API anahtarı
+  kısıtlaması (§ 4.4). DATA_MAP'teki "2 ay" saklama § 4.3 yapılınca geçerli. CI sırrı
+  `GOOGLE_SERVICES_JSON_BASE64` eklendi; etiketli sürüm derlemesinde henüz denenmedi.
 
 ## Sonraki fazlar için notlar
 
