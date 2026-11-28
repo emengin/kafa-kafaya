@@ -11,7 +11,7 @@ import { pwa } from './scripts/pwa/plugin.ts';
  * GitHub Pages projeyi https://<kullanıcı>.github.io/<depo>/ altında yayınlar.
  * Actions içinde GITHUB_REPOSITORY="sahip/depo" tanımlıdır; yerelde varsayılan depo adı kullanılır.
  */
-const DEFAULT_REPO_NAME = 'kafa-kafaya';
+const DEFAULT_REPO_NAME = 'kafadarlar';
 const repoName = process.env.GITHUB_REPOSITORY?.split('/')[1] ?? DEFAULT_REPO_NAME;
 
 /** Özel Phaser derlemesi ~700 kB; Vite'ın 500 kB uyarısını anlamlı bir sınıra çekiyoruz. */
@@ -74,7 +74,7 @@ export default defineConfig(({ command, mode, isPreview }) => {
           lang: 'tr',
           themeColor: PLATFORM.themeColor,
           backgroundColor: PLATFORM.backgroundColor,
-          cachePrefix: 'kafa-kafaya',
+          cachePrefix: 'kafadarlar',
         }),
     ],
     build: {

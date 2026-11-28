@@ -25,7 +25,7 @@
 ## Mevcut durum — web sürümü v1.0.0
 
 Oyun sunucuya ya da üçüncü tarafa hiçbir veri göndermez; analiz, reklam ve çerez yoktur. Tüm kayıt
-tarayıcının `localStorage`'ında, cihazda kalır (`kafa-kafaya.` önekli anahtarlar,
+tarayıcının `localStorage`'ında, cihazda kalır (`kafadarlar.` önekli anahtarlar,
 `src/config/gameConfig.ts` → `STORAGE`).
 
 | Veri                                                  | Kaynak                  | Amaç                     | Hukuki sebep (taslak)       | Rıza  | Aktarıldığı yer                         | Saklama süresi                       | Faz     |

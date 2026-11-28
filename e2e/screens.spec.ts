@@ -266,7 +266,7 @@ function editorPoint(
 }
 
 const VERSUS_URL = './?debug=1&scene=match&c1=simsek&c2=pamuk&seed=3&duration=600';
-const LAYOUT_KEY = 'kafa-kafaya.touchLayout';
+const LAYOUT_KEY = 'kafadarlar.touchLayout';
 
 for (const name of ['20x9', '16x9', '4x3-tablet']) {
   test(`${name} dokunmatik v2: düzenleyici, solak düzen, yerel 2 oyuncu`, async ({ browser }) => {

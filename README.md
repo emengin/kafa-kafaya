@@ -1,7 +1,7 @@
 # Kafadarlar
 
-[![CI ve GitHub Pages](https://github.com/emengin/kafa-kafaya/actions/workflows/deploy.yml/badge.svg)](https://github.com/emengin/kafa-kafaya/actions/workflows/deploy.yml)
-[![Sürüm](https://img.shields.io/github/v/release/emengin/kafa-kafaya?label=s%C3%BCr%C3%BCm)](https://github.com/emengin/kafa-kafaya/releases)
+[![CI ve GitHub Pages](https://github.com/emengin/kafadarlar/actions/workflows/deploy.yml/badge.svg)](https://github.com/emengin/kafadarlar/actions/workflows/deploy.yml)
+[![Sürüm](https://img.shields.io/github/v/release/emengin/kafadarlar?label=s%C3%BCr%C3%BCm)](https://github.com/emengin/kafadarlar/releases)
 [![Lisans: MIT](https://img.shields.io/badge/lisans-MIT-blue.svg)](LICENSE)
 
 Tarayıcıda oynanan, 2D yandan görünümlü, 1v1 bir **kafa topu** oyunu: büyük kafalı 10 özgün
@@ -12,7 +12,7 @@ _A browser-based 2D one-on-one head soccer game with 10 original characters, uni
 power-ups, instant goal replays and a knockout tournament. Plays on desktop, mobile and gamepad,
 works offline (PWA). UI in Turkish and English._
 
-### ▶ [Hemen oyna — emengin.github.io/kafa-kafaya](https://emengin.github.io/kafa-kafaya/)
+### ▶ [Hemen oyna — emengin.github.io/kafadarlar](https://emengin.github.io/kafadarlar/)
 
 |                                                     |                                                 |
 | --------------------------------------------------- | ----------------------------------------------- |
@@ -72,8 +72,8 @@ works offline (PWA). UI in Turkish and English._
 Node.js 20+ gerekir.
 
 ```bash
-git clone https://github.com/emengin/kafa-kafaya.git
-cd kafa-kafaya
+git clone https://github.com/emengin/kafadarlar.git
+cd kafadarlar
 npm install
 npm run dev          # geliştirme sunucusu (http://localhost:5173)
 ```
@@ -81,7 +81,7 @@ npm run dev          # geliştirme sunucusu (http://localhost:5173)
 | Komut                      | Ne yapar                                                                                                  |
 | -------------------------- | --------------------------------------------------------------------------------------------------------- |
 | `npm run build`            | Tip denetimi + üretim derlemesi (`dist/`, PWA dosyaları dahil)                                            |
-| `npm run preview`          | Derlenmiş sürümü yerelde sun (`/kafa-kafaya/` altında)                                                    |
+| `npm run preview`          | Derlenmiş sürümü yerelde sun (`/kafadarlar/` altında)                                                     |
 | `npm test`                 | Vitest birim testleri                                                                                     |
 | `npm run test:e2e`         | Playwright duman testi, web ve mobil derlemede (önce iki derleme de)                                      |
 | `npm run test:determinism` | Çapraz motor testi: kayıtlı tekrarlar Node, Chromium ve WebKit'te, her adımın durum özeti karşılaştırılır |
@@ -158,7 +158,7 @@ Ayarlar → Kontroller menüsünde **Performans grafiği**, **Dayanıklılık te
 hiç yoktur (duman testi bunu denetler). Telefonda performans ölçümünün adımları:
 [docs/archive/PROGRESS_MOBILE_2.md § Faz 2.4 — Telefonda ölçüm](docs/archive/PROGRESS_MOBILE_2.md).
 
-**Web ve mobil derleme neden ayrı?** Web sürümü GitHub Pages'te `/kafa-kafaya/` alt yolunda yayınlanır
+**Web ve mobil derleme neden ayrı?** Web sürümü GitHub Pages'te `/kafadarlar/` alt yolunda yayınlanır
 ve çevrimdışı çalışmak için service worker kullanır. Uygulamada oyun kök yoldan açılır ve service
 worker yoktur (güncelleme mağazadan gelir). İki derleme ayrı klasöre yazıldığı için biri ötekini
 bozmaz; web derlemesi yanlışlıkla uygulamaya kopyalanamaz.
@@ -273,7 +273,7 @@ Katkılar memnuniyetle karşılanır. Bir değişiklik göndermeden önce:
 7. **Commit mesajları** kısa ve açıklayıcı (`feat:`, `fix:`, `docs:`, `test:`, `perf:` …), değişikliğin
    nedenini anlatan bir gövdeyle.
 
-Hata bildirimi ve öneriler için [Issues](https://github.com/emengin/kafa-kafaya/issues).
+Hata bildirimi ve öneriler için [Issues](https://github.com/emengin/kafadarlar/issues).
 
 ## Yayın
 

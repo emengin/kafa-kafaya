@@ -32,7 +32,7 @@ describe('Mobil derleme — Vite kipleri', () => {
     expect(web.base).not.toBe('/');
     expect(web.build?.outDir).toBe('dist');
     expect(web.define?.__NATIVE_APP__).toBe('false');
-    expect(pluginNames(web.plugins)).toContain('kafa-kafaya-pwa');
+    expect(pluginNames(web.plugins)).toContain('kafadarlar-pwa');
   });
 
   it('mobil derleme: kök yol, ayrı klasör, PWA (service worker) yok, yerel bayrak açık', () => {
@@ -40,7 +40,7 @@ describe('Mobil derleme — Vite kipleri', () => {
     expect(mobile.base).toBe('/');
     expect(mobile.build?.outDir).toBe(MOBILE.outDir);
     expect(mobile.define?.__NATIVE_APP__).toBe('true');
-    expect(pluginNames(mobile.plugins)).not.toContain('kafa-kafaya-pwa');
+    expect(pluginNames(mobile.plugins)).not.toContain('kafadarlar-pwa');
   });
 
   it('mobil önizleme de kök yolu kullanır (Playwright mobil duman testi)', () => {

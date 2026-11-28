@@ -3,7 +3,7 @@
 > **Durum:** Faz 1.1'de dolduruldu (2026-11-20). Temel kararlar § Kararlar'da (K1–K12 Faz 0.4,
 > K13–K17 Faz 1.1, K18 ve K2 güncellemesi 2026-11-26, K19 2026-11-28).
 >
-> **Ad:** "Kafadarlar: Futbol Arenası" (K19; eski çalışma adı "Kafa Kafaya"). Dünya ve kadro:
+> **Ad:** "Kafadarlar: Kafa Topu Düellosu" (K19; eski çalışma adı "Kafa Kafaya"). Dünya ve kadro:
 > K18; görsel kurallar [ART_BIBLE.md](ART_BIBLE.md).
 >
 > Bu belge [GAME_DESIGN.md](GAME_DESIGN.md)'yi (web sürümü: fizik, kurallar, karakterler, süperler,
@@ -1047,14 +1047,18 @@ Sonuçları:
 - Çizim tarzı değişmez: ART_BIBLE'daki sıcak el çizimi, dev kafa oranları, kontur, palet, yüz
   ızgarası ve yaylı kafa.
 - Para birimleri Altın + Elmas (§2.1); şişe kapağı, misket ve kedi maskot yok.
-- Çalışma adı o tarihte "Kafa Kafaya: Futbol Arenası"ydı; 2026-11-28'de "Kafadarlar: Futbol
-  Arenası" oldu (K19). Uygulama kimliği (`com.emengin.kafakafaya`) değişmedi.
+- Çalışma adı o tarihte "Kafa Kafaya: Futbol Arenası"ydı; 2026-11-28'de "Kafadarlar: Kafa
+  Topu Düellosu" oldu (K19). Uygulama kimliği (`com.emengin.kafakafaya`) değişmedi.
 
 ### K19. Oyunun adı: Kafadarlar (2026-11-28)
 
-- Oyunun adı **Kafadarlar**; mağaza başlığı **"Kafadarlar: Futbol Arenası"** (26 karakter, Play
-  sınırı 30). İngilizce mağaza başlığı "Kafadarlar: Football Arena". "Head Soccer" ve "Kafa Topu"
-  adları kullanılmaz (türün bilinen oyunları).
+- Oyunun adı **Kafadarlar**; mağaza başlığı **"Kafadarlar: Kafa Topu Düellosu"** (tam 30 karakter =
+  Play sınırı; başlığa başka bir şey eklenemez). "Kafa topu" türün aranan adı; burada yalnızca türü
+  anlatan alt başlık. Tek başına ad olarak ya da "Kafa Topu 2", "Head Ball", "Head Soccer" gibi
+  bilinen oyunları çağrıştıran biçimde kullanılmaz. İngilizce mağaza başlığı öneri: "Kafadarlar:
+  Header Duel" (mağaza sayfasında kesinleşir).
+- İlk tercih "Kafadarlar: Futbol Arenası"ydı; aynı gün aramada bulunmak için "Kafa Topu Düellosu"
+  seçildi (geliştiricinin kararı). Mağaza başlığı Play Console'dan sonradan değiştirilebilir.
 - Neden: Google Play'de "Kafa Kafaya" adıyla başka bir geliştiricinin futbol oyunu var (üstten
   bakışlı 2'ye 2, reklamlı, 1 bin+ indirme; 2026-11-28'de görüldü). Aynı ad ve aynı tür aramada ve
   kulaktan kulağa karışıklık, yanlış yorumlar ve tescil yarışı riski getirir; mağazaya çıkmadan
@@ -1062,8 +1066,12 @@ Sonuçları:
 - 2026-11-28 araştırması: TÜRKPATENT'te "Kafadarlar" da "Kafa Kafaya" da tescilli değil; Play ve
   App Store'da "Kafadarlar" adlı uygulama yok (Play'de "Kafadar: Arkadaşlık Testi" var; futbol oyunu
   değil, tekil ad).
-- Değişmeyenler: uygulama kimliği `com.emengin.kafakafaya`, imza anahtarı, kayıt anahtarlarının
-  `kafa-kafaya.` öneki (değişirse oyuncunun kaydı kaybolur), web adresi ve depo adı (ayrı karar).
+- Değişmeyenler: uygulama kimliği `com.emengin.kafakafaya` ve yükleme anahtarı (`kafakafaya-upload`;
+  Play ve CI sırrı ona bağlı).
+- Aynı gün değişenler (geliştiricinin kararı, "henüz oyuncu yok"): GitHub deposu `kafadarlar`, web
+  adresi https://emengin.github.io/kafadarlar/ (eski adres yönlenmez), kayıt anahtarlarının öneki
+  `kafadarlar.` (eski kayıtlar — ayarlar, açılan karakterler, istatistikler — okunmaz, oyun sıfırdan
+  başlar).
 - Açık: "Kafadarlar" marka tescil başvurusu (sınıflar avukata; Faz 0.2).
 
 ### Hâlâ açık olanlar

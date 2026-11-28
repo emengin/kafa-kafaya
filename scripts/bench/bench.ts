@@ -42,7 +42,7 @@
  *   npm run bench -- --device --dirs eski-mobil,dist-mobile --only frame --runs 3 --seconds 20
  *   npm run bench -- --device --app --only frame,alloc
  *
- * Sunucu: derleme klasörü yerleşik bir statik sunucuyla sunulur (web derlemesi `/kafa-kafaya/`,
+ * Sunucu: derleme klasörü yerleşik bir statik sunucuyla sunulur (web derlemesi `/kafadarlar/`,
  * mobil derleme `/` altında; `index.html`'den anlaşılır; her derleme ayrı bağlantı noktasında).
  * Yerelde kurulu Chrome, CI'da Playwright'ın Chromium'u.
  */
@@ -62,7 +62,7 @@ import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { chromium, type Browser, type BrowserContext, type Page } from '@playwright/test';
 
-const WEB_BASE = '/kafa-kafaya/';
+const WEB_BASE = '/kafadarlar/';
 const FIRST_PORT = 4300;
 /** Cihazdaki WebView'ın DevTools soketinin bilgisayara yönlendirildiği bağlantı noktası. */
 const DEVICE_CDP_PORT = 9333;
@@ -315,7 +315,7 @@ function parseArgs(argv: readonly string[]): Options {
 
 // ───────────── Statik sunucu ─────────────
 
-/** Derlemenin taban yolu: web derlemesi `/kafa-kafaya/`, mobil derleme `/` (index.html'den). */
+/** Derlemenin taban yolu: web derlemesi `/kafadarlar/`, mobil derleme `/` (index.html'den). */
 function buildBase(dir: string): string {
   const html = readFileSync(path.join(dir, 'index.html'), 'utf-8');
   return html.includes(`"${WEB_BASE}assets/`) ? WEB_BASE : '/';

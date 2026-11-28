@@ -29,7 +29,7 @@ const ICONS = [
 export function pwa(options: PwaOptions): Plugin {
   let base = '/';
   return {
-    name: 'kafa-kafaya-pwa',
+    name: 'kafadarlar-pwa',
     apply: 'build',
     enforce: 'post',
     configResolved(config) {

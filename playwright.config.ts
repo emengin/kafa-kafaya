@@ -11,7 +11,7 @@ import { MOBILE } from './scripts/mobile/target.ts';
  */
 const WEB_PORT = 4173;
 const MOBILE_PORT = 4174;
-const WEB_URL = `http://localhost:${WEB_PORT}/kafa-kafaya/`;
+const WEB_URL = `http://localhost:${WEB_PORT}/kafadarlar/`;
 const MOBILE_URL = `http://localhost:${MOBILE_PORT}/`;
 const SERVER_TIMEOUT = 60_000;
 

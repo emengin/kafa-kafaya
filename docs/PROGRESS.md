@@ -8,7 +8,7 @@
 
 ## Web sürümü v1.0.0 — özet
 
-Canlı: https://emengin.github.io/kafa-kafaya/ · ölçümler, denge tabloları, faz kararları: arşivde.
+Canlı: https://emengin.github.io/kafadarlar/ · ölçümler, denge tabloları, faz kararları: arşivde.
 
 **Mimari**
 
@@ -188,10 +188,11 @@ K18).
 **Oyunun adı: Kafadarlar** (2026-11-28, [GAME_DESIGN_MOBILE.md](GAME_DESIGN_MOBILE.md) K19). Eski
 çalışma adı "Kafa Kafaya" bırakıldı: Google Play'de aynı adlı başka bir futbol oyunu var (üstten
 bakışlı 2'ye 2, 1 bin+ indirme). TÜRKPATENT'te iki ad da tescilli değil; Play ve App Store'da
-"Kafadarlar" adlı uygulama yok. Mağaza başlığı "Kafadarlar: Futbol Arenası". Oyunda, Android
+"Kafadarlar" adlı uygulama yok. Mağaza başlığı "Kafadarlar: Kafa Topu Düellosu". Oyunda, Android
 uygulama adında, web sayfası başlığında ve belgelerde değişti; uygulama kimliği, imza anahtarı,
-kayıt anahtarları (`kafa-kafaya.`), web adresi ve depo adı aynı. Depo adı ve web adresi ayrı karar
-(mağazadan önce). Tescil başvurusu Faz 0.2'de (sınıflar avukata).
+yükleme anahtarı aynı. Aynı gün depo adı `kafadarlar`, web adresi
+https://emengin.github.io/kafadarlar/ ve kayıt öneki `kafadarlar.` oldu (eski kayıtlar okunmaz;
+henüz oyuncu yok). Tescil başvurusu Faz 0.2'de (sınıflar avukata).
 
 ### Faz 2.0 — Phaser 3.90 ↔ 4.2.1 karşılaştırması
 
@@ -1049,7 +1050,8 @@ sonra hâlâ görülen riskler:
   indirmesinin aydınlatma metninde anılması gerekir mi.)
 - **0.2 — "Kafadarlar" marka tescili (2026-11-28, K19):** TÜRKPATENT'te tescil yok. Avukata: hangi
   sınıflar (oyun yazılımı için genelde 9 ve 41; oyuncak ve ürün için 28), mağazadan önce mi
-  başvurulmalı, "Futbol Arenası" alt başlığı da kapsansın mı. Play'deki "Kafa Kafaya" (başka
+  başvurulmalı. Mağaza başlığındaki "Kafa Topu Düellosu" türü anlatan alt başlık; Masomo'nun
+  "Kafa Topu" adı için tescili varsa bu tanımlayıcı kullanım sorun olur mu? Play'deki "Kafa Kafaya" (başka
   geliştirici) ile bir ilişkimiz yok; o adı kullanmıyoruz.
 - **5.3 — Çevrimdışı kuyruk ve cihaz saati:** günlük tavan cihaz saatine göre sayılırsa saat
   değiştirilerek katlanır; sunucuya ulaşma gününe göre sayılırsa uzun çevrimdışı oyun ödül kaybeder.

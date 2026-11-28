@@ -52,7 +52,7 @@ export function resolvePhaserSource(source: string, packageDir: string): string 
  */
 const BATCH_HANDLER = /[\\/]renderer[\\/]webgl[\\/]renderNodes[\\/]BatchHandler\.js$/;
 const BATCH_HANDLER_RENDERER_IMPORT = '../../../renderer';
-const RENDERER_EVENTS_ID = '\0kafa-kafaya:renderer-events';
+const RENDERER_EVENTS_ID = '\0kafadarlar:renderer-events';
 const RENDERER_EVENTS_CODE = "module.exports = { Events: require('phaser/src/renderer/events') };";
 /** Dar modülün sağladığı `Renderer` alanları. */
 const RENDERER_SHIM_FIELDS: ReadonlySet<string> = new Set(['Events']);
@@ -76,7 +76,7 @@ export function customPhaser(): Plugin {
   const entry = fileURLToPath(new URL('./phaser-custom.cjs', import.meta.url));
   const packageDir = path.dirname(createRequire(import.meta.url).resolve('phaser/package.json'));
   return {
-    name: 'kafa-kafaya-custom-phaser',
+    name: 'kafadarlar-custom-phaser',
     apply: 'build',
     enforce: 'pre',
     resolveId(source, importer) {

@@ -151,7 +151,7 @@ Bu hattın ekstra faydası: elle yeniden çizim, görsele insan emeği katar. Sa
 - Mali müşavirle görüş: şahıs mı limited mi, vergi yükümlülükleri, mağaza ödemelerinin alınması.
 - TÜRKPATENT'te oyunun adını araştır; müsaitse marka tescil başvurusu yap. Alan adını al.
   (2026-11-28: "Kafa Kafaya" adı Play'de aynı adlı başka bir futbol oyunu olduğu için bırakıldı;
-  yeni ad "Kafadarlar: Futbol Arenası", TÜRKPATENT'te tescil yok → GAME_DESIGN_MOBILE.md K19.)
+  yeni ad "Kafadarlar: Kafa Topu Düellosu", TÜRKPATENT'te tescil yok → GAME_DESIGN_MOBILE.md K19.)
 - Avukatla bir tanışma görüşmesi: KVKK, tüketici hukuku, 2026 çocuk ve oyun platformu düzenlemesinin projeyi kapsayıp kapsamadığı. Asıl inceleme Faz 10.3'te.
 
 ### Faz 0.3 — Proje yapısı ve dokümanlar [CC] (Y)

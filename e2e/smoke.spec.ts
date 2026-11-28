@@ -153,7 +153,7 @@ test.describe('dokunmatik kontroller v2 (Faz 2.3)', () => {
     const errors = collectErrors(page);
     // Gecikme ölçer açık (diğer ayarlar varsayılan).
     await page.addInitScript(() => {
-      localStorage.setItem('kafa-kafaya.settings', JSON.stringify({ latencyMeter: true }));
+      localStorage.setItem('kafadarlar.settings', JSON.stringify({ latencyMeter: true }));
     });
     await page.goto('./?debug=1&touch=1&cpu=easy&c1=simsek&c2=pamuk&seed=3&duration=600');
     await expect.poll(() => isActive(page, 'Match'), { timeout: 20_000 }).toBe(true);

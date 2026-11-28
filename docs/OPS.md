@@ -9,7 +9,7 @@
 
 - **Yayın:** `main`'e her push'ta `.github/workflows/deploy.yml` çalışır: `npm ci` → lint → test →
   build → Playwright duman testi → GitHub Pages. PR'larda yalnızca doğrulama, yayın yok.
-- **Adres:** https://emengin.github.io/kafa-kafaya/ (Pages kaynağı: GitHub Actions).
+- **Adres:** https://emengin.github.io/kafadarlar/ (Pages kaynağı: GitHub Actions).
 - **Sürüm:** `CHANGELOG.md`'ye `## [x.y.z]` bölümü ekle, `package.json` sürümünü güncelle, her şey
   yeşilken `vX.Y.Z` etiketini it → `.github/workflows/release.yml` sürüm notunu CHANGELOG'dan çıkarıp
   GitHub Release oluşturur.
@@ -208,7 +208,7 @@ sayı üretir. Sınırlar: Y ve Z en çok 99. Hesabı görmek için:
 
 4. github.com → **Actions** → **Android imzalı AAB** → çalışan iş. Yaklaşık 5 dakika. İki iş
    görünür: "İmzasız AAB derle (sır yok)" ve "İmzala".
-5. Bitince sayfanın altında **Artifacts** → `kafa-kafaya-v1.1.0-rc.1-aab` → zip iner, içinde
+5. Bitince sayfanın altında **Artifacts** → `kafadarlar-v1.1.0-rc.1-aab` → zip iner, içinde
    imzalı `.aab`. Özet (Summary) bölümünde yükleme sertifikasının SHA-256 parmak izi yazar.
 6. AAB Play Console'a yüklenir (Faz 12). Artefakt 30 gün saklanır.
 

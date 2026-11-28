@@ -10,7 +10,8 @@ denge tabloları: [docs/archive/PROGRESS_WEB.md](docs/archive/PROGRESS_WEB.md).
 ### Değişenler
 
 - **Oyunun adı artık Kafadarlar** (eski adı Kafa Kafaya). Google Play'de aynı adlı başka bir futbol
-  oyunu olduğu için değiştirildi. Kayıtlı ayarlar, açılan karakterler ve web adresi aynı.
+  oyunu olduğu için değiştirildi. Yeni adres: https://emengin.github.io/kafadarlar/ (eski adres
+  çalışmaz). Kayıtlar sıfırlanır: eski ayarlar, açılan karakterler ve istatistikler okunmaz.
 - **Phaser 3.90 → Phaser 4.2.1** (mobil yol haritası Faz 2.0). Oyun davranışı ve görünüm aynı;
   tarayıcıda aynı tohumlu AI vs AI maçları adım adım birebir aynı durumu üretiyor. `LiteGraphics`
   çizicisi Phaser 4'ün render node mimarisine taşındı; özel Phaser derlemesi Phaser 4'e göre yeniden
@@ -46,7 +47,7 @@ denge tabloları: [docs/archive/PROGRESS_WEB.md](docs/archive/PROGRESS_WEB.md).
 
 ## [1.0.0] — 2026-11-19
 
-İlk kararlı sürüm: tüm modlar, platformlar ve cila tamam. ▶ https://emengin.github.io/kafa-kafaya/
+İlk kararlı sürüm: tüm modlar, platformlar ve cila tamam. ▶ https://emengin.github.io/kafadarlar/
 
 ### Eklenenler
 
@@ -140,11 +141,11 @@ denge tabloları: [docs/archive/PROGRESS_WEB.md](docs/archive/PROGRESS_WEB.md).
 - Vite + TypeScript + Phaser projesi, sabit adımlı döngü, girdi soyutlaması, i18n, CI ve GitHub
   Pages yayını.
 
-[1.0.0]: https://github.com/emengin/kafa-kafaya/releases/tag/v1.0.0
-[0.6.0]: https://github.com/emengin/kafa-kafaya/commit/c882234
-[0.5.0]: https://github.com/emengin/kafa-kafaya/commit/c29dafb
-[0.4.0]: https://github.com/emengin/kafa-kafaya/commit/37bae49
-[0.3.0]: https://github.com/emengin/kafa-kafaya/commit/6ef8312
-[0.2.0]: https://github.com/emengin/kafa-kafaya/commit/3bed9d1
-[0.1.0]: https://github.com/emengin/kafa-kafaya/commit/f77c026
-[0.0.1]: https://github.com/emengin/kafa-kafaya/commit/bc6327a
+[1.0.0]: https://github.com/emengin/kafadarlar/releases/tag/v1.0.0
+[0.6.0]: https://github.com/emengin/kafadarlar/commit/c882234
+[0.5.0]: https://github.com/emengin/kafadarlar/commit/c29dafb
+[0.4.0]: https://github.com/emengin/kafadarlar/commit/37bae49
+[0.3.0]: https://github.com/emengin/kafadarlar/commit/6ef8312
+[0.2.0]: https://github.com/emengin/kafadarlar/commit/3bed9d1
+[0.1.0]: https://github.com/emengin/kafadarlar/commit/f77c026
+[0.0.1]: https://github.com/emengin/kafadarlar/commit/bc6327a

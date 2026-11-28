@@ -1321,7 +1321,7 @@ export const REPLAY = {
 
 /** Kalıcı kayıt (localStorage) anahtarları. */
 export const STORAGE = {
-  prefix: 'kafa-kafaya.',
+  prefix: 'kafadarlar.',
   keys: {
     language: 'language',
     aiDifficulty: 'aiDifficulty',

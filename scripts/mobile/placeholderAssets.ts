@@ -28,7 +28,7 @@ const SPLASH_SIZE = 2732;
  */
 const SPLASH_SCALE = 0.22;
 /** Proje köküne göre (araç `--assetPath`'i köke ekliyor); node_modules git, lint ve Prettier dışı. */
-const SOURCE_DIR = 'node_modules/.cache/kafa-kafaya/mobile-assets';
+const SOURCE_DIR = 'node_modules/.cache/kafadarlar/mobile-assets';
 const ASSETS_BIN = 'node_modules/@capacitor/assets/bin/capacitor-assets';
 
 /** `#rrggbb` → opak RGBA. */

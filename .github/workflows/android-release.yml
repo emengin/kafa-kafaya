@@ -124,7 +124,7 @@ jobs:
           ks="$RUNNER_TEMP/upload.jks"
           trap 'rm -f "$ks"' EXIT
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d -i > "$ks"
-          out="kafa-kafaya-${RELEASE_TAG}.aab"
+          out="kafadarlar-${RELEASE_TAG}.aab"
           cp imzasiz/app-release.aab "$out"
           jarsigner -keystore "$ks" -storepass:env ANDROID_KEYSTORE_PASSWORD \
             -sigalg SHA256withRSA -digestalg SHA-256 "$out" "$KEY_ALIAS"
@@ -148,7 +148,7 @@ jobs:
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: kafa-kafaya-${{ github.ref_name }}-aab
+          name: kafadarlar-${{ github.ref_name }}-aab
           path: ${{ env.AAB_FILE }}
           if-no-files-found: error
           retention-days: 30
