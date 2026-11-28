@@ -68,7 +68,7 @@ jobs:
             exit 1
           fi
           printf '%s' "$GOOGLE_SERVICES_JSON_BASE64" | base64 -d -i > android/app/google-services.json
-          grep -q '"package_name": *"com.emengin.kafakafaya"' android/app/google-services.json ||
+          grep -q '"package_name": *"com.emengin.kafadarlar"' android/app/google-services.json ||
             { echo "::error::google-services.json bu uygulamanın paket adını içermiyor."; exit 1; }
 
       - name: AAB derle (sürüm package.json'dan, etiket doğrulanır)

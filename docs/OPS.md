@@ -283,7 +283,7 @@ Firebase konsolu Türkçe görünebilir; aşağıda düğmelerin Türkçe adı, 
    Bu ekranda veri paylaşımıyla ilgili onay kutuları varsa **hepsinin işaretini kaldır**. Google
    Analytics şartlarını kabul et → **Proje oluştur**. Bitince **Devam**.
 6. Proje ana sayfasında **Android simgesine** (Uygulamanıza Firebase ekleyin → Android) tıkla:
-   - **Android paket adı:** `com.emengin.kafakafaya` (harfi harfine; sonra değiştirilemez).
+   - **Android paket adı:** `com.emengin.kafadarlar` (harfi harfine; sonra değiştirilemez).
    - **Uygulama takma adı:** `Kafadarlar Android`.
    - **SHA-1:** boş bırak (Analytics ve Crashlytics için gerekmez).
    - **Uygulamayı kaydet** → **google-services.json dosyasını indir**.
@@ -344,7 +344,7 @@ taklit edebilir. Kısıtlama kötüye kullanımı engellemez, zorlaştırır.
 2. **API'ler ve Hizmetler** → **Kimlik bilgileri** (APIs & Services → Credentials) →
    **Android key (auto created by Firebase)** satırına tıkla.
 3. **Uygulama kısıtlamaları** (Application restrictions): **Android uygulamaları** → **Öğe ekle**:
-   paket adı `com.emengin.kafakafaya` + SHA-1 parmak izi. Üç parmak izi gerekir:
+   paket adı `com.emengin.kafadarlar` + SHA-1 parmak izi. Üç parmak izi gerekir:
    - **Hata ayıklama anahtarı** (telefona kurduğun geliştirici derlemesi). PowerShell:
      `keytool -list -v -keystore "$env:USERPROFILE\.android\debug.keystore" -alias androiddebugkey -storepass android`
      → `SHA1:` satırı. (`keytool` Android Studio'nun `jbr\bin` klasöründe.)
@@ -378,7 +378,7 @@ Faz 2.8'in bitti kriteri. Geliştirici derlemesinde Ayarlar → Gizlilik altınd
    `cd android; .\gradlew assembleDebug` ve
    `adb install -r app\build\outputs\apk\debug\app-debug.apk`.
 3. Analiz olaylarını saniyeler içinde görmek için **DebugView**'ı aç:
-   `adb shell setprop debug.firebase.analytics.app com.emengin.kafakafaya`. Firebase konsolunda
+   `adb shell setprop debug.firebase.analytics.app com.emengin.kafadarlar`. Firebase konsolunda
    sol menü → **Analytics** → **DebugView** sayfasını aç ve açık bırak.
 4. Rıza ekranını yeniden görmek için telefonda Ayarlar → Uygulamalar → Kafadarlar → Depolama →
    **Verileri temizle**. Uygulamayı aç → "Oyunu geliştirmemize yardım et" → **İzin ver**.

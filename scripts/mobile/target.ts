@@ -18,7 +18,7 @@ export const MOBILE = {
   devMode: 'mobile-dev',
   /** Mobil derlemenin çıktı klasörü = Capacitor `webDir`. */
   outDir: 'dist-mobile',
-  appId: 'com.emengin.kafakafaya',
+  appId: 'com.emengin.kafadarlar',
   appName: 'Kafadarlar',
   /** Android projesinin klasörü (Capacitor varsayılanı). */
   androidDir: 'android',

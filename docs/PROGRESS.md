@@ -189,8 +189,9 @@ K18).
 çalışma adı "Kafa Kafaya" bırakıldı: Google Play'de aynı adlı başka bir futbol oyunu var (üstten
 bakışlı 2'ye 2, 1 bin+ indirme). TÜRKPATENT'te iki ad da tescilli değil; Play ve App Store'da
 "Kafadarlar" adlı uygulama yok. Mağaza başlığı "Kafadarlar: Kafa Topu Düellosu". Oyunda, Android
-uygulama adında, web sayfası başlığında ve belgelerde değişti; uygulama kimliği, imza anahtarı,
-yükleme anahtarı aynı. Aynı gün depo adı `kafadarlar`, web adresi
+uygulama adında, web sayfası başlığında ve belgelerde değişti; uygulama kimliği
+`com.emengin.kafadarlar` oldu (Play'e henüz yüklenmemişti; bundan sonra değişmez), yükleme anahtarı
+aynı. Aynı gün depo adı `kafadarlar`, web adresi
 https://emengin.github.io/kafadarlar/ ve kayıt öneki `kafadarlar.` oldu (eski kayıtlar okunmaz;
 henüz oyuncu yok). Tescil başvurusu Faz 0.2'de (sınıflar avukata).
 

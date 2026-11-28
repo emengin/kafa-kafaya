@@ -28,7 +28,7 @@ import http from 'node:http';
 import net from 'node:net';
 import path from 'node:path';
 
-const PACKAGE = 'com.emengin.kafakafaya';
+const PACKAGE = 'com.emengin.kafadarlar';
 /** Firebase Analytics / Crashlytics / Installations / Sessions uç noktaları. */
 const FIREBASE_HOSTS =
   /app-measurement\.com|firebase|crashlytics|google-analytics\.com|analytics\.google\.com/i;

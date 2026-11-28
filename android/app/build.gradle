@@ -53,10 +53,10 @@ tasks.register('printAppVersion') {
 }
 
 android {
-    namespace = "com.emengin.kafakafaya"
+    namespace = "com.emengin.kafadarlar"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.emengin.kafakafaya"
+        applicationId "com.emengin.kafadarlar"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode appVersion.code

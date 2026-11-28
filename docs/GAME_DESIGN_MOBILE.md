@@ -1048,7 +1048,7 @@ Sonuçları:
   ızgarası ve yaylı kafa.
 - Para birimleri Altın + Elmas (§2.1); şişe kapağı, misket ve kedi maskot yok.
 - Çalışma adı o tarihte "Kafa Kafaya: Futbol Arenası"ydı; 2026-11-28'de "Kafadarlar: Kafa
-  Topu Düellosu" oldu (K19). Uygulama kimliği (`com.emengin.kafakafaya`) değişmedi.
+  Topu Düellosu" oldu (K19).
 
 ### K19. Oyunun adı: Kafadarlar (2026-11-28)
 
@@ -1066,8 +1066,11 @@ Sonuçları:
 - 2026-11-28 araştırması: TÜRKPATENT'te "Kafadarlar" da "Kafa Kafaya" da tescilli değil; Play ve
   App Store'da "Kafadarlar" adlı uygulama yok (Play'de "Kafadar: Arkadaşlık Testi" var; futbol oyunu
   değil, tekil ad).
-- Değişmeyenler: uygulama kimliği `com.emengin.kafakafaya` ve yükleme anahtarı (`kafakafaya-upload`;
-  Play ve CI sırrı ona bağlı).
+- Değişmeyen: yükleme anahtarı (`kafakafaya-upload`; CI sırrı ona bağlı, kullanıcıya görünmez).
+- Uygulama kimliği `com.emengin.kafakafaya` → **`com.emengin.kafadarlar`** (Play bağlantısında
+  görünür). Değiştirilebilen son an buydu: uygulama Play'e hiç yüklenmemişti, Firebase'e yeni
+  kimlikle kaydedildi. Bundan sonra **değişmez**. Paket adının arama sıralamasına bilinen bir
+  etkisi yok; sebep tutarlılık.
 - Aynı gün değişenler (geliştiricinin kararı, "henüz oyuncu yok"): GitHub deposu `kafadarlar`, web
   adresi https://emengin.github.io/kafadarlar/ (eski adres yönlenmez), kayıt anahtarlarının öneki
   `kafadarlar.` (eski kayıtlar — ayarlar, açılan karakterler, istatistikler — okunmaz, oyun sıfırdan

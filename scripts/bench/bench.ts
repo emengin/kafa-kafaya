@@ -66,7 +66,7 @@ const WEB_BASE = '/kafadarlar/';
 const FIRST_PORT = 4300;
 /** Cihazdaki WebView'ın DevTools soketinin bilgisayara yönlendirildiği bağlantı noktası. */
 const DEVICE_CDP_PORT = 9333;
-const APP_ID = 'com.emengin.kafakafaya';
+const APP_ID = 'com.emengin.kafadarlar';
 /** Uygulamanın kendi paketi (Capacitor `androidScheme: https`). */
 const APP_URL = 'https://localhost/';
 /** Yığın örnekleme aralığı (bayt): küçük → daha doğru, daha yavaş. */

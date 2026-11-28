@@ -1,4 +1,4 @@
-package com.emengin.kafakafaya;
+package com.emengin.kafadarlar;
 
 import android.app.Activity;
 import com.getcapacitor.Plugin;
