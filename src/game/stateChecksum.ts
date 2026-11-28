@@ -23,7 +23,7 @@ import type { FieldBag, SimState } from './simState';
  */
 
 /** Biçim sürümü: serileştirme değişirse artırılır (eski özetlerle karışmasın). */
-const FORMAT_VERSION = 1;
+const FORMAT_VERSION = 2;
 
 /** Oyuncu alanları, sabit sıra. `powerUps` alt nesnesi `POWER_UP_TYPES` sırasıyla. */
 export const PLAYER_FIELDS = [
@@ -241,7 +241,7 @@ export function stateChecksum(s: SimState): string {
   h.string(m.phase);
   h.value(m.overtime);
   h.number(m.timeLeft);
-  h.number(m.phaseTime);
+  h.number(m.phaseTicks);
   h.number(m.score[0]);
   h.number(m.score[1]);
   h.number(m.lastScorer);

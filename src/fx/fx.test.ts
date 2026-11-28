@@ -4,7 +4,6 @@ import { BodyAnimator, type BodyMotion } from './BodyAnimator';
 import { FaceController, type FaceContext } from './FaceController';
 import {
   CameraRig,
-  HitStop,
   hitStopForSpeed,
   isLowPowerDevice,
   parseQuality,
@@ -318,17 +317,6 @@ describe('FaceController — ifadeler, göz kırpma, bakış', () => {
 });
 
 describe('Oyun hissi — hit-stop, sarsıntı, kamera, kalite', () => {
-  it('hit-stop süresince simülasyona süre akmaz, bitince artan kısım akar', () => {
-    const h = new HitStop();
-    h.trigger(50);
-    expect(h.filter(16)).toBe(0);
-    expect(h.filter(16)).toBe(0);
-    expect(h.filter(16)).toBe(0);
-    expect(h.filter(16)).toBeCloseTo(14, 6);
-    expect(h.active).toBe(false);
-    expect(h.filter(16)).toBe(16);
-  });
-
   it('hit-stop sert vuruşlarda 40–60 ms aralığında', () => {
     const h = JUICE.hitStop;
     expect(hitStopForSpeed(h.hardHitSpeed - 1, 2000)).toBe(0);

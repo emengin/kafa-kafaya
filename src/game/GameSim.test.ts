@@ -208,10 +208,10 @@ describe('GameSim — gol ve santra', () => {
     expect(sim.score).toEqual([0, 1]);
     expect(sim.match.phase).toBe('goalScored');
 
-    // Kutlama: 1 sn ağır çekim (0,3x → 18 adım) + 1 sn normal (60 adım) = 78 adım.
-    const slowSteps = secondsToSteps(MATCH.goalSlowMoSeconds * MATCH.goalSlowMoScale);
-    const normalSteps = secondsToSteps(MATCH.goalCelebrationSeconds - MATCH.goalSlowMoSeconds);
-    const during = stepN(sim, slowSteps + normalSteps - 1);
+    // Gol sonrası duraklama: 2 sn = 120 adım (Faz 2.7: ağır çekim yalnızca görüntüde).
+    const celebration = secondsToSteps(MATCH.goalCelebrationSeconds);
+    expect(celebration).toBe(120);
+    const during = stepN(sim, celebration - 1);
     expect(during.some((e) => e.type === 'goal' || e.type === 'kickoff')).toBe(false);
     expect(sim.score).toEqual([0, 1]);
 
@@ -395,13 +395,14 @@ describe('GameSim — maç akışı (baştan sona)', () => {
     ]);
     expect(sim.score).toEqual([1, 0]);
     expect(sim.match.timeLeft).toBe(0);
-    // Toplam: 2 santra (0,8 sn) + 90 sn oyun + gol kutlaması (0,3 + 1 sn simülasyon).
+    // Toplam, tam olarak: 2 santra (48 adım) + 90 sn oyun + golün adımı (saat işlemez) + gol
+    // sonrası duraklama (120 adım).
     const expected =
       2 * secondsToSteps(MATCH.kickoffSeconds) +
       secondsToSteps(MATCH.durationSeconds) +
-      secondsToSteps(MATCH.goalSlowMoSeconds * MATCH.goalSlowMoScale) +
-      secondsToSteps(MATCH.goalCelebrationSeconds - MATCH.goalSlowMoSeconds);
-    expect(Math.abs(sim.tick - expected)).toBeLessThanOrEqual(2);
+      1 +
+      secondsToSteps(MATCH.goalCelebrationSeconds);
+    expect(sim.tick).toBe(expected);
   });
 
   it('beraberlik → altın gol uzatması → ilk gol maçı bitirir', () => {

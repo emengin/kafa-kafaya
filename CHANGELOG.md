@@ -30,6 +30,11 @@ denge tabloları: [docs/archive/PROGRESS_WEB.md](docs/archive/PROGRESS_WEB.md).
   işlevleri yasaklayan lint kuralı; kanonik durum özeti (`GameSim.checksum`). Oyun hissi aynı
   (ölçülen 365 değerin 364'ü bit düzeyinde aynı). `npm run feel`: fizik hissi ölçümü ve iki sürümün
   karşılaştırması.
+- **Determinizm sertleştirme, 2. bölüm** (mobil yol haritası Faz 2.7b): hit-stop ve gol sonrası
+  ağır çekim artık yalnızca görüntüde; simülasyon her zaman saniyede 60 adım ilerler, gol sonrası
+  duraklama 120 adımlık bir oyun durumu. Hit-stop sırasında basılan tuş artık beklemiyor. Çapraz motor
+  testi: 5 kayıtlı maç (10 karakter, 10 süper, goller) Node, Chromium ve WebKit'te her adımda aynı
+  durumu üretmeli; CI'da her değişiklikte koşar (`npm run test:determinism`).
 
 ## [1.0.0] — 2026-11-19
 

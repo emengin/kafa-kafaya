@@ -78,18 +78,21 @@ npm install
 npm run dev          # geliştirme sunucusu (http://localhost:5173)
 ```
 
-| Komut                 | Ne yapar                                                                                        |
-| --------------------- | ----------------------------------------------------------------------------------------------- |
-| `npm run build`       | Tip denetimi + üretim derlemesi (`dist/`, PWA dosyaları dahil)                                  |
-| `npm run preview`     | Derlenmiş sürümü yerelde sun (`/kafa-kafaya/` altında)                                          |
-| `npm test`            | Vitest birim testleri                                                                           |
-| `npm run test:e2e`    | Playwright duman testi, web ve mobil derlemede (önce iki derleme de)                            |
-| `npm run screenshots` | README ekran görüntülerini yeniden al (`docs/screenshots/`)                                     |
-| `npm run screens`     | En-boy oranı test matrisi (Faz 2.2) → `ekran-matrisi/` (önce iki derleme)                       |
-| `npm run lint`        | ESLint (tip denetimli, sihirli sayı yasağı) + Prettier denetimi                                 |
-| `npm run format`      | Prettier ile biçimlendir                                                                        |
-| `npm run simulate`    | AI vs AI headless maçlar: skor dağılımı, süperler, sıkışma raporu, denge                        |
-| `npm run feel`        | Fizik hissi ölçümü (zıplama, şut, süper hızları, top yolu); `--compare` iki kaydı karşılaştırır |
+| Komut                      | Ne yapar                                                                                                  |
+| -------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `npm run build`            | Tip denetimi + üretim derlemesi (`dist/`, PWA dosyaları dahil)                                            |
+| `npm run preview`          | Derlenmiş sürümü yerelde sun (`/kafa-kafaya/` altında)                                                    |
+| `npm test`                 | Vitest birim testleri                                                                                     |
+| `npm run test:e2e`         | Playwright duman testi, web ve mobil derlemede (önce iki derleme de)                                      |
+| `npm run test:determinism` | Çapraz motor testi: kayıtlı tekrarlar Node, Chromium ve WebKit'te, her adımın durum özeti karşılaştırılır |
+| `npm run screenshots`      | README ekran görüntülerini yeniden al (`docs/screenshots/`)                                               |
+| `npm run screens`          | En-boy oranı test matrisi (Faz 2.2) → `ekran-matrisi/` (önce iki derleme)                                 |
+| `npm run lint`             | ESLint (tip denetimli, sihirli sayı yasağı) + Prettier denetimi                                           |
+| `npm run format`           | Prettier ile biçimlendir                                                                                  |
+| `npm run simulate`         | AI vs AI headless maçlar: skor dağılımı, süperler, sıkışma raporu, denge                                  |
+| `npm run feel`             | Fizik hissi ölçümü (zıplama, şut, süper hızları, top yolu); `--compare` iki kaydı karşılaştırır           |
+| `npm run replays`          | Çapraz motor kayıtlarını denetle; `--update` zinciri yeniler, `--record` yeniden üretir                   |
+| `npm run hitstop`          | Hit-stop biçimlerinin görsel gecikme ve görüntü sıçraması ölçümü                                          |
 
 `npm run simulate -- --characters --matches 40 --jobs 10` 45 karakter eşleşmesini iki tarafta da
 oynatır; `--matrix` zorluk eşleşmelerini, `--p1 hard --p2 easy` belirli seviyeleri, `--c1 kor --c2
@@ -243,8 +246,9 @@ denge tabloları: [docs/archive/PROGRESS_WEB.md](docs/archive/PROGRESS_WEB.md) �
 
 Katkılar memnuniyetle karşılanır. Bir değişiklik göndermeden önce:
 
-1. **`npm run lint`, `npm test` ve `npm run build && npm run build:mobile && npm run test:e2e`
-   yeşil olmalı** (CI aynı adımları çalıştırır).
+1. **`npm run lint`, `npm test`, `npm run test:determinism` ve
+   `npm run build && npm run build:mobile && npm run test:e2e` yeşil olmalı** (CI aynı adımları
+   çalıştırır; tarayıcılar bir kez: `npx playwright install chromium webkit`).
 2. **Sihirli sayı yok:** yeni bir değer `src/config/gameConfig.ts`'e (ya da dosya sonunda adlandırılmış
    bir sabite) girer; lint bunu zorlar.
 3. **Metinler `src/i18n/strings.ts`'te**, iki dilde birden; anahtar eşitliği testle denetlenir.
@@ -253,7 +257,10 @@ Katkılar memnuniyetle karşılanır. Bir değişiklik göndermeden önce:
    göre değişen `Math.sin/cos/atan2/exp/pow/hypot/log` ve `**` yerine `src/physics/detMath.ts`
    (`dsin`, `dcos`, `datan2`, `dexp`, `dpow`, `dhypot`, `dlog`); lint kuralı (`kafa/deterministic-sim`)
    bunları zorlar. Fizik/yapay zekâ değişikliklerinde determinizm ve tekrar testleri geçmeli; his
-   farkını `npm run feel -- --compare`, denge etkisini `npm run simulate -- --characters` ile ölç. Motor ya da
+   farkını `npm run feel -- --compare`, denge etkisini `npm run simulate -- --characters` ile ölç.
+   Simülasyonu bilerek değiştirdiysen çapraz motor kayıtlarını `npm run replays -- --update` ile
+   yenile. Hit-stop ve ağır çekim yalnızca görüntüde (`src/ui/PresentationTimeline.ts`): simülasyonun
+   adım hızına dokunan zaman efekti yazılmaz. Motor ya da
    çizim değişikliklerinde `npm run bench -- --dirs eski-dist,dist` iki derlemeyi yan yana ölçer
    (paket boyutu, açılış, kare süresi, tarayıcıda adım adım determinizm).
 5. **Harici varlık yok:** görseller Canvas 2D ile kodla, sesler Web Audio ile üretilir.

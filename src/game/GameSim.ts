@@ -834,7 +834,7 @@ export class GameSim {
         phase: m.phase,
         overtime: false,
         timeLeft: 0,
-        phaseTime: 0,
+        phaseTicks: 0,
         score: [0, 0],
         lastScorer: -1,
         winner: null,
@@ -854,7 +854,7 @@ export class GameSim {
     ms.phase = m.phase;
     ms.overtime = m.overtime;
     ms.timeLeft = m.timeLeft;
-    ms.phaseTime = m.phaseTime;
+    ms.phaseTicks = m.phaseTicks;
     ms.score[0] = m.score[0];
     ms.score[1] = m.score[1];
     ms.lastScorer = m.lastScorer;
@@ -888,7 +888,7 @@ export class GameSim {
     m.phase = ms.phase;
     m.overtime = ms.overtime;
     m.timeLeft = ms.timeLeft;
-    m.phaseTime = ms.phaseTime;
+    m.phaseTicks = ms.phaseTicks;
     m.score[0] = ms.score[0];
     m.score[1] = ms.score[1];
     m.lastScorer = ms.lastScorer;

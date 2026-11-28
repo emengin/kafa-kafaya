@@ -2,35 +2,10 @@ import { JUICE, QUALITY } from '../config/gameConfig';
 import { approach } from './Spring';
 
 /**
- * Hit-stop: sert vuruşta oyun dünyası birkaç on milisaniye donar (vuruşun "ağırlığı").
- * Simülasyon sabit adımlıdır; donma yalnızca döngüye verilen gerçek süreyi keser, yani
- * determinizm etkilenmez (aynı girdi dizisi → aynı sonuç).
+ * Sert vuruşun hit-stop süresi (ms): eşiğin altında 0, üstünde hızla artar. Hit-stop'un kendisi
+ * yalnızca görüntüde uygulanır (`PresentationTimeline`, Faz 2.7): simülasyon donma sırasında da
+ * akar.
  */
-export class HitStop {
-  private remainingMs = 0;
-
-  trigger(ms: number): void {
-    this.remainingMs = Math.max(this.remainingMs, ms);
-  }
-
-  get active(): boolean {
-    return this.remainingMs > 0;
-  }
-
-  /** Bu karede simülasyona akacak süre (ms): donma sürerken 0, bitince artan kısım. */
-  filter(deltaMs: number): number {
-    if (this.remainingMs <= 0) return deltaMs;
-    const left = this.remainingMs - deltaMs;
-    this.remainingMs = Math.max(0, left);
-    return left < 0 ? -left : 0;
-  }
-
-  reset(): void {
-    this.remainingMs = 0;
-  }
-}
-
-/** Sert vuruşun hit-stop süresi (ms): eşiğin altında 0, üstünde hızla artar. */
 export function hitStopForSpeed(speed: number, maxSpeed: number): number {
   const h = JUICE.hitStop;
   if (speed < h.hardHitSpeed) return 0;

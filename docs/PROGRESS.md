@@ -33,8 +33,10 @@ Canlı: https://emengin.github.io/kafa-kafaya/ · ölçümler, denge tabloları,
 
 **Önemli kararlar**
 
-- Determinizm temeldir: hit-stop ve ağır çekim döngü süresini keser, adım sayısını değil; tekrar =
-  anahtar kare + girdiler. Determinizm testleri (`GameSim.test.ts` vb.) her değişiklikte koşar.
+- Determinizm temeldir: simülasyon her zaman saniyede 60 adım; hit-stop ve ağır çekim yalnızca
+  görüntüde (`PresentationTimeline`, Faz 2.7), gol sonrası duraklama 120 adımlık oyun durumu; tekrar =
+  anahtar kare + girdiler. Determinizm testleri ve çapraz motor testi (Node + Chromium + WebKit) her
+  değişiklikte koşar.
 - Tek girdi yolu (sanal tuşlar); tek dünya kabı (sarsıntı/zoom yalnızca dünyaya, HUD sabit).
 - Denge süper parametreleriyle yapıldı; karakter istatistikleri (toplam 14) korunur.
 - Turnuva maçında yeniden başlatma yok; bozuk kayıt onarılmaz, güvenli varsayılana düşer.
@@ -42,9 +44,9 @@ Canlı: https://emengin.github.io/kafa-kafaya/ · ölçümler, denge tabloları,
 **Bilinen sorunlar**
 
 - Gerçek düşük güçlü telefonda, iOS Safari'de ve gerçek gamepad'le ölçülmedi (benzetimle doğrulandı).
-- Determinizm JS motorları arasında garanti değil (`Math.sin/cos/exp` sonuçları motora göre
-  değişir) → Faz 2.7. (2.7a: simülasyon artık kendi `dsin/dcos/datan2/dexp/dpow`'unu kullanıyor;
-  motorlar arası test 2.7b'de.)
+- Determinizm JS motorları arasında: CI'da Node, Chromium ve WebKit'te kayıtlı tekrarların her adımı
+  aynı (Faz 2.7). Gerçek Android WebView'da bir kez denenecek (2.7b, telefon); gerçek iPhone
+  (JavaScriptCore, iOS) 12.2/12.3'te.
 - Telefonda yazılar küçük (~0,54 ölçek); tek telefonda dokunmatikle 2 oyuncu yok.
 - iOS Safari'de tam ekran yok; yalnızca gamepad'le ses başlamıyor (autoplay kuralı).
 - Denge AI vs AI vekil ölçümüne dayanıyor: Ayaz %57, en dengesiz eşleşme Bora–Toprak %71 → Faz 2.9.
@@ -88,9 +90,9 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
         (aşağıda)
   - [x] 2.6 Sürekli derleme hattı — 2026-11-28 → `v1.0.0-rc.1` etiketiyle imzalı AAB oluştu
         (aşağıda)
-  - [ ] 2.7 Determinizm sertleştirme — **2.7a tamam, 2.7b bekliyor** (2.7a, 2026-11-28: denetim,
-        deterministik matematik, PRNG, lint, durum özeti; 2.7b: zaman efektleri, çapraz motor
-        testi) (aşağıda)
+  - [ ] 2.7 Determinizm sertleştirme — **kod tamam; telefonda WebView testi ve rollback ölçümü
+        bekliyor** (2.7a: denetim, deterministik matematik, PRNG, lint, durum özeti; 2.7b, 2026-11-28:
+        zaman efektleri görüntüde, çapraz motor testi Node + Chromium + WebKit yeşil) (aşağıda)
   - [ ] 2.8 Gözlemlenebilirlik temeli
   - [ ] 2.9 His ve denge yeniden ayarı
 - **Bölüm 3 — Görsel ve ses altyapısı [CC]**
@@ -638,6 +640,177 @@ sonunda (not).
 | P9 Rollback                   | Node'da değişmedi (ort. 0,08 ms)                                          | telefonda 2.7b sonunda    |
 | Determinizm testleri          | 494 birim testi, 8 duman testi yeşil; tarayıcı tezgâhında çelişki 0       | ✅                        |
 
+### Faz 2.7b — Determinizm sertleştirme, 2. oturum (2026-11-28; kod tamam — telefon testi bekliyor)
+
+Madde 5 (zaman efektleri görüntüye) ve madde 7 (çapraz motor testi). Fazın bitti kriteri (çapraz motor
+testi yeşil, lint etkin, determinizm testleri geçiyor) yerelde sağlandı. **Faz tamamlandı
+işaretlenmedi:** madde 7'nin "test cihazında Android WebView'da bir kez" kısmı ve rollback ölçümü
+telefonda yapılacak (telefon USB'deydi ama ekran kilitliydi; adımlar aşağıda).
+
+**5. Zaman efektleri yalnızca görüntüde**
+
+- **Simülasyon hiç yavaşlamaz:** maç sahnesi ve menüdeki demo maç döngüye ölçeklenmemiş gerçek süre
+  verir; saniyede her zaman 60 adım. `MatchFlow.timeScale` ve eski `HitStop` sınıfı (döngüye süre
+  vermeyen) kaldırıldı.
+- **Evreler kare sayısıyla** (`MatchFlow.phaseTicks`, tam sayı): santra 48, altın gol santrası 108,
+  **gol sonrası duraklama 120 adım**. Durumda kayan noktalı `phaseTime` yerine `phaseTicks`; durum özeti
+  biçimi 2, yarım maç kaydı biçimi 2 (eski biçimdeki kayıt yok sayılır, maç baştan başlar).
+- **Davranış farkı:** duraklamada simülasyon artık 120 adım akıyor (önce ağır çekimde 18 + normal 60 =
+  78 adım). Ekranda fark yok: görüntü yine golde 60 ms donar, 1 sn ×0,3 ağır çekim, sonra normal hız
+  ve santrada kararmayla canlıya atlar. Kutlamanın son ~0,74 sn'si (45 adım, oyuncular serbest)
+  gösterilmez.
+- **`PresentationTimeline`** ([src/ui/PresentationTimeline.ts](../src/ui/PresentationTimeline.ts)):
+  her canlı adımdan sonra durum, çizim konumları ve olaylar halka tampona (69 adım) yazılır. Görüntünün
+  kendi konumu var. Olaylar görüntü o adıma varınca teslim edilir: ses, efekt ve HUD gösterilen anla
+  eş zamanlı. Çizici ve HUD gösterilen anın durumunu (`timeline.view`) okur; oyun mantığı (girdi, gol
+  tekrarı planı, sonuç kaydı) canlı simülasyonu. Zaman efekti yokken görüntü eski enterpolasyonla aynı
+  (600 düzensiz karede fark ≤ 1e-9 px, testle). Maliyet: kare başına ~7 µs (Node).
+- **Hit-stop:** görüntü temas karesinde donar, simülasyon akar; donma bitince görüntü 2 kat hızla
+  yetişir. **Görsel borç sınırı:** görüntü önceki hit-stop'tan hâlâ yetişiyorsa yeni donma kalan
+  gecikme kadar kısalır; görüntü oyun akarken hiçbir zaman bir hit-stop'tan (≤ 60 ms) fazla geride
+  kalmaz.
+- Gol tekrarı aynı zaman çizelgesiyle oynar (tekrarda zaman efekti yok); tekrar başlarken bekleyen evre
+  olayları (santra, maç sonu düdüğü) kaçmaz. Giriş gecikmesi ölçer basışı, kendi adımı ekrana
+  çıkınca sayar.
+- Chrome'da tam AI maçı (30 sn, gol, tekrar, maç sonu): hata 0, kaybolan olay 0; görüntü gecikmesi
+  ağır çekimde en çok 44,6 adım, santrada 0; oyun akarken karelerin %1,3'ünde, en çok 2,9 adım.
+
+**Hit-stop prototipi ve his değerlendirmesi** (PROGRESS notu: "donma, ardından 2–4 karelik sıçrama ya
+da geçici görsel gecikme"). `npm run hitstop`: 4 AI maçı (Zor–Zor, 90 sn), ekran 60 Hz, yalnızca oyun
+akarken (ağır çekim hariç); dakikada 28 hit-stop, oyun süresinin %2,3'ü donuk:
+
+| Biçim                                  | Ek görsel gecikme ort. | p99     | En kötü | Etkilenen adım | Top bir karede en çok |
+| -------------------------------------- | ---------------------- | ------- | ------- | -------------- | --------------------- |
+| Eski: simülasyonu durdur (web v1.0)    | 0,8 ms                 | 40,4 ms | 60 ms   | %2,6           | 34,5 px               |
+| **Hızlı yetişme, 2× (seçilen)**        | 0,7 ms                 | 33,3 ms | 66,7 ms | %2,3           | 68,5 px               |
+| Atlama (tek karede canlıya)            | 0,4 ms                 | 16,7 ms | 66,7 ms | %1,3           | 111,8 px              |
+| Hit-stop yok                           | 0                      | 0       | 0       | 0              | 34,5 px               |
+| Hızlı yetişme, sınırsız (ilk prototip) | 0,9 ms                 | 33,3 ms | 100 ms  | %2,6           | 68,5 px               |
+
+- **Eski yöntem online'da kullanılamaz:** donmalar simülasyonu durdurduğu için maç saati gerçek
+  zamanın dakikada 1,4 sn gerisine düşüyordu; iki istemci saniyede 60 adımda kalmak zorunda.
+- **Hızlı yetişme:** gecikme eskisi kadar ya da biraz iyi (p99 40 → 33 ms); hareket kesintisiz. Topun
+  yetişme sırasında ≤ 55 ms boyunca iki kat hızlı görünmesi vuruşun ardından "fırlama" gibi okunuyor.
+  Görsel borç sınırı olmadan üst üste vuruşlarda (sert şut + hemen kafa) gecikme 100 ms'ye çıkıyordu;
+  sınırla en kötü 66,7 ms (60 ms + bir kare).
+- **Atlama:** gecikme en düşük, ama top bir karede 112 px'e kadar (normalin 3 katı) ışınlanıyor;
+  hızlı topta göze batar. "2–4 karelik sıçrama" seçeneği budur.
+- **Karar (Claude Code):** varsayılan hızlı yetişme (`JUICE.hitStop.catchUp = 'rate'`, `catchUpRate 2`).
+  Öznel his telefonda denenmeli: geliştirici derlemesinde Ayarlar → Kontroller → **Hit-stop ◄ Hızlı
+  yetişme / Atlama / Kapalı ►** (bir sonraki maçtan geçerli), web'de `?hitstop=rate|snap|off`.
+- **Rollback ile birlikte (9.2):** görüntü geride kaldığında, gecikmeden kısa olan rollback
+  düzeltmeleri ekranda hiç görünmez (düzeltilmiş adım henüz gösterilmemiştir). Görüntü canlıdaysa
+  düzeltme eskisi gibi görünür; ters etki yok. 9.2'de tampon yeniden simüle edilen adımlarla
+  güncellenmeli (not).
+
+**7. Çapraz motor testi**
+
+- **Kayıtlar** ([src/game/crossEngine/fixtures/](../src/game/crossEngine/fixtures/)): 5 AI vs AI maçı
+  (Zor–Zor, 50 sn + altın gol açık): **10 karakterin hepsi, 10 süperin hepsi** (her maçta iki taraf
+  da süperini fırlatıyor), 20 gol, 20 gol sonrası duraklama (hepsi tam 120 adım), 3 balon, maç sonu.
+  Toplam 19.769 adım, 23 kB. Girdiler adım başına 10 bit, RLE + base64; beklenen sonuç her adımın
+  durum özetinden kurulan zincir (60 adımda bir nokta). Yapay zekâ oynatmada çalışmaz.
+- **Node** (Vitest, [crossEngine.test.ts](../src/game/crossEngine/crossEngine.test.ts)): her kayıt
+  beklenen zinciri veriyor; kapsam (her karakter, süper, gol, 120 adımlık duraklama) testle zorlanıyor.
+- **Chromium + WebKit** (`npm run test:determinism`,
+  [e2e/determinism.spec.ts](../e2e/determinism.spec.ts)): simülasyon oyunun üretim derlemesiyle aynı
+  araçla (Vite, küçültme açık) tek dosyaya derlenir, boş sayfaya eklenir. Her kayıt tarayıcıda ve testi
+  koşan Node'da oynatılır, **her adımın özeti** karşılaştırılır; tarayıcının zinciri kayıttakiyle de.
+  İlk fark iletide: adım ve iki özet.
+- **CI:** `deploy.yml`'de birim testlerinden ve derlemeden sonra (Chromium + WebKit kurulur). Tek fark
+  adımı ve Pages yayınını durdurur.
+- **Kırıldığını gördük:** simülasyona yalnızca tarayıcıda 2000. adımda topun x'ine 1e-12 px
+  eklenince 10 tekrar testinin hepsi "ilk fark 2001. adımda" diye kırıldı (denendi, geri alındı).
+- **detMath altın özeti** artık ortak modülde ([detMathGolden.ts](../src/physics/detMathGolden.ts))
+  ve tarayıcılarda da koşuyor. Test girdileri motorun `**`'ı ile üretiliyordu (motora göre son bitte
+  farklı girdi verebilirdi); artık `dpow` ile üretiliyor, değer `6115e15731c8b728` oldu.
+- **Kayıtları güncelleme** (`npm run replays`): simülasyon bilerek değişince (2.9) zincir değişir ve
+  testler kırılır. `npm run replays -- --update` aynı girdilerle zinciri yeniler; kapsam bozulursa
+  `--record` yeniden üretir. Değişiklik bilinçli değilse kırılan test bir determinizm hatasıdır.
+
+| Motor                                                | detMath özeti      | 5 tekrar, 19.769 adım    |
+| ---------------------------------------------------- | ------------------ | ------------------------ |
+| Node 24.22 (V8), yerel                               | ✅                 | ✅ zincir aynı           |
+| Chromium 158 (V8, Playwright), yerel                 | ✅                 | ✅ her adım Node'la aynı |
+| WebKit 27.2 (JavaScriptCore, Playwright), yerel      | ✅                 | ✅ her adım Node'la aynı |
+| Chrome 158, geliştirici derlemesindeki telefon testi | ✅                 | ✅                       |
+| Android WebView (realme 12 kite)                     | telefonda bekliyor | telefonda bekliyor       |
+
+**Fizik hissi (2.9 için)** — `npm run feel`, 2.7a (be489fb) ↔ 2.7b: 365 ölçümün 358'i bit düzeyinde aynı
+(zıplama, şut, 10 süper, serbest top). Farklı olan yalnızca 3 AI maçı (süre ve skor): gol sonrası
+duraklama 78 → 120 adım olduğu için ilk golden sonra maçlar kaotik olarak ayrışıyor. **His değişmedi.**
+
+**Rollback** — Node (kayıt + 8 adım, 5.400 kare): ort. 0,084 ms, p99 0,19 ms (2.7a: 0,08 / 0,13–0,16 ms)
+→ değişmedi. Rollback ölçeri zaman çizelgesinden etkilenmez (görüntü kopyası ayrı). **Telefonda:**
+geliştirici ölçecek (adımlar aşağıda); 2.4'te kayıt + 8 adım p99 1,1 ms, p99,9 2,1 ms, bütçe 4 ms.
+
+**Telefonda Android WebView testi — adım adım**
+
+Bu test, oyunun telefondaki tarayıcı motorunun (Android WebView) simülasyonu bilgisayardakiyle bit bit
+aynı hesapladığını doğrular. Yaklaşık 5 dakika; telefonda yalnızca bir menü satırına dokunulur.
+
+1. Telefonu USB ile bilgisayara bağla, ekran kilidini aç.
+2. Proje klasöründe terminal aç (VS Code'da Terminal → New Terminal) ve şunu yaz:
+   `npm run cap:sync:dev` (geliştirici derlemesi: test menüleri yalnızca bunda var). "Sync finished"
+   yazısını bekle.
+3. `npm run cap:open` yaz → Android Studio açılır. Üstteki cihaz kutusunda telefonun adı (RMX3890)
+   seçiliyken yeşil ▶ (Run) düğmesine bas. Oyun telefonda açılır. (Play Protect sorarsa "Yine de
+   yükle".)
+4. Oyunda **Ayarlar → Kontroller**'e gir, listenin en altına in. Şu satırları görmelisin: Performans
+   grafiği, Dayanıklılık testi, Stres testi, **Motorlar arası test**, **Hit-stop**. Görünmüyorsa yayın
+   derlemesi yüklüdür: 2. adımı tekrarla.
+5. **Motorlar arası test**'e dokun. Ekranın ortasında siyah bir kutu çıkar, satırlar tek tek dolar
+   (birkaç saniye).
+6. Sonuç: en altta **"SONUÇ: GEÇTİ ✅ 5 tekrar, 19769 adım; hepsi Node ile aynı"** yazmalı ve üstteki 6
+   satırın hepsinde ✅ olmalı (detMath özeti + 5 tekrar).
+7. Kutunun **ekran görüntüsünü al** (güç + ses kısma) ve bana gönder ya da "geçti" yaz. ❌ varsa mutlaka
+   ekran görüntüsünü gönder: hangi tekrarın hangi adımlarında fark olduğu yazar.
+8. Kutuya dokununca kapanır.
+
+**Rollback ölçümü (telefonda) — adım adım**
+
+Aynı geliştirici derlemesiyle, yukarıdaki 1–4. adımlardan sonra:
+
+1. Telefon USB'ye takılı kalabilir (bu ölçüm pili ölçmüyor). Güç tasarrufu kapalı olsun.
+2. Ayarlar → Kontroller → **Stres testi (15 dk)**. AI'ya karşı AI maçı başlar, sağ üstte grafik
+   açılır.
+3. **En az 5 dakika** bekle; ekran kendiliğinden kapanmaz. Telefona dokunma.
+4. Grafiğin altındaki satırı not et (ya da ekran görüntüsü al): `rollback … adım X ms p99 Y max Z` ve
+   altındaki `kayıt … · fark A/B`. Ayrıca 1. satırdaki `FPS` ve `iş` değerleri.
+5. Bana gönder. Beklenen: p99 ≤ 4 ms (bütçe; 2.4'te 1,1 ms), `fark 0/…` (gölge simülasyon canlıyla
+   aynı), FPS ~60.
+6. İstersen 15 dakikayı tamamla (2.4'teki ölçüm 15 dk'ydı); erken çıkmak için geri tuşu → Ana menü.
+
+İsteğe bağlı (aynı oturumda): **Hit-stop** satırında ◄ ► ile Hızlı yetişme / Atlama / Kapalı arasında
+geçip birer Hızlı Maç oyna; hangisinin vuruş hissi daha iyi, söyle. Seçim uygulama kapanınca sıfırlanır.
+Bitince yayın derlemesine dön: `npm run cap:sync` → ▶ Run.
+
+**Bitti kriterleri**
+
+| Kriter                                                                     | Durum                                                                                        |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Çapraz motor testi CI'da yeşil                                             | ✅ yerelde Node + Chromium + WebKit, 5 tekrar × 19.769 adım, 0 fark; CI'a bu commit'le girdi |
+| Lint kuralı etkin                                                          | ✅ (2.7a); yeni simülasyon dosyaları (`crossEngine/`, `detMathGolden.ts`) da kuralın içinde  |
+| Mevcut determinizm testleri geçiyor                                        | ✅ 517 birim testi, 14 çapraz motor testi (Chromium + WebKit), 8 duman testi                 |
+| 5. Simülasyon adımı hiç değişmez; hit-stop ve ağır çekim yalnızca çizimde  | ✅ `PresentationTimeline`; simülasyon üç hit-stop biçiminde ve 60/90 Hz'de adım adım aynı    |
+| 5. Gol sonrası duraklama kare sayısıyla ilerleyen deterministik durum      | ✅ 120 adım (`phaseTicks`); kayıtlardaki 20 duraklamanın hepsi 120 adım                      |
+| 5. Çevrimdışı mod da bu mimariyi kullanır                                  | ✅ maç sahnesi, gol tekrarı ve menüdeki demo maç                                             |
+| Hit-stop prototipi ve his değerlendirmesi                                  | ✅ ölçüldü, hızlı yetişme seçildi; ◐ öznel his telefonda (menüden üç biçim)                  |
+| 7. Kayıtlı tekrarlar: tüm karakterler ve süperler, gol, duraklama          | ✅ 10/10 karakter, 10/10 süper, 20 gol, 20 duraklama                                         |
+| 7. Chromium, WebKit ve Node'da her karenin checksum'ı; tek fark CI'ı kırar | ✅ her adım karşılaştırılıyor; kasıtlı 1e-12 px fark yakalandı                               |
+| 7. Test cihazında Android WebView'da bir kez                               | ⏳ **telefonda bekliyor** (geliştirici; adımlar yukarıda)                                    |
+| Rollback ölçümü (2.4: p99 1,1 ms; bütçe 4 ms)                              | ◐ Node'da değişmedi (ort. 0,084 ms); ⏳ **telefonda bekliyor**                               |
+| `npm run feel` tekrarı (2.9 için)                                          | ✅ 358/358 fizik ölçümü aynı; yalnızca AI maçları ayrışıyor (duraklama 78 → 120 adım)        |
+
+**Faz sonu kontrolü (QUALITY_BAR, 2.7b)**
+
+| Satır                         | Ölçüm                                                                     | Durum                       |
+| ----------------------------- | ------------------------------------------------------------------------- | --------------------------- |
+| K6 Motorlar arası determinizm | Node, Chromium, WebKit'te her adım aynı; CI'da                            | ✅ CI; Android WebView ⏳   |
+| P9 Rollback                   | Node'da değişmedi                                                         | telefonda ⏳                |
+| D6 Giriş gecikmesi            | hit-stop simülasyonu bekletmiyor; görsel gecikme p99 33 ms, en kötü 67 ms | ✅ eskisinden kötü değil    |
+| P1 Kare işi                   | zaman çizelgesi kare başına ~7 µs (Node)                                  | telefonda stres testiyle ⏳ |
+
 ## Sonraki fazlar için notlar
 
 Faz 0.3'teki açık sorular Faz 0.4'te, 1.1'e bırakılanlar Faz 1.1'de (K13–K17) karara bağlandı;
@@ -671,20 +844,15 @@ sonra hâlâ görülen riskler:
   12.4'ün kayıt altyapısıyla Bölüm 6 ya da 11'e eklenmeli.
 - **12.6 — Günlük sıfırlama saati:** 00:00 TSİ uzak bölgelerde günün ortasına denk gelir; bölgesel
   sıfırlama kararı test lansmanından önce.
-- **2.7b — Rollback ölçümünü telefonda tekrarla (2.4'ten):** Faz 2.4'te telefonda kayıt + 8 adım p99
-  1,1–1,2 ms, p99,9 2,1 ms (bütçe 4 ms). 2.7a'da kendi `dsin/dcos/datan2/dexp`'imize geçildi; Node'da
-  maliyet değişmedi (ort. 0,08 ms). 2.7b sonunda geliştirici derlemesinde `?devtest=rollback` (ya da
-  Stres testi) ile telefonda tekrarlanmalı.
-- **2.7b — Çapraz motor testi için hazır olanlar (2.7a'dan):** `GameSim.checksum()` (kanonik özet);
-  detMath altın özeti (`detMath.test.ts` `GOLDEN`) WebKit'te de aynı çıkmalı — testin ilk adımı
-  olabilir; tezgâhın tarayıcı kancası (adım başına özet, gol tekrarı çelişkisi) örnek. Yapay zekâ
-  da lint bölgesinde: AI vs AI maçları tüm karakter ve süperleri kapsayan tekrarları üretmek için
-  kullanılabilir (girdiler kaydedilip fixture olarak saklanmalı; AI'ın kendisi de motorlar arası
-  aynı olmalı). Madde 5 için: `MatchFlow` gol kutlamasını `timeScale` ile "gerçek süre eşdeğeri"
-  sayıyor (`phaseTime += dt / timeScale`) — kare sayısına çevrilecek.
-- **2.9 — His karşılaştırması (2.7a'dan):** `npm run feel -- --json önce.json` ve
-  `npm run feel -- --compare önce.json sonra.json` (2.9 madde 1). 2.7a'da his değişmedi (365
-  ölçümün 364'ü bit düzeyinde aynı); 2.7b'nin zaman efektleri değişikliğinden sonra yeniden alınmalı.
+- **2.7 — Telefonda kalanlar (2.7b'den):** Android WebView'da motorlar arası test ve rollback ölçümü
+  (geliştirici derlemesi: Ayarlar → Kontroller → Motorlar arası test / Stres testi). Adımlar 2.7b
+  bölümünde. 2.4'te kayıt + 8 adım p99 1,1–1,2 ms, p99,9 2,1 ms (bütçe 4 ms); Node'da 2.7a ve 2.7b'den
+  sonra değişmedi (ort. 0,08 ms).
+- **2.9 — His ve kayıtlar (2.7b'den):** 2.7b'den sonra his ölçümü alındı (358 fizik ölçümü 2.7a ile bit
+  düzeyinde aynı). 2.9'da her denge ya da fizik değişikliğinden sonra çapraz motor kayıtlarının zinciri
+  değişir: `npm run replays -- --update` (kapsam bozulursa `--record`), ardından
+  `npm run test:determinism`. Karşılaştırma: `npm run feel -- --json önce.json` ve
+  `npm run feel -- --compare önce.json sonra.json` (2.9 madde 1).
 - **Simülasyona yeni kod (2.7a'dan):** Player/Ball'a alan eklenince `stateChecksum.ts`'teki alan
   listesine de eklenmeli (test kırılarak hatırlatır). Trigonometri/üs gerekiyorsa
   `src/physics/detMath.ts`; yeni bir işlev gerekirse izinli işlemlerle, doğruluk testi ve altın
@@ -694,10 +862,26 @@ sonra hâlâ görülen riskler:
   kanonik ikili biçimle yapılmalı. `checksum()` 16 karakterlik metin döndürür (ayırma yapar); her
   karede ağda kullanılacaksa sayı çifti döndüren bir sürümü eklenebilir. Özet kriptografik değil
   (9.3'teki kasıtlı bozuk özet notu geçerli).
-- **2.7b / 3.6 — Sunum katmanında hit-stop:** simülasyon akarken görüntüyü 40–60 ms dondurmak,
-  ardından 2–4 karelik sıçrama ya da geçici görsel gecikme demek; rollback düzeltmeleriyle üst üste
-  binince his bozulabilir. 2.7'de prototiplenmeli. Ağır çekimin doğal yeri gol sonrası deterministik
-  duraklama (tekrar oynatma).
+- **3.6 — Hit-stop ayarı (2.7b'den):** hit-stop artık yalnızca görüntüde (`PresentationTimeline`);
+  varsayılan "hızlı yetişme" (`JUICE.hitStop.catchUp`, `catchUpRate`), görsel borç sınırıyla.
+  Süre, yetişme hızı ya da yeni zaman efekti (kamera yönetmeni, tehlikeli atak ağır çekimi)
+  değişince `npm run hitstop` ile gecikme ve görüntü sıçraması ölçülmeli; telefonda öznel his
+  geliştirici menüsündeki Hit-stop seçicisiyle karşılaştırılır. Yeni sunum efekti simülasyonu asla
+  yavaşlatmaz: zaman çizelgesine eklenir (`hitStop`, `slowMo`, `jumpToLive`).
+- **9.2 — Rollback ve sunum zaman çizelgesi (2.7b'den):** geri sarıp yeniden simüle edilen adımlar
+  tampondaki durum kopyalarının ve olayların üstüne yeniden yazılmalı (`PresentationTimeline.record`
+  aynı adım için tekrar çağrılabilir olmalı). Görüntünün henüz göstermediği düzeltmeler ekrana hiç
+  çıkmaz; gösterilmiş adımdaki düzeltmede ses ve efektler zaten çalınmıştır (şut sesi çalındı ama
+  şut olmadı) — 9.2'de "olay geri alma" kuralı gerekir. Hit-stop sırasında gelen düzeltmeler gecikme
+  payının içinde kalır.
+- **9.x — Gol tekrarı online'da (2.7b'den):** tekrar canlı simülasyonu ödünç alıyor (durumu saklayıp
+  anahtar kareyi yüklüyor) ve tekrar sürerken canlı maç duruyor. Çevrimdışı bu bir duraklatma gibi
+  doğru; online'da canlı simülasyon durmamalı: tekrar ayrı bir `GameSim` örneğinde oynamalı ya da
+  online maçta yalnızca maç sonunda gösterilmeli.
+- **12.2 — Gerçek iPhone'da determinizm (2.7b'den):** CI'daki WebKit (Linux) JavaScriptCore'un vekili.
+  iOS'ta (gerçek cihaz, Safari ve uygulama içi WKWebView) geliştirici derlemesindeki "Motorlar arası
+  test" bir kez çalıştırılmalı; web sürümünde de (Safari) aynı sayfa geliştirici derlemesiyle
+  açılabilir.
 - **2.8 — Firebase avukat incelemesinden (10.3) önce:** Firebase verisi yurt dışına gider; KVKK'da
   düzenli yurt dışı aktarım için açık rıza tek başına yeterli olmayabilir (standart sözleşme + 5 iş
   günü içinde Kurul'a bildirim). 4.7 ve 12.5'teki testçilerin verisi de bu kapsamda; 0.2'deki
@@ -727,9 +911,10 @@ sonra hâlâ görülen riskler:
 - **3.2 / 3.3 — ART_BIBLE bağımlılığı:** bağımlılık notu yalnızca 3.4 için, ama parçalı iskelet
   (3.2) ve kozmetik slotları (3.3) ART_BIBLE'ın katman yapısına (1.4) dayanıyor; 1.4'ten önce
   başlanırsa yeniden iş çıkabilir.
-- **2.9 / 3.6 — Hit-stop ve giriş gecikmesi (2.3'ten):** vuruş anındaki hit-stop simülasyonu
-  40–60 ms bekletiyor; o arada basılan tuş da bekliyor (tarayıcıda p95 ~100 ms). Hit-stop yalnızca
-  sunuma taşınınca (2.7 notu) bu gecikme kalkar; his ayarında ölçer açık denenmeli.
+- **2.9 / 3.6 — Hit-stop ve giriş gecikmesi (2.3'ten, 2.7b'de çözüldü):** hit-stop artık
+  simülasyonu bekletmiyor; basış hemen işlenir, görüntü en çok bir hit-stop kadar geride kalabilir
+  (ölçümde ek görsel gecikme p99 33 ms, en kötü 67 ms). Gecikme ölçer artık basışı kendi adımı ekrana
+  çıkınca sayıyor; his ayarında ölçer açık denenmeli.
 - **3.4 — Dokunmatik buton ve düzenleyici görselleri (2.3'ten):** butonlar, halka ve düzenleyici
   araç çubuğu kodla çizilmiş yer tutucu (`src/ui/touchButtonArt.ts`, `PillButton`); tasarım
   sistemi gelince değişir; ◀ ▶ ikonları ve ZIPLA/ŞUT/SÜPER yazıları ikon setine geçmeli.

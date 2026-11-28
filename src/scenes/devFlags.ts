@@ -2,6 +2,7 @@ import { DEV, QUALITY, type AiDifficulty } from '../config/gameConfig';
 import { parseQuality, type QualityLevel } from '../fx/feel';
 import { isCharacterId, type CharacterId } from '../game/characters';
 import { isDifficulty } from '../game/matchSetup';
+import type { HitStopMode } from '../ui/PresentationTimeline';
 
 function params(): URLSearchParams {
   return new URLSearchParams(globalThis.location.search);
@@ -58,4 +59,21 @@ export function devMatchDuration(): number | undefined {
 /** `?quality=low|medium|high` → görsel kalite sabitlenir (yoksa null: uyarlamalı). */
 export function devQuality(): QualityLevel | null {
   return parseQuality(params().get(QUALITY.param));
+}
+
+/**
+ * Hit-stop biçimi (Faz 2.7 prototipi): geliştirici menüsünde seçilen (`setDevHitStopMode`) ya da
+ * `?hitstop=rate|snap|off`; ikisi de yoksa null (ayar dosyasındaki varsayılan).
+ */
+export function devHitStopMode(): HitStopMode | null {
+  if (chosenHitStop) return chosenHitStop;
+  const v = params().get(DEV.hitStopParam);
+  return v === 'rate' || v === 'snap' || v === 'off' ? v : null;
+}
+
+let chosenHitStop: HitStopMode | null = null;
+
+/** Geliştirici menüsü (Ayarlar → Kontroller) hit-stop biçimini oturum boyunca değiştirir. */
+export function setDevHitStopMode(mode: HitStopMode | null): void {
+  chosenHitStop = mode;
 }

@@ -102,7 +102,7 @@ describe('Kanonik durum özeti (Faz 2.7)', () => {
         'phase',
         'overtime',
         'timeLeft',
-        'phaseTime',
+        'phaseTicks',
         'score',
         'lastScorer',
         'winner',
@@ -182,7 +182,7 @@ describe('Kanonik durum özeti (Faz 2.7)', () => {
     for (const key of BALLOON_FIELDS) {
       bagField('balloon', (s) => s.balloon as unknown as FieldBag, key);
     }
-    for (const key of ['phase', 'overtime', 'timeLeft', 'phaseTime', 'lastScorer', 'winner']) {
+    for (const key of ['phase', 'overtime', 'timeLeft', 'phaseTicks', 'lastScorer', 'winner']) {
       bagField('match', (s) => s.match as unknown as FieldBag, key);
     }
     variants.push(

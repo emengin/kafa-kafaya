@@ -23,10 +23,8 @@ function toPlaying(f: MatchFlow): void {
   expect(f.goalsAllowed).toBe(true);
 }
 
-/** Gol kutlamasının adım sayısı: ağır çekim (gerçek 1 sn × 0,3) + kalan normal süre. */
-const CELEBRATION_STEPS =
-  steps(MATCH.goalSlowMoSeconds * MATCH.goalSlowMoScale) +
-  steps(MATCH.goalCelebrationSeconds - MATCH.goalSlowMoSeconds);
+/** Gol sonrası duraklamanın adım sayısı (Faz 2.7: kare sayısı; ağır çekim yalnızca görüntüde). */
+const CELEBRATION_STEPS = steps(MATCH.goalCelebrationSeconds);
 
 describe('MatchFlow — santra', () => {
   it('maç santra beklemesiyle başlar; süre dolunca düdük çalar ve oyun başlar', () => {
@@ -53,7 +51,7 @@ describe('MatchFlow — santra', () => {
 });
 
 describe('MatchFlow — gol ve kutlama', () => {
-  it('gol skoru artırır, ağır çekim 1 gerçek sn sürer, 2 gerçek sn sonra santra', () => {
+  it('gol skoru artırır; duraklama tam 120 adım sürer, sonra santra', () => {
     const f = flow();
     toPlaying(f);
     expect(run(f, 1, 0)).toEqual([{ type: 'goal', scorer: 0 }]);
@@ -62,19 +60,12 @@ describe('MatchFlow — gol ve kutlama', () => {
     expect(f.goalsAllowed).toBe(false);
     expect(f.playersActive).toBe(true);
 
-    // Ağır çekim: gerçek 1 sn = 0,3 sn simülasyon = 18 adım.
-    const slow = steps(MATCH.goalSlowMoSeconds * MATCH.goalSlowMoScale);
-    expect(slow).toBe(18);
-    for (let i = 0; i < slow; i++) {
-      expect(f.timeScale).toBe(MATCH.goalSlowMoScale);
-      run(f, 1);
-    }
-    expect(f.timeScale).toBe(1);
-    expect(f.phaseTime).toBeCloseTo(MATCH.goalSlowMoSeconds, 6);
-
-    // Kalan 1 gerçek sn normal hızda; son adımda santra.
-    const rest = CELEBRATION_STEPS - slow;
-    expect(run(f, rest - 1)).toEqual([]);
+    // Duraklama adım sayısıyla ilerler (tam sayı, kayan nokta birikimi yok).
+    expect(CELEBRATION_STEPS).toBe(120);
+    expect(f.celebrationTicks).toBe(CELEBRATION_STEPS);
+    expect(run(f, CELEBRATION_STEPS - 1)).toEqual([]);
+    expect(f.phaseTicks).toBe(CELEBRATION_STEPS - 1);
+    expect(Number.isInteger(f.phaseTicks)).toBe(true);
     expect(run(f, 1)).toEqual([{ type: 'kickoff' }]);
     expect(f.phase).toBe('kickoff');
     expect(f.ballHeld).toBe(true);
@@ -203,7 +194,8 @@ describe('MatchFlow — süre, altın gol ve maç sonu', () => {
     expect(events).toEqual([]);
     expect(f.phase).toBe('matchEnd');
     expect(f.score).toEqual([0, 0]);
-    expect(f.phaseTime).toBeCloseTo(2, 6);
+    expect(f.phaseTicks).toBe(120);
+    expect(f.phaseTime).toBe(2);
   });
 });
 

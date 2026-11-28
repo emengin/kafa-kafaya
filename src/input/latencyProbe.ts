@@ -72,6 +72,7 @@ export class LatencyProbe {
   private eventAt = Number.NaN;
   private handlerAt = Number.NaN;
   private stepAt = Number.NaN;
+  private stepTick = 0;
 
   constructor(size: number = TOUCH.latency.samples) {
     this.dispatch = new Ring(size);
@@ -88,19 +89,29 @@ export class LatencyProbe {
     this.stepAt = Number.NaN;
   }
 
-  /** Bir simülasyon adımı girdiyi okudu. */
-  step(now: number): void {
+  /**
+   * Bir simülasyon adımı girdiyi okudu.
+   * @param tick Girdinin etkisini taşıyan durumun adımı (görüntü bu adıma varınca görünür).
+   */
+  step(now: number, tick = 0): void {
     if (Number.isNaN(this.handlerAt) || !Number.isNaN(this.stepAt)) return;
     this.stepAt = now;
+    this.stepTick = tick;
   }
 
-  /** Kare bitti (çizim gönderilmek üzere). Adımı geçmiş bekleyen basış örnek olur. */
-  frame(now: number): void {
+  /**
+   * Kare bitti (çizim gönderilmek üzere). Adımı geçmiş ve görüntüye ulaşmış bekleyen basış örnek
+   * olur.
+   * @param shownTick Bu karede gösterilen durumun adımı (Faz 2.7: hit-stop ve ağır çekimde görüntü
+   *                  simülasyonun gerisinde kalır; basış kendi adımı gösterilince sayılır).
+   */
+  frame(now: number, shownTick = Number.POSITIVE_INFINITY): void {
     if (Number.isNaN(this.stepAt)) {
       // Simülasyon akmıyorken (duraklatma, tekrar) yapılan basış ölçüme girmez.
       if (now - this.handlerAt > TOUCH.latency.staleMs) this.handlerAt = Number.NaN;
       return;
     }
+    if (shownTick < this.stepTick) return;
     this.dispatch.push(this.handlerAt - this.eventAt);
     this.wait.push(this.stepAt - this.handlerAt);
     this.toFrame.push(now - this.eventAt);

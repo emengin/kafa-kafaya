@@ -1,7 +1,10 @@
 import Phaser from 'phaser';
-import { PERF } from '../config/gameConfig';
+import { JUICE, PERF } from '../config/gameConfig';
 import { GameSim } from '../game/GameSim';
 import type { MatchSetup } from '../game/matchSetup';
+import { devHitStopMode, setDevHitStopMode } from '../scenes/devFlags';
+import type { HitStopMode } from '../ui/PresentationTimeline';
+import { DeterminismPanel, runAndShow, type DeterminismReport } from './determinismCheck';
 import { devHooks, type MatchDevContext, type MatchDevSession } from './hooks';
 import { PerfOverlay } from './perfOverlay';
 import { PerfMonitor, type PerfSummary, type PerfVerdict } from './perfStats';
@@ -19,6 +22,10 @@ import { StressLayer } from './StressLayer';
  * - **Stres testi (15 dk):** aynı maç + hedef boyutta sentetik sahne (`StressLayer`) + her karede
  *   8 adımlık rollback ölçümü (P9).
  * - `?devtest=soak|stress|rollback` → maç bu testle açılır (tezgâh ve masaüstü için).
+ * - **Motorlar arası test** (Faz 2.7): kayıtlı tekrarlar bu WebView'da oynatılır, her adımın özeti
+ *   Node'da üretilen zincirle karşılaştırılır (`?devtest=determinism` ya da menüden).
+ * - **Hit-stop biçimi** (Faz 2.7 prototipi): hızlı yetişme / tek karede atlama / kapalı; menüden
+ *   (oturum boyunca) ya da `?hitstop=rate|snap|off`.
  * - Konsol: `__KAFA_PERF__.report()` → JSON rapor (chrome://inspect ile telefondan okunur).
  */
 
@@ -51,6 +58,13 @@ const URL_TEST_PARAM = 'devtest';
 const MENU_SCENE = 'Menu';
 const MATCH_SCENE = 'Match';
 const URL_PERF_PARAM = 'perf';
+const DETERMINISM_TEST = 'determinism';
+const HIT_STOP_MODES: readonly HitStopMode[] = ['rate', 'snap', 'off'];
+const HIT_STOP_LABELS: Readonly<Record<HitStopMode, string>> = {
+  rate: 'Hızlı yetişme',
+  snap: 'Atlama',
+  off: 'Kapalı',
+};
 const P99 = 0.99;
 const P999 = 0.999;
 /** Takılma günlüğünün en çok kaydı. */
@@ -210,6 +224,24 @@ export function installDevTools(game: Phaser.Game): void {
     quality = level;
   };
 
+  // Motorlar arası test (Faz 2.7): menüden ya da açılışta `?devtest=determinism`.
+  let determinismPanel: DeterminismPanel | null = null;
+  let determinism: DeterminismReport | null = null;
+  const runDeterminism = async (): Promise<DeterminismReport> => {
+    determinismPanel ??= new DeterminismPanel();
+    determinism = await runAndShow(determinismPanel);
+    return determinism;
+  };
+  Reflect.set(globalThis, '__KAFA_DETERMINISM__', {
+    run: runDeterminism,
+    report: () => determinism,
+  });
+  if (params().get(URL_TEST_PARAM) === DETERMINISM_TEST) {
+    game.events.once(Phaser.Core.Events.READY, () => {
+      void runDeterminism();
+    });
+  }
+
   // Açılış süresi (QUALITY_BAR A2): menü ilk kez dokunulabilir olunca konsola (uygulamada logcat'e,
   // "Capacitor/Console") gezinme başlangıcından geçen süre yazılır.
   let menuLogged = false;
@@ -275,7 +307,28 @@ export function installDevTools(game: Phaser.Game): void {
         startMatch(testSetup());
       },
     },
+    {
+      label: 'Motorlar arası test',
+      onSelect: () => {
+        void runDeterminism();
+      },
+    },
+    {
+      label: () => `Hit-stop   ◄ ${HIT_STOP_LABELS[devHitStopMode() ?? JUICE.hitStop.catchUp]} ►`,
+      onAdjust: (dir) => {
+        cycleHitStop(dir);
+      },
+      onSelect: () => {
+        cycleHitStop(1);
+      },
+    },
   ];
+
+  function cycleHitStop(dir: 1 | -1): void {
+    const now = HIT_STOP_MODES.indexOf(devHitStopMode() ?? JUICE.hitStop.catchUp);
+    const n = HIT_STOP_MODES.length;
+    setDevHitStopMode(HIT_STOP_MODES[(now + dir + n) % n] ?? null);
+  }
 
   function toggle(): void {
     overlay.setVisible(!overlay.isVisible);

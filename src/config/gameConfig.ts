@@ -514,13 +514,11 @@ export const MATCH = {
   /** Altın gol uzatmasının santrasında daha uzun bekleme ("ALTIN GOL!" yazısı okunsun). */
   goldenGoalKickoffSeconds: 1.8,
   /**
-   * Golden santraya kadar geçen **gerçek** süre (ağır çekim dahil). Simülasyon bu sürede
-   * akmaya devam eder ama ikinci gol sayılmaz.
+   * Golden santraya kadar geçen süre. Simülasyonda kare sayısıdır (× `LOOP.stepHz` = 120 adım):
+   * simülasyon bu sürede normal hızda akmaya devam eder ama ikinci gol sayılmaz. Gol sonrası ağır
+   * çekim yalnızca görüntüdedir (`JUICE.goalSlowMo`, Faz 2.7).
    */
   goalCelebrationSeconds: 2,
-  /** Golden hemen sonra ağır çekim süresi (gerçek sn) ve oranı. */
-  goalSlowMoSeconds: 1,
-  goalSlowMoScale: 0.3,
   /** Kalan süre bunun altına inince saat kırmızı ve nabızlı. */
   finalCountdownSeconds: 10,
 } as const;
@@ -1282,6 +1280,11 @@ export const DEV = {
   unlockAllValue: 'all',
   /** `?touch=1` → dokunmatik butonlar masaüstünde de görünür (test). */
   touchParam: 'touch',
+  /**
+   * `?hitstop=rate|snap|off` → hit-stop sonrası yetişme biçimi (Faz 2.7 prototipi: hızlandırılmış
+   * yetişme, tek karede atlama, hit-stop yok). Geliştirici derlemesinde menüden de değişir.
+   */
+  hitStopParam: 'hitstop',
 } as const;
 
 /**
@@ -2046,6 +2049,22 @@ export const JUICE = {
     /** Süper atış ve gol anında hit-stop. */
     superMs: 60,
     goalMs: 60,
+    /**
+     * Hit-stop yalnızca görüntüdedir (Faz 2.7): simülasyon donma sırasında da akar, görüntü geride
+     * kalır. Donmadan sonra görüntü canlı simülasyona yetişir: `'rate'` → `catchUpRate` kat hızla
+     * oynar (2 kat: 55 ms'lik donma sonraki 55 ms'de kapanır); `'snap'` → tek karede atlar.
+     */
+    catchUp: 'rate',
+    catchUpRate: 2,
+  },
+  /**
+   * Gol sonrası ağır çekim (yalnızca görüntü, Faz 2.7): golden sonra görüntü `seconds` gerçek
+   * saniye boyunca `scale` hızında akar, sonra normal hızda ama geride kalarak sürer; santrada
+   * canlıya atlar (kararma). Simülasyonun adım hızı değişmez.
+   */
+  goalSlowMo: {
+    seconds: 1,
+    scale: 0.3,
   },
   shake: {
     /** Travma 1'deyken en büyük kayma (px) ve dönüş (rad). Etki travmanın karesiyle ölçeklenir. */

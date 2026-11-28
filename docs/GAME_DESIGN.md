@@ -83,7 +83,9 @@ gerçek kişi, kulüp, marka veya logo kullanılmaz.
 - **Beraberlik:** altın gol uzatması — süre biter, oyuncular ve top santraya alınır,
   "ALTIN GOL!" duyurulur; süresiz oynanır, ilk atan kazanır.
 - **Gol anı:** 1 sn ağır çekim (0,3x) + büyük "GOL!" yazısı; golden 2 sn sonra oyuncular
-  ve top başlangıç konumlarına döner (kısa kararma).
+  ve top başlangıç konumlarına döner (kısa kararma). Faz 2.7'den beri ağır çekim yalnızca
+  görüntüde: simülasyon gol sonrası 120 adım (2 sn) normal hızda akar, görüntü geride kalır ve
+  santrada canlıya atlar.
 - **Gol tekrarı (v1.0):** kutlama bitince (santra ya da maç sonu öncesi) golün son ~4 sn'si
   deterministik olarak yeniden oynatılır: halka tamponda her 15 adımda bir tam simülasyon durumu
   (`GameSim.saveState`) ve her adımın girdileri (oyuncu başına 1 bayt) tutulur; golden en çok 4 sn
@@ -290,7 +292,8 @@ Ayrıntılar ve ölçümler [archive/PROGRESS_WEB.md](archive/PROGRESS_WEB.md) F
 - **Top:** dönme, yüksekliğe göre küçülen gölge, hız izi, hızla uzama/çarpmada basılma.
 - **Efektler:** nesne havuzlu parçacıklar — toz, çim, kıvılcım, konfeti, balon patlaması, havai
   fişek ve her süper şuta özel iz/patlama/çizim.
-- **Oyun hissi:** sert vuruşta 40–60 ms hit-stop (simülasyon adımları değişmez), travma modeli ekran
+- **Oyun hissi:** sert vuruşta 40–60 ms hit-stop (yalnızca görüntüde: simülasyon akar, görüntü sonra
+  2 kat hızla yetişir; Faz 2.7), travma modeli ekran
   sarsıntısı, gol anında kameranın kaleye ~%10 yakınlaşması, vuruşta flaş. Sarsıntı/zoom yalnızca
   dünyaya uygulanır; HUD sabittir.
 - **Arayüz:** tek stil — yuvarlak köşeli, gölgeli, gradyanlı paneller ve butonlar; altın gradyanlı

@@ -17,7 +17,7 @@ export interface MatchState {
   phase: MatchPhase;
   overtime: boolean;
   timeLeft: number;
-  phaseTime: number;
+  phaseTicks: number;
   score: [number, number];
   lastScorer: PlayerIndex | -1;
   winner: PlayerIndex | null;

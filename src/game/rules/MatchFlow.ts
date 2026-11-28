@@ -5,7 +5,7 @@ import type { MatchEndReason, PlayerIndex, SimEvent } from '../types';
  * Maç durumları:
  *
  * ```
- * kickoff ──(bekleme + düdük)──▶ playing ──(gol)──▶ goalScored ──(2 sn)──▶ kickoff …
+ * kickoff ──(48 adım + düdük)──▶ playing ──(gol)──▶ goalScored ──(120 adım)──▶ kickoff …
  *                                   │                    │
  *                              (süre biter)     (süre bitmişse / uzatmadaysa)
  *                                   ▼                    ▼
@@ -25,8 +25,6 @@ export interface MatchRules {
   readonly kickoffSeconds: number;
   readonly goldenGoalKickoffSeconds: number;
   readonly goalCelebrationSeconds: number;
-  readonly goalSlowMoSeconds: number;
-  readonly goalSlowMoScale: number;
 }
 
 export const DEFAULT_MATCH_RULES: MatchRules = {
@@ -35,15 +33,13 @@ export const DEFAULT_MATCH_RULES: MatchRules = {
   kickoffSeconds: MATCH.kickoffSeconds,
   goldenGoalKickoffSeconds: MATCH.goldenGoalKickoffSeconds,
   goalCelebrationSeconds: MATCH.goalCelebrationSeconds,
-  goalSlowMoSeconds: MATCH.goalSlowMoSeconds,
-  goalSlowMoScale: MATCH.goalSlowMoScale,
 };
 
 export interface MatchSnapshot {
   readonly phase: MatchPhase;
   readonly overtime: boolean;
   readonly timeLeft: number;
-  readonly phaseTime: number;
+  readonly phaseTicks: number;
   readonly score: readonly [number, number];
   readonly lastScorer: PlayerIndex | -1;
   readonly winner: PlayerIndex | null;
@@ -52,14 +48,20 @@ export interface MatchSnapshot {
 
 const EPS = LOOP.epsilonSeconds;
 
+/** Süreyi (sn) sabit adım sayısına çevirir: 0,8 sn → 48, 2 sn → 120 adım (60 Hz). */
+export function secondsToTicks(seconds: number): number {
+  return Math.round(seconds * LOOP.stepHz);
+}
+
 /**
  * Maç kurallarının deterministik durum makinesi. Fizikten ve Phaser'dan bağımsızdır:
  * her sabit adımda `advance(dt, golAtan)` çağrılır, geçişler olay olarak döner.
  *
- * Zaman: `dt` simülasyon süresidir. Ağır çekim (`timeScale < 1`) sahnede gerçek zamanı
- * yavaşlatarak uygulanır; gol kutlaması sayacı ise **gerçek süreye** göre ilerler
- * (`dt / timeScale`), böylece "1 sn ağır çekim, 2 sn sonra santra" gerçek saniyedir ve
- * yine de yalnızca adım sayısına bağlıdır (determinizm korunur).
+ * Zaman (Faz 2.7): evre süreleri **adım sayısıyla** ilerler (`phaseTicks`, tam sayı): santra 48,
+ * altın gol santrası 108, gol sonrası duraklama 120 adım. Kayan nokta birikimi yoktur; duraklama
+ * her motorda aynı adımda biter. Simülasyonun adım hızı hiç değişmez: gol sonrası ağır çekim ve
+ * hit-stop yalnızca görüntüdedir (`PresentationTimeline`). Normal sürenin kalanı (`timeLeft`)
+ * saniye olarak `dt` ile azalır (yalnızca çıkarma: her motorda aynı).
  */
 export class MatchFlow {
   phase: MatchPhase = 'kickoff';
@@ -67,8 +69,8 @@ export class MatchFlow {
   overtime = false;
   /** Normal sürenin kalanı (sn). Yalnızca `playing` durumunda azalır. */
   timeLeft: number;
-  /** Mevcut durumda geçen süre (sn; gol kutlamasında gerçek süre eşdeğeri). */
-  phaseTime = 0;
+  /** Mevcut durumda geçen adım sayısı. */
+  phaseTicks = 0;
   readonly score: [number, number] = [0, 0];
   lastScorer: PlayerIndex | -1 = -1;
   winner: PlayerIndex | null = null;
@@ -98,20 +100,28 @@ export class MatchFlow {
     return this.phase === 'playing' || this.phase === 'goldenGoal';
   }
 
-  /** Oyunun akış hızı: gol sonrası ağır çekimde < 1. Sahne gerçek zamanı bununla çarpar. */
-  get timeScale(): number {
-    return this.phase === 'goalScored' && this.phaseTime + EPS < this.rules.goalSlowMoSeconds
-      ? this.rules.goalSlowMoScale
-      : 1;
+  /** Mevcut durumda geçen süre (sn; adım sayısından, gösterim için). */
+  get phaseTime(): number {
+    return this.phaseTicks / LOOP.stepHz;
   }
 
   get kickoffDuration(): number {
     return this.overtime ? this.rules.goldenGoalKickoffSeconds : this.rules.kickoffSeconds;
   }
 
+  /** Santra beklemesinin adım sayısı. */
+  get kickoffTicks(): number {
+    return secondsToTicks(this.kickoffDuration);
+  }
+
+  /** Gol sonrası duraklamanın adım sayısı. */
+  get celebrationTicks(): number {
+    return secondsToTicks(this.rules.goalCelebrationSeconds);
+  }
+
   /**
    * Bir sabit adım ilerletir.
-   * @param dt      Simülasyon adımı (sn).
+   * @param dt      Simülasyon adımı (sn); yalnızca normal sürenin kalanını azaltır.
    * @param scorer  Bu adımda gol atan oyuncu (top kaleye tamamen girdiyse), yoksa null.
    *                Aynı adımda süre de bitse gol önce işlenir (son saniye golü geçerlidir).
    * @param events  Geçiş olaylarının ekleneceği liste.
@@ -119,8 +129,8 @@ export class MatchFlow {
   advance(dt: number, scorer: PlayerIndex | null, events: SimEvent[]): void {
     switch (this.phase) {
       case 'kickoff':
-        this.phaseTime += dt;
-        if (this.phaseTime + EPS >= this.kickoffDuration) {
+        this.phaseTicks++;
+        if (this.phaseTicks >= this.kickoffTicks) {
           this.enter(this.overtime ? 'goldenGoal' : 'playing');
           events.push({ type: 'playStart', overtime: this.overtime });
         }
@@ -135,7 +145,7 @@ export class MatchFlow {
           events.push({ type: 'goal', scorer });
           break;
         }
-        this.phaseTime += dt;
+        this.phaseTicks++;
         if (this.phase === 'playing') {
           this.timeLeft = Math.max(0, this.timeLeft - dt);
           if (this.timeLeft <= EPS) {
@@ -146,13 +156,13 @@ export class MatchFlow {
         break;
 
       case 'goalScored':
-        // Kutlama sayacı gerçek süreyle ilerler (ağır çekimde adım başına daha çok).
-        this.phaseTime += dt / this.timeScale;
-        if (this.phaseTime + EPS >= this.rules.goalCelebrationSeconds) this.afterGoal(events);
+        // Gol sonrası duraklama: sabit adım sayısı (ağır çekim yalnızca görüntüde).
+        this.phaseTicks++;
+        if (this.phaseTicks >= this.celebrationTicks) this.afterGoal(events);
         break;
 
       case 'matchEnd':
-        this.phaseTime += dt;
+        this.phaseTicks++;
         break;
     }
   }
@@ -193,7 +203,7 @@ export class MatchFlow {
 
   private enter(phase: MatchPhase): void {
     this.phase = phase;
-    this.phaseTime = 0;
+    this.phaseTicks = 0;
   }
 
   snapshot(): MatchSnapshot {
@@ -201,7 +211,7 @@ export class MatchFlow {
       phase: this.phase,
       overtime: this.overtime,
       timeLeft: this.timeLeft,
-      phaseTime: this.phaseTime,
+      phaseTicks: this.phaseTicks,
       score: [this.score[0], this.score[1]],
       lastScorer: this.lastScorer,
       winner: this.winner,

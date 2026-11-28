@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   build:
-    name: Lint + Test + Build + Duman testi
+    name: Lint + Test + Build + Determinizm + Duman testi
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -37,8 +37,13 @@ jobs:
       # Pages'e yüklenmez. İmzalı Android AAB etiketle android-release.yml'da üretilir.
       - run: npm run build:mobile
 
-      - name: Playwright tarayıcısı
-        run: npx playwright install --with-deps chromium
+      - name: Playwright tarayıcıları
+        run: npx playwright install --with-deps chromium webkit
+
+      # Faz 2.7: kayıtlı tekrarlar Node, Chromium (V8) ve WebKit'te (JavaScriptCore) oynatılır; her
+      # adımın durum özeti karşılaştırılır. Tek fark bu adımı (ve yayını) durdurur.
+      - name: Çapraz motor determinizm testi (Node + Chromium + WebKit)
+        run: npm run test:determinism
 
       - name: Duman testi (Playwright)
         run: npm run test:e2e

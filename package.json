@@ -23,11 +23,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:determinism": "playwright test -c playwright.determinism.config.ts",
     "screenshots": "playwright test -c playwright.screenshots.config.ts",
     "screens": "playwright test -c playwright.screens.config.ts",
     "simulate": "node scripts/run-ts.js scripts/simulate.ts",
     "bench": "node scripts/run-ts.js scripts/bench/bench.ts",
-    "feel": "node scripts/run-ts.js scripts/feel.ts"
+    "feel": "node scripts/run-ts.js scripts/feel.ts",
+    "replays": "node scripts/run-ts.js scripts/replays.ts",
+    "hitstop": "node scripts/run-ts.js scripts/hitstop.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.2",

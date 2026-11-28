@@ -21,8 +21,8 @@ export interface MatchResume {
   readonly state: SimState;
 }
 
-/** Kayıt biçiminin sürümü (alanlar değişirse artırılır). */
-const FORMAT = 1;
+/** Kayıt biçiminin sürümü (alanlar değişirse artırılır; 2: `phaseTime` → `phaseTicks`, Faz 2.7). */
+const FORMAT = 2;
 const KEY = STORAGE.keys.matchResume;
 const NUM_TAG = '$num';
 const SPECIAL: Readonly<Record<string, number>> = {
@@ -75,6 +75,7 @@ function isSimStateShape(v: unknown): v is SimState {
     isNum(v.balloonTimer) &&
     typeof v.solo === 'boolean' &&
     typeof m.phase === 'string' &&
+    isNum(m.phaseTicks) &&
     isNum(m.timeLeft) &&
     isPair(m.score) &&
     isPair(v.players) &&

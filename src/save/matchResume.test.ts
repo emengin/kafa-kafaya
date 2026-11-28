@@ -129,13 +129,13 @@ describe('Yarım maç kaydı (Faz 2.5)', () => {
     expect(takeMatchResume(store, NOW, VERSION)).toBeNull();
     expect(store.data.has(key)).toBe(false);
 
-    store.set(key, encodeResume({ v: 1, app: VERSION, savedAt: NOW, setup: SETUP, seed: 1 }));
+    store.set(key, encodeResume({ v: 2, app: VERSION, savedAt: NOW, setup: SETUP, seed: 1 }));
     expect(takeMatchResume(store, NOW, VERSION)).toBeNull();
 
     const badMode = { ...SETUP, mode: 'online' };
     store.set(
       key,
-      encodeResume({ v: 1, app: VERSION, savedAt: NOW, setup: badMode, seed: 1, state }),
+      encodeResume({ v: 2, app: VERSION, savedAt: NOW, setup: badMode, seed: 1, state }),
     );
     expect(takeMatchResume(store, NOW, VERSION)).toBeNull();
 

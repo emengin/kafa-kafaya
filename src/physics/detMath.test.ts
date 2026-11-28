@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { datan, datan2, dcos, dexp, dhypot, dlog, dpow, dsin, pow2 } from './detMath';
+import { DET_MATH_GOLDEN, goldenDigest } from './detMathGolden';
 
 // Testler kendi referansı olarak motorun `Math` işlevlerini kullanır (test dosyaları lint
 // kuralının dışında). Bizim işlevler ≲ 1 ulp, büyük motorların `Math`'i de ≲ 1 ulp hatalı
@@ -255,44 +256,8 @@ describe('dpow / pow2 / dhypot', () => {
   });
 });
 
-/**
- * Altın özet: sabit girdilerle tüm işlevlerin çıktı bitlerinin FNV-1a (64 bit) özeti. Bu değer
- * her JS motorunda aynı çıkmalıdır (Faz 2.7b'deki çapraz motor testi bu testi WebKit'te de
- * koşar). Değişirse işlevlerin sonucu değişmiş demektir — fizik ve tekrarlar da değişir.
- */
-const GOLDEN = '5acc6e5b04e8a32a';
-
-function goldenDigest(): string {
-  const FNV_OFFSET = 0xcbf29ce484222325n;
-  const FNV_PRIME = 0x100000001b3n;
-  const MASK = (1n << 64n) - 1n;
-  let h = FNV_OFFSET;
-  const add = (v: number): void => {
-    h = ((h ^ bits(v)) * FNV_PRIME) & MASK;
-  };
-  const r = sampler(2027);
-  for (let i = 0; i < 512; i++) {
-    const x = (r() * 2 - 1) * 50;
-    add(dsin(x));
-    add(dcos(x));
-  }
-  for (let i = 0; i < 256; i++) {
-    add(datan2((r() * 2 - 1) * 10 ** (r() * 6 - 3), r() * 2 - 1));
-    add(dexp((r() * 2 - 1) * 20));
-    add(dlog(10 ** (r() * 20 - 10)));
-    add(dpow(r() * 10, (r() * 2 - 1) * 3));
-  }
-  for (const v of [0, -0, 1e-9, 1, Math.PI, 1e6, -1e6]) {
-    add(dsin(v));
-    add(dcos(v));
-    add(datan(v));
-    add(dexp(v / 1e4));
-  }
-  return h.toString(16).padStart(16, '0');
-}
-
 describe('Altın özet', () => {
   it('sabit girdilerde çıktı bitleri değişmedi (motorlar arası aynı olmalı)', () => {
-    expect(goldenDigest()).toBe(GOLDEN);
+    expect(goldenDigest()).toBe(DET_MATH_GOLDEN);
   });
 });

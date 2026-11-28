@@ -1,45 +1,47 @@
 import type Phaser from 'phaser';
 import { attackDanger } from '../audio/crowdMood';
-import { BALL, CROWD, MENU, UNITS, type AiDifficulty } from '../config/gameConfig';
-import { HitStop, hitStopForSpeed, sessionQuality } from '../fx/feel';
+import { BALL, CROWD, JUICE, MENU, UNITS, type AiDifficulty } from '../config/gameConfig';
+import { hitStopForSpeed, sessionQuality } from '../fx/feel';
 import { approach } from '../fx/Spring';
 import { AiController, AiInputSource } from '../game/ai/AiController';
 import { mixSeed } from '../game/ai/random';
 import { observe } from '../game/ai/worldView';
 import { loadoutFor, type CharacterDef } from '../game/characters';
-import { GameSim } from '../game/GameSim';
+import { GameSim, type GameSimOptions } from '../game/GameSim';
 import type { SimEvent } from '../game/types';
 import { t } from '../i18n';
 import type { InputSource } from '../input/InputState';
 import { createGameLoop } from '../physics';
 import { MatchRenderer } from './MatchRenderer';
-import { RenderFrame } from './renderFrame';
+import { PresentationTimeline } from './PresentationTimeline';
 
 /**
  * Ana menünün arka planındaki canlı AI vs AI maçı (Faz 6): gerçek GameSim + iki yapay zekâ +
  * maç çizimi (`MatchRenderer`). Süresiz oynanır (saat yok); goller, süperler, balonlar ve tüm
  * görsel efektler maçtakiyle aynıdır. Ses yalnızca kalabalık uğultusu (tehlikeyle) — efekt
- * sesleri menüde çalınmaz. Görsel bir süstür; sonuçları hiçbir yere yazılmaz.
+ * sesleri menüde çalınmaz. Görsel bir süstür; sonuçları hiçbir yere yazılmaz. Hit-stop ve gol sonrası
+ * ağır çekim maçtaki gibi yalnızca görüntüde (`PresentationTimeline`, Faz 2.7).
  */
 export class DemoMatch {
   private readonly loop = createGameLoop();
   private readonly sim: GameSim;
   private readonly view: MatchRenderer;
   private readonly inputs: readonly [InputSource, InputSource];
-  private readonly hitStop = new HitStop();
-  private readonly prev = new RenderFrame();
-  private readonly curr = new RenderFrame();
-  private readonly draw = new RenderFrame();
+  private readonly timeline: PresentationTimeline;
   private danger = 0;
+  private seconds = 0;
 
   constructor(scene: Phaser.Scene, characters: readonly [CharacterDef, CharacterDef]) {
     const seed = crypto.getRandomValues(new Uint32Array(1))[0] ?? 0;
     const [c1, c2] = characters;
-    this.sim = new GameSim({
+    const options: GameSimOptions = {
       rules: { durationSeconds: Infinity, goldenGoalOvertime: false },
       loadouts: [loadoutFor(c1.id), loadoutFor(c2.id)],
       seed: mixSeed(seed, 2),
-    });
+    };
+    this.sim = new GameSim(options);
+    this.timeline = new PresentationTimeline(options);
+    this.timeline.reset(this.sim);
     const level: AiDifficulty = MENU.demo.difficulty;
     const view = (): ReturnType<typeof observe> => observe(this.sim);
     this.inputs = [
@@ -52,13 +54,18 @@ export class DemoMatch {
         view,
       ),
     ];
-    this.view = new MatchRenderer(scene, this.sim, characters, ['', ''], sessionQuality(), {
-      title: t('game.title'),
-      goal: t('board.goal'),
-    });
+    this.view = new MatchRenderer(
+      scene,
+      this.timeline.view,
+      characters,
+      ['', ''],
+      sessionQuality(),
+      {
+        title: t('game.title'),
+        goal: t('board.goal'),
+      },
+    );
     this.view.setTagsVisible(false);
-    this.prev.copyFrom(this.sim);
-    this.curr.copyFrom(this.sim);
   }
 
   /** Atak tehlikesi (0–1): menüdeki kalabalık uğultusu buna bağlanır. */
@@ -68,30 +75,24 @@ export class DemoMatch {
 
   update(time: number, deltaMs: number): void {
     const realDt = Math.min(deltaMs, MAX_FRAME_MS) / UNITS.msPerSecond;
-    this.view.rememberBalloon();
-    const simMs = this.hitStop.filter(deltaMs);
-    const scale = this.sim.match.timeScale;
-    this.loop.advance((simMs / UNITS.msPerSecond) * scale, (_dt, tick) => {
-      this.prev.copyFrom(this.sim);
+    this.seconds = time / UNITS.msPerSecond;
+    this.loop.advance(deltaMs / UNITS.msPerSecond, (_dt, tick) => {
       const events = this.sim.step([this.inputs[0].read(tick), this.inputs[1].read(tick)]);
-      this.curr.copyFrom(this.sim);
-      this.handle(events, time / UNITS.msPerSecond);
+      this.timeline.record(this.sim, events);
+      if (events.some((e) => e.type === 'kickoff')) this.timeline.jumpToLive();
     });
-    const worldDt = (Math.min(simMs, MAX_FRAME_MS) / UNITS.msPerSecond) * scale;
-    this.view.draw(
-      this.draw.lerpFrom(this.prev, this.curr, this.loop.alpha),
-      realDt,
-      worldDt,
-      time / UNITS.msPerSecond,
-    );
-    const b = this.sim.ball;
-    const [left, right] = this.sim.pitch.goals;
-    const target = this.sim.match.goalsAllowed
+    this.view.rememberBalloon();
+    const worldDt = this.timeline.advance(realDt, this.loop.alpha, this.handle);
+    this.view.draw(this.timeline.frame, realDt, worldDt, this.seconds);
+    const shown = this.timeline.view;
+    const b = shown.ball;
+    const [left, right] = shown.pitch.goals;
+    const target = shown.match.goalsAllowed
       ? attackDanger({
           ballX: b.x,
           ballY: b.y,
           ballVx: b.vx,
-          groundY: this.sim.pitch.groundY,
+          groundY: shown.pitch.groundY,
           leftLineX: left.lineX,
           rightLineX: right.lineX,
         })
@@ -100,22 +101,24 @@ export class DemoMatch {
     this.view.setExcitement(this.danger);
   }
 
-  /** Yalnızca görsel olaylar (ses yok). */
-  private handle(events: readonly SimEvent[], seconds: number): void {
+  /** Yalnızca görsel olaylar (ses yok); görüntü o adıma varınca teslim edilir. */
+  private readonly handle = (events: readonly SimEvent[], skipped: boolean): void => {
     const v = this.view;
+    const seconds = this.seconds;
     for (const e of events) {
+      if (skipped && e.type !== 'kickoff' && e.type !== 'goal') continue;
       switch (e.type) {
         case 'goal':
           v.onGoal(e.scorer);
+          if (!skipped) this.timeline.slowMo(JUICE.goalSlowMo.seconds, JUICE.goalSlowMo.scale);
           break;
         case 'kickoff':
-          this.prev.copyFromFrame(this.curr);
           v.onKickoff();
           break;
         case 'kick': {
           v.onKick(e.player, e.speed, e.super);
           const stop = hitStopForSpeed(e.speed, BALL.maxSpeed);
-          if (stop > 0) this.hitStop.trigger(stop);
+          if (stop > 0) this.timeline.hitStop(stop);
           break;
         }
         case 'header':
@@ -152,7 +155,7 @@ export class DemoMatch {
           break;
       }
     }
-  }
+  };
 }
 
 const MAX_FRAME_MS = 100;
