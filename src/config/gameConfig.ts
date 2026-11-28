@@ -1367,6 +1367,33 @@ export const LIFECYCLE = {
   endScreenAwakeMs: 30_000,
 } as const;
 
+/**
+ * Gözlemlenebilirlik (Faz 2.8): çökme raporu ve analiz yalnızca Android uygulamasında ve rıza
+ * varsa (`src/telemetry`). Web sürümünde bu değerler kullanılmaz.
+ */
+export const TELEMETRY = {
+  /**
+   * Rıza metninin sürümü. Metin anlamca değişirse artırılır; cihazdaki kayıtta karar hangi metne
+   * verildiyse o sürüm durur (DATA_MAP: "geçici rıza kaydı"). Faz 8.2 tam rıza yönetimi gelince
+   * yeni metin yeniden sorulur.
+   */
+  consentTextVersion: 1,
+  /** Bir oturumda Crashlytics'e gidecek en çok JS hatası (aynı hata tekrar etse de bir kez). */
+  maxErrorsPerSession: 8,
+  /** Hata mesajı ve yığın satırı bu uzunlukta kesilir (karakter). */
+  maxMessageLength: 300,
+  /** Raporlanan en çok yığın karesi. */
+  maxStackFrames: 24,
+  /** Rıza ekranı: panel genişliği ve açıklama satırlarının boyutu (MenuOverlay). */
+  prompt: { panelWidth: 980, lineFontSizePx: 21, lineHeightPx: 32 },
+  /** Geliştirici test çökmesi: menü kapandıktan sonra (ms). */
+  testCrashDelayMs: 300,
+  /** Maç süresi analiz olayında saniyeye yuvarlanır; bundan uzunu bu değere kırpılır (sn). */
+  maxMatchSeconds: 7200,
+  /** Analiz olayındaki gol sayısının üst sınırı. */
+  maxGoals: 99,
+} as const;
+
 /** Renk paleti (Phaser sayısal renk biçimi). */
 export const COLORS = {
   skyTop: 0x1b2a6b,

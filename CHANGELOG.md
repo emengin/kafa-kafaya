@@ -35,6 +35,12 @@ denge tabloları: [docs/archive/PROGRESS_WEB.md](docs/archive/PROGRESS_WEB.md).
   duraklama 120 adımlık bir oyun durumu. Hit-stop sırasında basılan tuş artık beklemiyor. Çapraz motor
   testi: 5 kayıtlı maç (10 karakter, 10 süper, goller) Node, Chromium ve WebKit'te her adımda aynı
   durumu üretmeli; CI'da her değişiklikte koşar (`npm run test:determinism`).
+- **Çökme raporu ve oyun istatistikleri, rızayla** (mobil yol haritası Faz 2.8; yalnızca Android
+  uygulaması): ilk açılışta "Oyunu geliştirmemize yardım et" sorusu; Ayarlar → Gizlilik'ten iki ayrı
+  anahtarla her an geri alınır. İzin verilirse çökmeler, JS hataları ve WebView çizici süreç kaybı
+  Firebase Crashlytics'e, maç başı/sonu olayları Firebase Analytics'e gider. Reklam kimliği, kesin
+  konum ve kişisel bilgi toplanmaz; izin yokken hiçbir veri gönderilmez. Web sürümünde Firebase yok
+  (`npm run check:web`).
 
 ## [1.0.0] — 2026-11-19
 

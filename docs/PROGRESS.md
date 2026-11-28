@@ -93,7 +93,8 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
   - [x] 2.7 Determinizm sertleştirme — 2026-11-28 → çapraz motor testi CI'da yeşil (Node + Chromium +
         WebKit), telefonun Android WebView'ında geçti; zaman efektleri görüntüde; rollback telefonda
         p99 1,1 ms (aşağıda)
-  - [ ] 2.8 Gözlemlenebilirlik temeli
+  - [ ] 2.8 Gözlemlenebilirlik temeli — kod tamam; rızasız ağ kaydı emülatörde temiz; Firebase
+        konsolunda test çökmesi ve analiz olayı bekliyor (aşağıda)
   - [ ] 2.9 His ve denge yeniden ayarı
 - **Bölüm 3 — Görsel ve ses altyapısı [CC]**
   - [ ] 3.1 Asset manifest ve placeholder sistemi
@@ -834,6 +835,129 @@ Bitince yayın derlemesine dön: `npm run cap:sync` → ▶ Run.
 | D6 Giriş gecikmesi            | hit-stop simülasyonu bekletmiyor; görsel gecikme p99 33 ms, en kötü 67 ms     | ✅ eskisinden kötü değil    |
 | P1 Kare işi                   | telefonda stres 5 dk: 59,6 FPS, iş 7,4 ms, %99,95 bütçede, aralık p99 18,9 ms | ✅ (P2 takılmaları sürüyor) |
 
+### Faz 2.8 — Gözlemlenebilirlik temeli (2026-11-28, kod tamam — Firebase konsolunda doğrulama bekliyor)
+
+Firebase Crashlytics + Analytics, yalnızca Android uygulamasında ve yalnızca rıza varsa. Konsol
+kurulumu, gizlilik ayarları, API anahtarı, CI sırrı ve telefon testi: [OPS.md § 4](OPS.md). Toplanan
+veri ve yurt dışı aktarım: [DATA_MAP.md](DATA_MAP.md).
+
+**Ne yapıldı (yol haritasının 5 maddesi)**
+
+1. **Firebase yalnızca Crashlytics + Analytics** (BoM 35.2.0; Crashlytics Gradle eklentisi 3.0.8,
+   google-services 4.6.0). Hazır npm eklentisi yerine kendi yerel eklentimiz
+   (`android/.../TelemetryPlugin.java`): veri ayarları tam bizde, JS tarafına SDK girmez.
+   `google-services.json` yoksa uygulama Firebase'siz derlenir ve çalışır (fork, yerel).
+2. **Geçici rıza ekranı:** ilk açılışta ana menüde "Oyunu geliştirmemize yardım et". "İzin ver" ve
+   "İzin verme" aynı görünümde, seçili gelen "İzin verme"; geri tuşu karar vermeden kapatır (rıza
+   yok, sonraki açılışta yeniden sorulur). Ayarlar → **Gizlilik**: "Oyun istatistikleri" ve "Çökme
+   raporları" ayrı anahtarlar, her an geri alınır. Metin ve karar kaydı (karar, zaman, metin sürümü)
+   cihazda. **Rıza yoksa hiçbir şey gönderilmez:** manifestte iki SDK'nın toplaması kapalı başlar
+   (`firebase_*_collection_enabled=false`, `firebase_data_collection_default_enabled=false`), rıza
+   modu varsayılanları "reddedildi"; rıza gelince açılır. JS ve Java tarafı ayrıca denetler.
+   Rızadan önce cihazda biriken çökme raporları rıza anında silinir (Crashlytics normalde onları
+   rıza gelince yollar). Geri alınınca analiz verisi cihazdan silinir (`resetAnalyticsData`),
+   bekleyen raporlar silinir.
+3. **Hatalar (QUALITY_BAR K4):** yakalanmamış JS hataları ve reddedilmiş Promise'ler Crashlytics'e
+   "çökme olmayan" olarak gider (`JsError`, `JsUnhandledRejection`; JS yığını Java yığın satırına
+   çevrilir, adres kökü atılır, mesaj ≤ 300 karakter, aynı hata oturumda bir kez, oturumda ≤ 8).
+   **Çizici süreç kaybı** `MainActivity.RendererGoneHandler`'da yeniden başlatmadan önce
+   raporlanır (`RendererGone`, `renderer_did_crash`, `renderer_priority`) + `renderer_gone` analiz
+   olayı. Etiketler: sürüm ve cihazı Crashlytics kendisi ekler; ayrıca `webview_version`,
+   `build_type`, `js_version`, `scene`.
+4. **Olay sözlüğü:** `src/telemetry/events.ts` tek kaynak — `match_start`, `match_end`,
+   `client_error`, `renderer_gone` + belgelenmiş otomatik olaylar (`session_start` = oturum).
+   Türler sözlükten çıkar (eksik/fazla parametre derlemeyi kırar), çalışma anında da doğrulanır.
+   `events.test.ts`: Firebase ad kuralları, ayrılmış adlar, ≤ 25 parametre, **serbest metin yok**
+   (yalnızca sabit liste ya da sınırlı tam sayı), yasaklı ad listesi (name, email, ip, location,
+   device_id, ad_id, user_id…). Maç olayları `MatchScene`'de; AI vs AI test maçları gönderilmez.
+5. **DATA_MAP:** Firebase satırları, "toplanmayanlar" listesi, ilk yurt dışı alıcı satırı (dayanak
+   avukata).
+
+**Veri en az (istek 3)**
+
+- Reklam kimliği yok: `play-services-ads-identifier` derlemeden çıkarıldı, `AD_ID` izni
+  manifestten silindi, `google_analytics_adid_collection_enabled=false`. Android ID (SSAID) kapalı.
+  Analytics'in eklediği Privacy Sandbox izinleri (`ACCESS_ADSERVICES_AD_ID`, `_ATTRIBUTION`) ve Play
+  kurulum kaynağı izni de silindi; birleştirilmiş manifestte yalnızca INTERNET, VIBRATE,
+  ACCESS_NETWORK_STATE, WAKE_LOCK kaldı. Rıza modunda reklam depolama / reklam verisi / reklam
+  kişiselleştirmesi her zaman "reddedildi". Otomatik `screen_view` kapalı.
+- IP ve konum: uygulama tarafında kapatılamaz; GA4 IP'yi ülke bulmak için kullanıp atar. Konsolda
+  "ayrıntılı konum ve cihaz verisi" kapatılınca yalnızca ülke kalır (OPS § 4.3).
+- appcompat'ın getirdiği EmojiCompat başlatıcısı kaldırıldı (açılışta Play hizmetlerinden emoji yazı
+  tipi isteyebiliyor; kullanılmıyor).
+
+**Depo herkese açık (istek 4) — karar:** `google-services.json` depoya **girmez** (`.gitignore`).
+Gerekçe (OPS § 4.1): değerleri gizli değil ve APK'dan da okunur; ama depoda olsaydı her fork kendi
+kullanıcılarının verisini bizim projemize yollardı ve sahte olay göndermek kolaylaşırdı. CI'da
+`GOOGLE_SERVICES_JSON_BASE64` depo sırrından yazılır; etiketli sürüm `-PrequireFirebase` ile dosya
+olmadan derlenmez (yerelde denendi: anlaşılır hata). API anahtarı kısıtlaması (paket adı + 3 SHA-1,
+Firebase API'leri) OPS § 4.4'te.
+
+**Web sürümü (istek 7):** Firebase kodu, rıza ekranı ve metinleri yalnızca mobil paketin ayrı
+parçasında (`main.ts` → `if (__NATIVE_APP__) await import('./telemetry/install')`). Yeni
+`npm run check:web` derlenmiş web paketinde Firebase/Crashlytics/Telemetry/rıza metni izi arar,
+`deploy.yml`'da `build`'den sonra çalışır: web ✅ iz yok; mobil pakette dört iz de yakalanıyor
+(denetimin çalıştığının kanıtı).
+
+**Ağ kaydı (istek 5, bitti kriterinin 2. yarısı)** — `scripts/mobile/netlog.js` (OPS § 4.7):
+bilgisayarda proxy + uygulamanın çekirdek ağ sayacı. Telefon bağlı olmadığı için Android Studio
+emülatöründe (API 37, Play görüntüsü), gerçek proje henüz olmadığından **sahte** `google-services.json`
+ile yapıldı. Kayıtlar: [archive/faz-2.8-ag-kaydi/](archive/faz-2.8-ag-kaydi/README.md).
+
+| Senaryo                                                                                                 | Firebase bağlantısı                                                                                     | Uygulamanın ağ sayacı |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------- |
+| Rıza hiç sorulmamış → 30 sn rıza ekranı → "İzin verme" → test JS hatası → **test çökmesi** → yeniden aç | **0**                                                                                                   | **+0 bayt** (140 sn)  |
+| Aynı ilk açılış, Play hizmetlerinin yazı tipi önbelleği boş                                             | **0**                                                                                                   | +3,0 MB (aşağıda)     |
+| "İzin ver" → test hatası ve çökmesi → yeniden aç                                                        | ilk bağlantı rıza verilen saniyede (Crashlytics ayarları, `app-measurement.com`, Firebase oturum kaydı) | +34 kB                |
+
+Bulunan ve Firebase'den bağımsız bir istek: **Android WebView** her açılışta Google Play
+hizmetlerinin yazı tipi sağlayıcısına 5 sorgu yapıyor. Play hizmetlerinin önbelleği boşsa (yeni
+cihaz) ~3 MB yazı tipi `fonts.gstatic.com`'dan indiriliyor ve trafik uygulamanın hesabına yazılıyor.
+Uygulama verisi içermez; bizim kodumuz değil (oyun yazı tipi indirmiyor, EmojiCompat kaldırıldıktan
+sonra da sürüyor) ve uygulamanın kapatabileceği bir ayar bulunamadı. Önbellek doluyken (cihazda
+başka bir WebView uygulaması açılmışsa) hiç trafik yok. DATA_MAP'e yazıldı. "Rıza yokken
+Firebase'e / bizim adımıza veri giden hiçbir istek yok" ✅; "cihazdan hiçbir bayt çıkmıyor" yalnızca
+yazı tipi önbelleği doluyken ✅.
+
+**Doğrulama**
+
+| Kontrol                                                            | Sonuç                                                                          |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| `npm test`                                                         | ✅ 530/530 (`--maxWorkers=4`; bilinen sorunlar ↓)                              |
+| `npm run test:determinism`                                         | ✅ 14/14 (Node + Chromium + WebKit, 5 tekrar)                                  |
+| `npm run test:e2e`                                                 | ✅ 8/8 (mobil derleme tarayıcıda açılınca telemetri devreye girmiyor)          |
+| `tsc`, ESLint, Prettier                                            | ✅                                                                             |
+| `assembleDebug` Firebase'siz / sahte yapılandırmayla               | ✅ ikisi de; Firebase'siz derlemede Gizlilik menüsü ve rıza ekranı yok         |
+| Emülatörde rıza ekranı, Gizlilik menüsü                            | ✅ metin panele sığıyor; iki anahtar rıza durumunu gösteriyor                  |
+| Emülatörde test çökmesi / JS hatası                                | ✅ çökme gerçekleşiyor, uygulama yeniden açılıyor; rızasız hiçbir şey gitmiyor |
+| **Rıza verilince test çökmesi + analiz olayı Firebase konsolunda** | ⏳ **geliştirici**: Firebase projesi (OPS § 4.2–4.5) + telefon testi (§ 4.6)   |
+| Telefonda, gerçek yapılandırmayla ağ kaydı                         | ⏳ telefon bağlanınca (`node scripts/mobile/netlog.js`)                        |
+
+**Bitti kriteri:** "Rıza verilince test çökmesi ve bir analiz olayı Firebase konsolunda görünüyor"
+→ ⏳ konsolda görülmeden işaretlenmeyecek. "Rıza yokken hiçbir istek gitmediği ağ kaydıyla
+doğrulandı" → ✅ emülatörde (sahte yapılandırma; WebView yazı tipi notuyla), telefonda gerçek
+yapılandırmayla tekrarlanacak.
+
+**Faz sonu kontrolü (QUALITY_BAR)**
+
+| Satır                 | Ölçüm                                                                                | Durum                        |
+| --------------------- | ------------------------------------------------------------------------------------ | ---------------------------- |
+| K4 JS hataları        | JS hatası, Promise reddi, çizici süreç kaybı Crashlytics'e kodlandı                  | ◐ konsolda görülmedi         |
+| K1 Çökmesiz kullanıcı | kaynak (Crashlytics) hazır; yalnızca rıza veren kullanıcılar sayılır                 | ◐ ölçüm canlıda              |
+| B3 Çevrimdışı açılış  | sahte yapılandırmada Firebase istekleri reddedilirken çökme yok; uçak modu denenmedi | ◐                            |
+| P1 / A2               | Firebase SDK'ları açılışta başlıyor; telefonda ölçülmedi                             | ölçülmedi → telefon testinde |
+
+**Bilinen sorunlar**
+
+- Yerelde `npm test` varsayılan paralellikte (47 işçi) iki ağır simülasyon testi 5 sn sınırını
+  aşabiliyor (`edgeCases`, `PresentationTimeline`); değişiklikler geri alınınca da oluyor, testler
+  `--maxWorkers=4` ile geçiyor. CI'da sorun görülmedi.
+- Emülatör (`qemu`) her ~10 sn'de bir `C:\WINDOWS\adb.exe` (1.0.40) ile SDK adb'si (1.0.41)
+  arasında gidip gelip adb sunucusunu düşürüyor; netlog'a yeniden deneme eklendi. Kalıcı çözüm eski
+  adb'nin adını değiştirmek (geliştiricinin kararı).
+- Geliştirici derlemesi de aynı Firebase projesine gönderir (`build_type = debug`, sürüm adı `-dev`
+  ile ayrılır) → 6.8 notu.
+
 ## Sonraki fazlar için notlar
 
 Faz 0.3'teki açık sorular Faz 0.4'te, 1.1'e bırakılanlar Faz 1.1'de (K13–K17) karara bağlandı;
@@ -909,7 +1033,11 @@ sonra hâlâ görülen riskler:
 - **2.8 — Firebase avukat incelemesinden (10.3) önce:** Firebase verisi yurt dışına gider; KVKK'da
   düzenli yurt dışı aktarım için açık rıza tek başına yeterli olmayabilir (standart sözleşme + 5 iş
   günü içinde Kurul'a bildirim). 4.7 ve 12.5'teki testçilerin verisi de bu kapsamda; 0.2'deki
-  avukat tanışmasında sorulmalı.
+  avukat tanışmasında sorulmalı. (2.8'de yapılan: rıza ekranı yurt dışı aktarımı açıkça yazıyor,
+  DATA_MAP'te ilk yurt dışı alıcı satırı açıldı, dayanak sütunu "AVUKAT ONAYI BEKLİYOR". Ayrıca
+  sorulacak: Google'ın konsolda kabul edilen veri işleme şartları KVKK standart sözleşmesi yerine
+  geçer mi; Firebase Sessions'ın saklama süresi; rıza kaydının hukuki sebebi; WebView'ın yazı tipi
+  indirmesinin aydınlatma metninde anılması gerekir mi.)
 - **5.3 — Çevrimdışı kuyruk ve cihaz saati:** günlük tavan cihaz saatine göre sayılırsa saat
   değiştirilerek katlanır; sunucuya ulaşma gününe göre sayılırsa uzun çevrimdışı oyun ödül kaybeder.
 - **5.4 / 9.3 — Uzaktan ayar ve determinizm:** Nakama simülasyonu etkileyen değerleri (fizik,
@@ -949,10 +1077,23 @@ sonra hâlâ görülen riskler:
   üstünde ve altında 120 px dekor + 48 px sarsıntı payı çiziyor (`STAGE_PAD_X/Y`). Final stadyum
   çizimi ART_BIBLE §10.1'in 2560×1440 (@1,5x) tuvaline göre gelmeli; ışık kuleleri şimdilik
   çekirdeğin içinde, 21:9'da dış kenarlarda kule yok.
-- **2.8 — Çizici süreç kaybı ve kesintiler (2.5'ten):** `MainActivity.RendererGoneHandler` çizici
-  süreç ölünce etkinliği yeniden başlatıyor (çökme yok); bu olay ve `detail.didCrash()` (çöktü mü,
-  sistem mi kapattı) Crashlytics'e özel olay olarak gitmeli (QUALITY_BAR K4). Yarım maç geri yükleme
-  sayısı da izlenebilir.
+- **2.8'den — telemetri notları:**
+  - **6.8 / 11.3:** yeni olay `src/telemetry/events.ts`'e eklenir (test kişisel veri adını ve serbest
+    metni engeller), DATA_MAP satırı güncellenir. Geliştirici derlemeleri de aynı projeye gönderiyor
+    (`build_type = debug`, sürüm `-dev`); huni raporlarında süzülmeli ya da ayrı Firebase uygulaması
+    açılmalı. Yarım maç geri yükleme sayısı `match_start.resumed` ile zaten geliyor.
+  - **8.2:** geçici rıza ekranının yerine tam rıza yönetimi; rıza geri alınınca Firebase kurulum
+    kimliğinin sunucuda silinmesi (`FirebaseInstallations.delete()`, ağ isteği yapar) burada
+    eklenmeli. Rıza metni değişirse `TELEMETRY.consentTextVersion` artırılır.
+  - **10.1:** "verilerimi sil" → GA4 kullanıcı silme (app instance ID) ve Crashlytics; kullanıcıya
+    kimliğini göstermek gerekir.
+  - **12.1:** Play uygulama imzalama anahtarının SHA-1'i API anahtarı kısıtlamasına eklenmeli (OPS
+    § 4.4), yoksa Play'den kurulan uygulamanın Firebase istekleri reddedilir. R8 açılırsa Crashlytics
+    eklentisi `mapping.txt`'yi yükler. Crashlytics JS kaynak haritası desteklemiyor: JS yığınları
+    küçültülmüş adlarla gelir (`işlev@sütun`); gerekirse sürüm başına gizli kaynak haritası CI
+    artefaktı olarak saklanıp elle çözülür.
+  - **12.3:** açılış süresi (A2) ve kare işi (P1) Firebase SDK'larıyla telefonda yeniden ölçülmeli;
+    uçak modunda açılış (B3) denenmeli.
 - **6.x / 11.x — Arka plan müziği (2.5'ten):** oyun ses odağını alıyor, açılınca kullanıcının müziği
   (Spotify vb.) duruyor. İstek gelirse "arka plan müziğine izin ver" ayarı: odak istenmez, oyun
   müziği kapatılır, efektler karışık çalar (çağrı algısı o zaman yalnızca arka plana geçişle).

@@ -1,0 +1,13 @@
+2026-11-28T12:40:42.887Z  +   9.6s  CONNECT fonts.gstatic.com:443
+2026-11-28T12:41:00.459Z  +  27.2s  CONNECT www.googleapis.com:443
+2026-11-28T12:41:13.981Z  +  40.7s  CONNECT android.googleapis.com:443
+
+Süre: 90 sn · cihaz: emulator-5554 · uygulama UID: 10235
+Toplam bağlantı: 3 · farklı hedef: 3
+Firebase sunucularına bağlantı: 0
+Uygulama UID ağ sayacı farkı (rx+tx): 3022183 bayt
+
+Farklı hedefler:
+  android.googleapis.com:443
+  fonts.gstatic.com:443
+  www.googleapis.com:443

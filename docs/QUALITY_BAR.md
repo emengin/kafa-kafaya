@@ -51,14 +51,14 @@ tam karşılığı (RAM 4 değil 8 GB; P6 bu yüzden mutlak değerle izlenir).
 
 ## 3. Kararlılık
 
-| #   | Kriter                     | Hedef                                                                                     | Kaynak                               |
-| --- | -------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------ |
-| K1  | Çökmesiz kullanıcı         | **≥ %99,5** (7 günlük)                                                                    | Crashlytics / Play Console           |
-| K2  | Algılanan çökme oranı      | < %1,09 (Google Play "kötü davranış" eşiği), hedef < %0,5                                 | Android vitals                       |
-| K3  | Algılanan ANR oranı        | < %0,47 (Google Play eşiği), hedef < %0,2                                                 | Android vitals                       |
-| K4  | JS hataları                | Yakalanmamış JS hatası ve WebView çizici süreç kaybı da çökme sayılır ve raporlanır       | Crashlytics özel olay                |
-| K5  | Kesintiler                 | Arka plan, çağrı, bildirim, kulaklık, düşük bellek senaryolarında veri kaybı ve çökme yok | Faz 2.5 senaryo listesi (PROGRESS)   |
-| K6  | Motorlar arası determinizm | Aynı tekrar kaydı Chromium, WebKit ve Node'da her karede aynı checksum'ı üretir           | CI (Faz 2.7); gerçek cihazlarda 12.3 |
+| #   | Kriter                     | Hedef                                                                                     | Kaynak                                                                                    |
+| --- | -------------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| K1  | Çökmesiz kullanıcı         | **≥ %99,5** (7 günlük)                                                                    | Crashlytics / Play Console                                                                |
+| K2  | Algılanan çökme oranı      | < %1,09 (Google Play "kötü davranış" eşiği), hedef < %0,5                                 | Android vitals                                                                            |
+| K3  | Algılanan ANR oranı        | < %0,47 (Google Play eşiği), hedef < %0,2                                                 | Android vitals                                                                            |
+| K4  | JS hataları                | Yakalanmamış JS hatası ve WebView çizici süreç kaybı da çökme sayılır ve raporlanır       | Crashlytics çökme olmayanlar: `JsError`, `JsUnhandledRejection`, `RendererGone` (Faz 2.8) |
+| K5  | Kesintiler                 | Arka plan, çağrı, bildirim, kulaklık, düşük bellek senaryolarında veri kaybı ve çökme yok | Faz 2.5 senaryo listesi (PROGRESS)                                                        |
+| K6  | Motorlar arası determinizm | Aynı tekrar kaydı Chromium, WebKit ve Node'da her karede aynı checksum'ı üretir           | CI (Faz 2.7); gerçek cihazlarda 12.3                                                      |
 
 ## 4. Dokunma ve okunurluk
 

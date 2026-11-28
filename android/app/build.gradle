@@ -92,15 +92,29 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+
+    // Gözlemlenebilirlik (Faz 2.8): yalnızca Analytics + Crashlytics. Uzaktan ayar ve A/B testi
+    // Nakama'da (Faz 5.4, 11.3); başka Firebase ürünü eklenmez. Sürümler BoM'dan.
+    implementation platform('com.google.firebase:firebase-bom:35.2.0')
+    implementation('com.google.firebase:firebase-analytics') {
+        // Reklam kimliği (Advertising ID) kütüphanesi hiç pakete girmez (DATA_MAP: reklam kimliği yok).
+        exclude group: 'com.google.android.gms', module: 'play-services-ads-identifier'
+    }
+    implementation 'com.google.firebase:firebase-crashlytics'
 }
 
 apply from: 'capacitor.build.gradle'
 
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+// Firebase yapılandırması (Faz 2.8). google-services.json depoda YOK (docs/OPS.md § 4): yerelde
+// android/app/ altına elle konur, CI'da GOOGLE_SERVICES_JSON_BASE64 sırrından yazılır. Dosya
+// yoksa uygulama Firebase'siz derlenir: gözlemlenebilirlik kapalı, rıza ekranı görünmez (ör. fork).
+// -PrequireFirebase verilirse (CI sürüm derlemesi) dosya şarttır.
+def servicesJSON = file('google-services.json')
+if (servicesJSON.exists() && servicesJSON.text.trim()) {
+    apply plugin: 'com.google.gms.google-services'
+    apply plugin: 'com.google.firebase.crashlytics'
+} else if (project.hasProperty('requireFirebase')) {
+    throw new GradleException("android/app/google-services.json yok; sürüm derlemesi Firebase'siz olmaz (docs/OPS.md § 4).")
+} else {
+    logger.lifecycle("google-services.json yok: Firebase'siz derleniyor (gözlemlenebilirlik kapalı).")
 }

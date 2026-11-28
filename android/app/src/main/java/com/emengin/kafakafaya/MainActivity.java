@@ -33,6 +33,10 @@ import com.getcapacitor.WebViewListener;
  * çizici süreci ölürse (sistem bellek için kapattı ya da çöktü) uygulama çökmez: etkinlik yeniden
  * kurulur, oyun yeniden açılır ve arka planda kaydedilen yarım maç kaldığı yerden sürer.
  *
+ * Gözlemlenebilirlik (Faz 2.8): TelemetryPlugin (Firebase Crashlytics + Analytics, yalnızca rıza
+ * varsa). Çizici süreç kaybı yeniden başlatmadan önce Crashlytics'e ve analiz olayı olarak raporlanır
+ * (QUALITY_BAR K4): çöktü mü, sistem mi kapattı.
+ *
  * Açılış ekranı (Faz 2.5): sistem açılış ekranı (zemin + simge) oyun hazır olana kadar kalır. Çıkış
  * animasyonu bekletilir: açılış görüntüsü en üstte dururken WebView altında normal hızda çizer ve
  * oyun yüklenir; JS ana menünün ilk karesinde LaunchSplashPlugin.hide çağırır. (Açılış ekranını
@@ -62,6 +66,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(ScreenAwakePlugin.class);
         registerPlugin(InterruptionsPlugin.class);
         registerPlugin(LaunchSplashPlugin.class);
+        registerPlugin(TelemetryPlugin.class);
         super.onCreate(savedInstanceState);
         configureWebView();
         getBridge().addWebViewListener(new RendererGoneHandler());
@@ -97,6 +102,7 @@ public class MainActivity extends BridgeActivity {
 
         @Override
         public boolean onRenderProcessGone(WebView webView, RenderProcessGoneDetail detail) {
+            TelemetryPlugin.recordRendererGone(MainActivity.this, detail.didCrash(), detail.rendererPriorityAtExit());
             runOnUiThread(MainActivity.this::restartClean);
             return true;
         }

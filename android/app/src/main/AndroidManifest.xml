@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- appCategory="game": Play kategorisi; Android 16+ büyük ekranlarda yön kilidinin
          yok sayılmasından oyunları muaf tutar. -->
     <application
@@ -10,6 +11,22 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+        <!-- Gözlemlenebilirlik (Faz 2.8): Firebase Analytics + Crashlytics rıza gelene kadar KAPALI
+             başlar; rıza TelemetryPlugin'de açılır/kapanır. Ayrıntı: docs/DATA_MAP.md. -->
+        <meta-data android:name="firebase_data_collection_default_enabled" android:value="false" />
+        <meta-data android:name="firebase_analytics_collection_enabled" android:value="false" />
+        <meta-data android:name="firebase_crashlytics_collection_enabled" android:value="false" />
+        <!-- Reklam kimliği (Advertising ID) ve Android ID (SSAID) hiç toplanmaz. -->
+        <meta-data android:name="google_analytics_adid_collection_enabled" android:value="false" />
+        <meta-data android:name="google_analytics_ssaid_collection_enabled" android:value="false" />
+        <!-- Rıza modu varsayılanları: hepsi reddedildi. Analiz rızası yalnızca analytics_storage'ı
+             açar; reklam depolama, reklam verisi ve kişiselleştirme hep kapalı. -->
+        <meta-data android:name="google_analytics_default_allow_analytics_storage" android:value="false" />
+        <meta-data android:name="google_analytics_default_allow_ad_storage" android:value="false" />
+        <meta-data android:name="google_analytics_default_allow_ad_user_data" android:value="false" />
+        <meta-data android:name="google_analytics_default_allow_ad_personalization_signals" android:value="false" />
+        <!-- Tek etkinlik var; otomatik screen_view anlamsız. -->
+        <meta-data android:name="google_analytics_automatic_screen_reporting_enabled" android:value="false" />
         <!-- Yatay kilit: iki yatay yön de olur; kullanıcının döndürme kilidine uyar. -->
         <activity
             android:screenOrientation="userLandscape"
@@ -25,6 +42,19 @@
             </intent-filter>
         </activity>
 
+        <!-- Faz 2.8 (veri en az): appcompat'ın getirdiği EmojiCompat açılışta güncel emoji yazı
+             tipini Google Play hizmetleri üzerinden Google Fonts'tan isteyebilir. Oyun metni WebView'da
+             çizilir, EmojiCompat kullanılmıyor; başlatıcısı kaldırıldı. (Ağ kaydında görülen
+             fonts.gstatic.com indirmesi bundan değil, WebView'ın kendi yazı tipi sorgularından:
+             PROGRESS § Faz 2.8.) -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data android:name="androidx.emoji2.text.EmojiCompatInitializer" tools:node="remove" />
+        </provider>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -37,4 +67,12 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Faz 2.8: Firebase Analytics bu izni kendiliğinden ekler; reklam kimliği toplanmadığı için
+         birleştirilmiş manifestten silinir (Play "Veri güvenliği" formu: reklam kimliği yok). -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
+    <!-- Aynı nedenle: Privacy Sandbox reklam ilişkilendirmesi / reklam kimliği ve Play "kurulum
+         kaynağı" (install referrer; reklam kampanyası ölçümü) izinleri de silinir. -->
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_AD_ID" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION" tools:node="remove" />
+    <uses-permission android:name="com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE" tools:node="remove" />
 </manifest>

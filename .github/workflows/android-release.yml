@@ -10,7 +10,9 @@ name: Android imzalı AAB
 #   gelen PR'lar etiket itemez, GitHub fork PR'larına sır da vermez.
 # - Sırlar depo sırrı değil, `android-release` ortamının (environment) sırrıdır; ortam yalnızca `v*`
 #   etiketlerine izin verecek şekilde ayarlanır. Başka bir dal ya da iş akışı bu sırları okuyamaz.
-# - `build` işinde hiç sır yok: npm paketleri ve Gradle eklentileri burada çalışır.
+# - `build` işinde gerçek sır yok: npm paketleri ve Gradle eklentileri burada çalışır. Tek istisna
+#   google-services.json (Faz 2.8): gizli değil (AAB'den okunabilir), yalnızca depoda açıkça durmasın
+#   diye depo sırrında.
 # - `sign` işi npm / Gradle çalıştırmaz; yalnızca JDK'nın jarsigner'ı ile imzalar. Sırlar yalnızca
 #   ilgili adıma `env:` ile verilir (betik metnine `${{ secrets.* }}` yazılmaz, komut satırına şifre
 #   konmaz); GitHub sır değerlerini loglarda `***` ile gizler.
@@ -54,13 +56,28 @@ jobs:
       # Mobil web derlemesi + Android projesine kopyalama (cap sync).
       - run: npm run cap:sync
 
+      # Faz 2.8: Firebase yapılandırması depoda yok (docs/OPS.md § 4); depo sırrından yazılır.
+      # Bu dosya gerçek bir sır değildir (değerleri AAB'nin içinden zaten okunabilir), bu yüzden
+      # sırsız "build" işine verilen tek değer budur; imza anahtarı yine yalnızca "sign" işinde.
+      - name: google-services.json (sırdan)
+        env:
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON_BASE64" ]; then
+            echo "::error::GOOGLE_SERVICES_JSON_BASE64 depo sırrı yok; sürüm Firebase'siz (çökme raporu olmadan) derlenmez (docs/OPS.md § 4)."
+            exit 1
+          fi
+          printf '%s' "$GOOGLE_SERVICES_JSON_BASE64" | base64 -d -i > android/app/google-services.json
+          grep -q '"package_name": *"com.emengin.kafakafaya"' android/app/google-services.json ||
+            { echo "::error::google-services.json bu uygulamanın paket adını içermiyor."; exit 1; }
+
       - name: AAB derle (sürüm package.json'dan, etiket doğrulanır)
         working-directory: android
         env:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           ./gradlew --no-daemon -q :app:printAppVersion -PreleaseTag="$RELEASE_TAG"
-          ./gradlew --no-daemon :app:bundleRelease -PreleaseTag="$RELEASE_TAG"
+          ./gradlew --no-daemon :app:bundleRelease -PreleaseTag="$RELEASE_TAG" -PrequireFirebase
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

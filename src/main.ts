@@ -27,6 +27,11 @@ import { wantsDebugOverlay } from './scenes/devFlags';
 // Geliştirici araçları (Faz 2.4): yalnızca geliştirici derlemesinde pakete girer (kare süresi
 // grafiği, stres sahnesi, rollback ölçer, `?gl=` deneyleri). Yayın derlemesinde bu dal yoktur.
 const devTools = __DEV_TOOLS__ ? await import('./dev/install') : null;
+// Gözlemlenebilirlik (Faz 2.8): Crashlytics + Analytics yalnızca Android uygulamasında ve rıza
+// varsa. Web derlemesinde bu dal ve modül yoktur (`npm run check:web`). Hata dinleyicileri
+// Phaser'dan önce kurulur.
+const telemetry = __NATIVE_APP__ ? await import('./telemetry/install') : null;
+telemetry?.installTelemetry();
 
 document.title = t('game.title');
 document.documentElement.lang = getLanguage();
@@ -134,6 +139,7 @@ game.events.on(Phaser.Core.Events.PRE_STEP, () => {
 });
 
 devTools?.installDevTools(game);
+telemetry?.attachTelemetry(game);
 
 // Geliştirici kancası: tarayıcı testleri maç durumunu ve ses sistemini okuyabilsin.
 if (wantsDebugOverlay()) {

@@ -33,6 +33,7 @@ import { HelpPanel, type HelpPage } from '../ui/HelpPanel';
 import { MenuOverlay } from '../ui/MenuOverlay';
 import { volumeMenuItems } from '../ui/settingsMenu';
 import { devHooks } from '../dev/hooks';
+import { telemetryHooks } from '../telemetry/hooks';
 import { TextMenu, type TextMenuItem } from '../ui/TextMenu';
 import { SceneKeys } from './sceneKeys';
 import { BOTTOM_CENTER, BOTTOM_LEFT, BOTTOM_RIGHT } from '../platform/screenFrame';
@@ -59,7 +60,7 @@ function randomPair(): [CharacterDef, CharacterDef] {
 /** Ana menü öğelerinin sırası. */
 const MAIN = { quick: 0, versus: 1, tournament: 2, training: 3, settings: 4, help: 5 } as const;
 /** Ayarlar öğelerinin sırası. */
-const SET = { language: 9, controls: 10 } as const;
+const SET = { language: 9, controls: 10, privacy: 11 } as const;
 /** Kontroller alt menüsünün sırası. */
 const CTRL = { scheme: 3 } as const;
 
@@ -79,7 +80,7 @@ export class MenuScene extends Phaser.Scene {
   private demo!: DemoMatch;
   private menu: TextMenu | null = null;
   private help: HelpPanel | null = null;
-  private view: 'main' | 'settings' | 'controls' | 'help' = 'main';
+  private view: 'main' | 'settings' | 'controls' | 'privacy' | 'help' = 'main';
   private title!: Phaser.GameObjects.Text;
   private heading: Phaser.GameObjects.Text | null = null;
   private starting = false;
@@ -87,6 +88,8 @@ export class MenuScene extends Phaser.Scene {
   private pendingView = false;
   /** Ana menüde geri tuşuyla açılan çıkış onayı (Faz 2.5). */
   private exitPrompt: MenuOverlay | null = null;
+  /** İlk açılış rıza ekranı (Faz 2.8; yalnızca uygulamada, karar verilmemişse). */
+  private consentPrompt: MenuOverlay | null = null;
 
   constructor() {
     super(SceneKeys.Menu);
@@ -100,6 +103,7 @@ export class MenuScene extends Phaser.Scene {
     this.help = null;
     this.heading = null;
     this.exitPrompt = null;
+    this.consentPrompt = null;
     setInMatch(false);
 
     const layout = screenLayout(this);
@@ -145,6 +149,8 @@ export class MenuScene extends Phaser.Scene {
       this.help?.destroy();
       this.exitPrompt?.destroy();
       this.exitPrompt = null;
+      this.consentPrompt?.destroy();
+      this.consentPrompt = null;
     });
 
     this.createFooter();
@@ -153,6 +159,7 @@ export class MenuScene extends Phaser.Scene {
     else if (view === 'controls') this.showControls(data?.index ?? 0);
     else if (view === 'help') this.showHelp(data?.helpPage ?? 'rules', 'main');
     else this.showMain(data?.index ?? 0);
+    if (view === 'main') this.openConsentPrompt();
 
     this.cameras.main.fadeIn(MENU.startFadeMs);
     music.play('menu');
@@ -165,6 +172,16 @@ export class MenuScene extends Phaser.Scene {
     this.demo.update(time, deltaMs);
     crowd.setIntensity(this.demo.excitement * MENU.demo.crowdScale);
     if (this.starting || this.pendingView) return;
+    if (this.consentPrompt) {
+      // Geri tuşu karar vermeden kapatır: rıza yok, bir sonraki açılışta yeniden sorulur.
+      if (this.tracker.consumeAny(CONTROLS.ui.menuBack)) {
+        sfx.menuBack();
+        this.closeConsentPrompt();
+      } else {
+        this.consentPrompt.update(this.tracker);
+      }
+      return;
+    }
     if (this.exitPrompt) {
       if (this.tracker.consumeAny(CONTROLS.ui.menuBack)) {
         sfx.menuBack();
@@ -185,6 +202,11 @@ export class MenuScene extends Phaser.Scene {
     if (this.view === 'settings' && this.tracker.consumeAny(CONTROLS.ui.menuBack)) {
       sfx.menuBack();
       this.showMain(MAIN.settings);
+      return;
+    }
+    if (this.view === 'privacy' && this.tracker.consumeAny(CONTROLS.ui.menuBack)) {
+      sfx.menuBack();
+      this.showSettings(SET.privacy);
       return;
     }
     if (this.view === 'controls' && this.tracker.consumeAny(CONTROLS.ui.menuBack)) {
@@ -344,6 +366,19 @@ export class MenuScene extends Phaser.Scene {
           });
         },
       },
+      // Faz 2.8: analiz ve çökme raporu rızası (yalnızca uygulamada, Firebase yapılandırılmışsa).
+      ...(telemetryHooks.privacy
+        ? [
+            {
+              label: telemetryHooks.privacy.title(),
+              onSelect: () => {
+                this.later(() => {
+                  this.showPrivacy(0);
+                });
+              },
+            },
+          ]
+        : []),
       {
         label: t('menu.back'),
         onSelect: () => {
@@ -426,6 +461,36 @@ export class MenuScene extends Phaser.Scene {
     this.view = 'controls';
     const st = MENU.settings;
     this.setHeading(t('settings.controlsMenu'));
+    this.setMenu(items, selected, st.top, {
+      fontSizePx: st.fontSizePx,
+      spacingPx: st.spacingPx,
+      strokePx: st.strokePx,
+      buttonWidth: st.buttonWidth,
+      buttonHeight: st.buttonHeight,
+    });
+  }
+
+  /** Gizlilik (Faz 2.8): oyun istatistikleri ve çökme raporları için ayrı, geri alınabilir rıza. */
+  private showPrivacy(selected: number): void {
+    const privacy = telemetryHooks.privacy;
+    if (!privacy) {
+      this.showSettings(0);
+      return;
+    }
+    const items: TextMenuItem[] = [
+      ...privacy.items(),
+      {
+        label: t('menu.back'),
+        onSelect: () => {
+          this.later(() => {
+            this.showSettings(SET.privacy);
+          });
+        },
+      },
+    ];
+    this.view = 'privacy';
+    const st = MENU.settings;
+    this.setHeading(privacy.title());
     this.setMenu(items, selected, st.top, {
       fontSizePx: st.fontSizePx,
       spacingPx: st.spacingPx,
@@ -573,6 +638,23 @@ export class MenuScene extends Phaser.Scene {
         },
       ],
     });
+  }
+
+  /** İlk açılış rıza ekranı (Faz 2.8): uygulamada, karar verilmemişse, oturumda bir kez. */
+  private openConsentPrompt(): void {
+    this.consentPrompt =
+      telemetryHooks.consentPrompt?.(this, () => {
+        // Menü öğesinin işleyicisi içinden: kaplamayı bir sonraki karede kaldır.
+        this.time.delayedCall(0, () => {
+          this.closeConsentPrompt();
+        });
+      }) ?? null;
+  }
+
+  private closeConsentPrompt(): void {
+    this.consentPrompt?.destroy();
+    this.consentPrompt = null;
+    this.tracker.releaseAll();
   }
 
   private closeExitPrompt(): void {

@@ -1,0 +1,7 @@
+
+Süre: 140 sn · cihaz: emulator-5554 · uygulama UID: 10235
+Toplam bağlantı: 0 · farklı hedef: 0
+Firebase sunucularına bağlantı: 0
+Uygulama UID ağ sayacı farkı (rx+tx): 0 bayt
+
+Farklı hedefler:

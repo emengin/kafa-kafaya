@@ -1,6 +1,7 @@
 # Operasyon Rehberi (OPS)
 
-> **Durum:** iskelet (Faz 0.3, 2026-11-20); § 2, § 3 ve § 9 Faz 2.6'da (2026-11-27) dolduruldu.
+> **Durum:** iskelet (Faz 0.3, 2026-11-20); § 2, § 3 ve § 10 Faz 2.6'da (2026-11-27), § 4 Faz 2.8'de
+> (2026-11-28) dolduruldu.
 > Bölümler ilgili fazda doldurulur. Bu dosyadaki adımlar
 > gerçekten denenmiş olmalıdır; denenmemiş adım "(denenmedi)" diye işaretlenir.
 
@@ -237,31 +238,199 @@ içerir; bunu bilerek etiket it.
   oluşmadı (beklenen). `1.0.0` web sürümü zaten yayınlanmıştı; bu etiket yalnızca hattı denemek
   içindir, Play'e yüklenmez.
 
-## 4. iOS derleme
+## 4. Firebase (Crashlytics + Analytics)
+
+Faz 2.8. Firebase **yalnızca** çökme raporu (Crashlytics) ve kullanım istatistiği (Analytics) için
+kullanılır; uzaktan ayar ve A/B testi Nakama'dadır. Yalnızca Android uygulamasında ve kullanıcı rıza
+verdiyse veri gider; web sürümünde Firebase yoktur. Kod: `src/telemetry/` (olay sözlüğü
+`events.ts`), `android/.../TelemetryPlugin.java`. Toplanan veri: [DATA_MAP.md](DATA_MAP.md).
+
+### 4.1 Karar: `google-services.json` depoya girmez
+
+Firebase'in kendi belgesine göre bu dosyadaki API anahtarı gizli değildir: projeyi yalnızca
+**tanıtır**, yetki vermez. Dosyanın değerleri derlenen uygulamanın (APK/AAB) içinde de durur;
+isteyen oradan okuyabilir. Yine de depo herkese açık olduğu için dosya depoya konmaz:
+
+1. **Fork'lar bizim projemize veri göndermesin.** Depoyu indirip uygulamayı derleyen biri, dosya
+   depoda olsaydı kendi kullanıcılarının çökme ve kullanım verisini farkında olmadan bizim Firebase
+   projemize yollardı. Hem bizim verimiz kirlenir hem de o kullanıcıların verisi habersiz bize gelir.
+   Dosya yokken derleme Firebase'siz yapılır: rıza ekranı da görünmez, hiçbir şey gönderilmez.
+2. **Sahte veri.** Depoda açıkça duran bir yapılandırmayla otomatik araçlar projeye kolayca sahte
+   olay ve çökme gönderebilir. Dosyayı depodan uzak tutmak bunu ortadan kaldırmaz (APK'dan da okunur)
+   ama zorlaştırır.
+3. Hata ayıklama ve yayın için ileride ayrı Firebase uygulamaları gerekirse dosyayı değiştirmek
+   depo geçmişine dokunmaz.
+
+Nasıl uygulanıyor: `.gitignore`'da `google-services.json` ve `GoogleService-Info.plist` var.
+Yerelde dosya `android/app/` altına elle konur. CI'da `GOOGLE_SERVICES_JSON_BASE64` **depo
+sırrından** yazılır (`android-release.yml` → `build` işi). Etiketli sürüm derlemesi
+`-PrequireFirebase` ile çalışır: dosya yoksa derleme durur, çökme raporu olmayan bir sürüm çıkmaz.
+Bu değer sırsız `build` işine verilir çünkü gerçek bir sır değildir; asıl sır olan imza anahtarı
+yine yalnızca `sign` işinde (§ 3.4).
+
+### 4.2 Firebase projesini açma (konsol, bir kez) — (denenmedi)
+
+Firebase konsolu Türkçe görünebilir; aşağıda düğmelerin Türkçe adı, yanında parantez içinde
+İngilizcesi var. Ekran biraz farklıysa en üstteki arama kutusuna adını yazarak bulabilirsin.
+
+1. <https://console.firebase.google.com> adresine git, oyunun Google hesabıyla gir. (Bu hesapta
+   iki adımlı doğrulama açık olsun.)
+2. **Proje oluştur** (Create a project) → proje adı: `kafa-kafaya` → **Devam**.
+3. "Firebase'de Gemini" / yapay zekâ yardımı sorulursa **kapalı** bırak → **Devam**.
+4. **Bu projede Google Analytics'i etkinleştir** (Enable Google Analytics) **açık** kalsın (Analytics
+   için gerekli) → **Devam**.
+5. Analytics hesabı: **Yeni hesap oluştur** → ad: `Kafa Kafaya`. **Analytics konumu**: Türkiye.
+   Bu ekranda veri paylaşımıyla ilgili onay kutuları varsa **hepsinin işaretini kaldır**. Google
+   Analytics şartlarını kabul et → **Proje oluştur**. Bitince **Devam**.
+6. Proje ana sayfasında **Android simgesine** (Uygulamanıza Firebase ekleyin → Android) tıkla:
+   - **Android paket adı:** `com.emengin.kafakafaya` (harfi harfine; sonra değiştirilemez).
+   - **Uygulama takma adı:** `Kafa Kafaya Android`.
+   - **SHA-1:** boş bırak (Analytics ve Crashlytics için gerekmez).
+   - **Uygulamayı kaydet** → **google-services.json dosyasını indir**.
+   - Sonraki "Firebase SDK'sı ekle" adımlarını **İleri** ile geç (kod hazır) → **Konsola devam et**.
+7. İndirilen dosyayı projede `android/app/google-services.json` olarak kaydet. **Commit etme**;
+   `git status` bu dosyayı göstermemeli (`.gitignore`'da).
+8. Sol menüde **Crashlytics**'i aç (menüde yoksa aramaya "Crashlytics" yaz). "Crashlytics'i
+   etkinleştir" gibi bir düğme varsa tıkla. Panel ilk raporu bekler; telefon testi (§ 4.6) ile dolar.
+
+### 4.3 Gizlilik ayarları — en kısıtlayıcı hâl (denenmedi)
+
+**A. Google Analytics** (<https://analytics.google.com>, sol alttaki dişli **Yönetici** / Admin).
+Üstte doğru hesabın (`Kafa Kafaya`) ve mülkün seçili olduğundan emin ol.
+
+1. **Veri saklama** (Mülk → Veri ayarları → Veri saklama / Data retention):
+   - **Olay verilerinin saklanması:** **2 ay** (en kısa).
+   - **Kullanıcı düzeyindeki verilerin saklanması:** **2 ay**.
+   - **Yeni etkinlikte kullanıcı verilerini sıfırla:** **kapalı** (açıkken oyuncu her geldiğinde
+     2 aylık süre baştan başlar).
+   - **Kaydet**.
+2. **Veri toplama** (Mülk → Veri ayarları → Veri toplama / Data collection):
+   - **Google sinyalleri veri toplama** (Google signals): **kapalı**.
+   - **Ayrıntılı konum ve cihaz verisi toplama** (Granular location and device data collection):
+     **tüm bölgeler için kapalı**. Kapalıyken yalnızca ülke düzeyi konum kalır.
+   - **Reklam kişiselleştirmeye izin ver** (Allow ads personalization / Advanced settings): bölge
+     listesinde **hepsini kapat**.
+3. **Veri paylaşımı ayarları** (Hesap → Hesap ayrıntıları / Account details → düzenle): dört kutunun
+   da işaretini kaldır — **Google ürünleri ve hizmetleri**, **Modelleme katkıları ve işletme
+   analizleri**, **Teknik destek**, **İşletmeniz için öneriler** → **Kaydet**.
+4. **Veri işleme şartları** (Hesap → Hesap ayrıntıları → "Veri İşleme Şartları"nı incele /
+   Data processing terms): **kabul et**; "veri koruma iletişim bilgileri" istenirse kendi adını ve
+   e-postanı yaz (veri sorumlusu sensin). Kabul tarihini DATA_MAP'teki yurt dışı aktarım tablosuna
+   yaz.
+5. **Ürün bağlantıları** (Mülk → Ürün bağlantıları / Product links): Google Ads, AdMob, BigQuery,
+   Search Console — **hiçbirini bağlama**.
+
+**B. Firebase konsolu** (sol üstte dişli → **Proje ayarları**):
+
+6. **Entegrasyonlar** (Integrations) sekmesi: yalnızca Google Analytics bağlı olsun; Google Ads,
+   AdMob, BigQuery, Google Play — **bağlama**.
+7. **Gizlilik** / veri gizliliği bölümü (Privacy): "Firebase Veri İşleme ve Güvenlik Şartları"
+   (Data Processing and Security Terms) için onay istenirse **kabul et**, iletişim bilgisi istenirse
+   kendi bilgilerini yaz.
+8. Crashlytics verisi 90 gün saklanır; bunun için ayar yoktur (Firebase gizlilik sayfası).
+
+IP adresi: Google Analytics IP'yi kaba konum (ülke) bulmak için kullanır ve kullandıktan sonra
+atar, kullanıcı kimliğiyle eşleştirmez; uygulama tarafında IP'yi kapatmanın bir yolu yoktur. Reklam
+kimliği ve Android ID (SSAID) uygulama tarafında kapalıdır (manifest), reklam kimliği kütüphanesi
+pakete girmez.
+
+### 4.4 API anahtarını kısıtlama (Google Cloud, denenmedi)
+
+Anahtar gizli olmadığı için asıl koruma, kullanılabileceği yeri daraltmaktır. Not: Android
+kısıtlaması isteğin başlığındaki paket adı ve imza parmak izine bakar; kararlı bir saldırgan bunları
+taklit edebilir. Kısıtlama kötüye kullanımı engellemez, zorlaştırır.
+
+1. <https://console.cloud.google.com> → üstten Firebase projesini (`kafa-kafaya`) seç.
+2. **API'ler ve Hizmetler** → **Kimlik bilgileri** (APIs & Services → Credentials) →
+   **Android key (auto created by Firebase)** satırına tıkla.
+3. **Uygulama kısıtlamaları** (Application restrictions): **Android uygulamaları** → **Öğe ekle**:
+   paket adı `com.emengin.kafakafaya` + SHA-1 parmak izi. Üç parmak izi gerekir:
+   - **Hata ayıklama anahtarı** (telefona kurduğun geliştirici derlemesi). PowerShell:
+     `keytool -list -v -keystore "$env:USERPROFILE\.android\debug.keystore" -alias androiddebugkey -storepass android`
+     → `SHA1:` satırı. (`keytool` Android Studio'nun `jbr\bin` klasöründe.)
+   - **Yükleme anahtarı** (§ 2.1): `keytool -list -v -keystore <.jks yolu> -alias kafakafaya-upload`
+     → şifresini sorar → `SHA1:` satırı.
+   - **Play uygulama imzalama anahtarı:** ilk Play yüklemesinden sonra Play Console → Uygulama
+     bütünlüğü → Uygulama imzalama → SHA-1 (Faz 12.1). **Bu eklenmezse Play'den kurulan uygulamanın
+     Firebase istekleri reddedilir.**
+4. **API kısıtlamaları** (API restrictions): Firebase anahtarı kendiliğinden Firebase API'leriyle
+   sınırlar; listeyi koru. Listede Firebase dışı bir API (ör. Gemini, Maps) görürsen çıkar.
+   **Kaydet** (etkisi birkaç dakika sürebilir).
+
+### 4.5 CI sırrını ekleme (denenmedi)
+
+1. PowerShell'de proje klasöründe dosyayı base64'e çevirip panoya kopyala:
+   `[Convert]::ToBase64String([IO.File]::ReadAllBytes("$PWD\android\app\google-services.json")) | Set-Clipboard`
+2. GitHub → depo → **Settings** → **Secrets and variables** → **Actions** → **New repository
+   secret** → ad: `GOOGLE_SERVICES_JSON_BASE64`, değer: yapıştır → **Add secret**.
+   (Bu bir **Secret** olmalı, Variable değil — § 2.3'teki uyarı.)
+3. Sonraki `v*` etiketinde `android-release.yml` dosyayı yazar ve paket adını denetler. Sır yoksa
+   iş anlaşılır bir hatayla durur.
+
+### 4.6 Telefonda doğrulama: test çökmesi ve analiz olayı (denenmedi)
+
+Faz 2.8'in bitti kriteri. Geliştirici derlemesinde Ayarlar → Gizlilik altında iki test düğmesi var
+(yayın derlemesinde yok).
+
+1. `android/app/google-services.json` yerinde olsun (§ 4.2). Telefon USB ile bağlı, kilidi açık.
+2. Geliştirici derlemesini kur (README → "Android'de çalıştırma"; kısaca):
+   `npm run cap:sync:dev`, sonra Android Studio'da ▶ Run ya da
+   `cd android; .\gradlew assembleDebug` ve
+   `adb install -r app\build\outputs\apk\debug\app-debug.apk`.
+3. Analiz olaylarını saniyeler içinde görmek için **DebugView**'ı aç:
+   `adb shell setprop debug.firebase.analytics.app com.emengin.kafakafaya`. Firebase konsolunda
+   sol menü → **Analytics** → **DebugView** sayfasını aç ve açık bırak.
+4. Rıza ekranını yeniden görmek için telefonda Ayarlar → Uygulamalar → Kafa Kafaya → Depolama →
+   **Verileri temizle**. Uygulamayı aç → "Oyunu geliştirmemize yardım et" → **İzin ver**.
+5. **Analiz olayı:** bir Hızlı Maç başlat, bitene kadar oyna (ya da duraklat → Ana menü). DebugView'da
+   birkaç saniye–1 dakika içinde `first_open`, `session_start`, `match_start`, `match_end` görünmeli.
+   Bir olaya tıklayınca parametreleri (`mode`, `outcome`, `goals_p1`…) gör. Kişisel veri olmamalı.
+6. **Test çökmesi:** Ayarlar → Gizlilik → **Test çökmesi (yerel)** → uygulama kapanır. Uygulamayı
+   **yeniden aç** (rapor açılışta gönderilir). Firebase konsolu → **Crashlytics**: 5–10 dakika içinde
+   `RuntimeException: Kafa Kafaya test çökmesi (Faz 2.8)` görünmeli. İlk raporla panel açılır.
+7. **JS hatası (K4):** Ayarlar → Gizlilik → **Test JS hatası** (uygulama kapanmaz). Uygulamayı
+   kapatıp yeniden aç. Crashlytics'te olay türü filtresini **Çökme olmayanlar** (Non-fatals) yap:
+   `JsError: Error: Kafa Kafaya test JS hatası (Faz 2.8)`. Rapora tıklayınca **Anahtarlar** (Keys)
+   sekmesinde `webview_version`, `build_type = debug`, `js_version`, `scene` görünmeli.
+8. **Geri alma:** Ayarlar → Gizlilik → iki anahtarı da **Kapalı** yap, bir maç daha oyna →
+   DebugView'a yeni `match_start` düşmemeli.
+9. DebugView'ı kapat: `adb shell setprop debug.firebase.analytics.app .none.`
+10. Gördüklerinin ekran görüntülerini gönder; Faz 2.8 ancak bundan sonra "tamamlandı" işaretlenir.
+
+### 4.7 Ağ kaydı: rıza yokken istek gitmediğini gösterme
+
+`node scripts/mobile/netlog.js --seconds 120` bilgisayarda küçük bir proxy açar, telefonun genel
+proxy ayarını ona çevirir (USB üzerinden, `adb reverse`) ve her bağlantının hangi sunucuya gittiğini
+kaydeder. HTTPS içeriği açılmaz. Uygulamanın kendi ağ sayacını (çekirdek, UID başına) başta ve sonda
+okur. Süre dolunca proxy ayarı geri alınır. Betik yarıda kesilirse telefonda internet kesik
+kalabilir: `adb shell settings put global http_proxy :0`. Emülatörde `--proxy-host 10.0.2.2`.
+Deneme ve sonuçlar: PROGRESS § Faz 2.8, kayıtlar `docs/archive/faz-2.8-ag-kaydi/`.
+
+## 5. iOS derleme
 
 <!-- Faz 12.2: bulut macOS derlemesi, sertifikalar ve profiller, App Store Connect. -->
 
-## 5. Sunucu (Nakama)
+## 6. Sunucu (Nakama)
 
 <!-- Faz 5.1 / 5.5: barındırma kararı ve gerekçesi (kendi barındırma / yönetilen hizmet, KVKK yurt
 dışı aktarım etkisi; lansman tek Türkiye bölgesi), ortamlar (geliştirme, test, canlı), kurulum,
 güncelleme, TLS, güvenlik duvarı, izleme ve uyarılar, log saklama süreleri (DATA_MAP ile uyumlu). -->
 
-## 6. Yedekleme ve geri yükleme
+## 7. Yedekleme ve geri yükleme
 
 <!-- Faz 5.5: otomatik yedek takvimi, saklama, geri yükleme adımları ve son başarılı geri yükleme
 denemesinin tarihi. -->
 
-## 7. Olay müdahalesi
+## 8. Olay müdahalesi
 
 <!-- Faz 5.5: sunucu çöküşü, veri ihlali (KVKK bildirim süreleri), hatalı sürüm, ödeme sorunu —
 her biri için ilk 1 saatte yapılacaklar ve iletişim. -->
 
-## 8. Veri silme ve yedekler
+## 9. Veri silme ve yedekler
 
 <!-- Faz 10.1: hesap silme talebinin sunucuda uygulanması, yedeklerden silinme politikası ve süresi. -->
 
-## 9. Sırlar ve erişimler
+## 10. Sırlar ve erişimler
 
 Sırların kendisi asla depoya, dosyaya ya da sohbete yazılmaz; bu tablo yalnızca nerede olduklarını
 söyler.
@@ -271,5 +440,7 @@ söyler.
 | Android yükleme anahtarı (`.jks`)                      | parola yöneticisi + çevrimdışı disk; `$HOME\kafakafaya-imza` çalışma kopyası | geliştirici                                                 | yalnızca kayıp/sızmada (§ 2.6) |
 | Yükleme anahtarı şifresi                               | parola yöneticisi                                                            | geliştirici                                                 | anahtarla birlikte             |
 | `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD` | GitHub → Settings → Environments → `android-release`                         | iş akışı `android-release.yml`, yalnızca `v*` etiketlerinde | anahtar değişince              |
+| `GOOGLE_SERVICES_JSON_BASE64` (gizli değil, § 4.1)     | GitHub → Settings → Secrets and variables → Actions (depo sırrı)             | `android-release.yml` → `build` işi                         | Firebase uygulaması değişince  |
+| Firebase / Google Analytics konsolu                    | Google hesabı (iki adımlı doğrulama açık olmalı)                             | geliştirici                                                 | —                              |
 
-<!-- Sonraki fazlar: sunucu (Nakama), Firebase, ödeme anahtarları. -->
+<!-- Sonraki fazlar: sunucu (Nakama), ödeme anahtarları. -->

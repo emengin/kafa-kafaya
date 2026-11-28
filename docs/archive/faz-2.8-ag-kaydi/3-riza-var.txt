@@ -1,0 +1,22 @@
+2026-11-28T12:43:49.666Z  +  28.3s  CONNECT firebase-settings.crashlytics.com:443
+2026-11-28T12:43:51.684Z  +  30.3s  CONNECT app-measurement.com:443
+2026-11-28T12:44:15.898Z  +  54.5s  CONNECT firebase-settings.crashlytics.com:443
+2026-11-28T12:44:36.299Z  +  74.9s  CONNECT android.googleapis.com:443
+2026-11-28T12:44:57.669Z  +  96.3s  CONNECT connectivitycheck.gstatic.com:443
+2026-11-28T12:44:58.203Z  +  96.8s  CONNECT firebaselogging-pa.googleapis.com:443
+
+Süre: 120 sn · cihaz: emulator-5554 · uygulama UID: 10235
+Toplam bağlantı: 6 · farklı hedef: 5
+Firebase sunucularına bağlantı: 4
+  2026-11-28T12:43:49.666Z  +  28.3s  CONNECT firebase-settings.crashlytics.com:443
+  2026-11-28T12:43:51.684Z  +  30.3s  CONNECT app-measurement.com:443
+  2026-11-28T12:44:15.898Z  +  54.5s  CONNECT firebase-settings.crashlytics.com:443
+  2026-11-28T12:44:58.203Z  +  96.8s  CONNECT firebaselogging-pa.googleapis.com:443
+Uygulama UID ağ sayacı farkı (rx+tx): 34319 bayt
+
+Farklı hedefler:
+  android.googleapis.com:443
+  app-measurement.com:443
+  connectivitycheck.gstatic.com:443
+  firebase-settings.crashlytics.com:443
+  firebaselogging-pa.googleapis.com:443

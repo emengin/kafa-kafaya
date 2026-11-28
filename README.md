@@ -185,6 +185,10 @@ APK dosyası olarak paylaşmak için: Android Studio → Build → Generate App 
 sürüm derlemesi daha sonra (yol haritası Faz 12.1); imza anahtarları (`*.jks`, `*.keystore`) asla
 depoya girmez.
 
+**Çökme raporu ve analiz (Firebase, isteğe bağlı):** `android/app/google-services.json` yoksa
+uygulama Firebase'siz derlenir; rıza ekranı görünmez, hiçbir veri gönderilmez. Dosya depoya
+girmez; kurulum ve gerekçe: [docs/OPS.md § 4](docs/OPS.md).
+
 ## Mimari
 
 ```mermaid

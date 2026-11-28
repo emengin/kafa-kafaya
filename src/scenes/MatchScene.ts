@@ -18,6 +18,7 @@ import {
   MATCH,
   REPLAY,
   SUPER_FX,
+  TELEMETRY,
   UNITS,
   type AiDifficulty,
 } from '../config/gameConfig';
@@ -77,6 +78,7 @@ import {
   wantsDebugOverlay,
 } from './devFlags';
 import { SceneKeys } from './sceneKeys';
+import { clampInt, track } from '../telemetry/hooks';
 
 /** Sık kullanılan renk. */
 const WHITE = 0xffffff;
@@ -165,6 +167,9 @@ export class MatchScene extends Phaser.Scene {
   private latencyMeter: LatencyMeter | null = null;
   /** Maç sonucu kayda (istatistik/turnuva) yazıldı mı? */
   private recorded = false;
+  /** Analiz (Faz 2.8): maç ekranının açıldığı an (ms) ve maç sonu olayı gönderildi mi. */
+  private startedAt = 0;
+  private endTracked = false;
   /** Duraklatma nedeni satırı (ör. gamepad bağlantısı koptu). */
   private pauseNote: string | null = null;
   /** Maçın tohumu (yarım maç kaydına yazılır). */
@@ -220,6 +225,8 @@ export class MatchScene extends Phaser.Scene {
     this.replayPlan = null;
     this.pendingGoalTick = -1;
     this.replayLoop.reset();
+    this.startedAt = performance.now();
+    this.endTracked = false;
     // Kamera çekirdeği ortalar, kenara sabitli arayüz ekran oranına ve çentiğe göre yerleşir.
     screenLayout(this);
 
@@ -292,6 +299,8 @@ export class MatchScene extends Phaser.Scene {
       crowd.stop();
       this.devSession?.destroy();
       this.devSession = null;
+      // Sonuç ekranı gelmeden çıkıldı (ana menü, yeniden başlat): yarıda bırakıldı.
+      this.trackEnd('abandon');
     });
 
     const fixed = devQuality();
@@ -340,6 +349,7 @@ export class MatchScene extends Phaser.Scene {
     this.debug = new DebugOverlay(this);
     this.debug.setVisible(wantsDebugOverlay());
     if (isTouchDevice()) this.createTouchControls();
+    this.trackStart(resume !== null, durationSeconds);
     if (settings.latencyMeter) this.latencyMeter = new LatencyMeter(this);
     devHooks.quality?.(this.governor.level);
     this.devSession =
@@ -1109,6 +1119,9 @@ export class MatchScene extends Phaser.Scene {
 
   private showEndScreen(): void {
     this.endShown = true;
+    this.trackEnd(
+      this.sim.match.winner === null ? 'draw' : this.sim.match.winner === 0 ? 'p1_win' : 'p2_win',
+    );
     this.tracker.releaseAll();
     // Sonuç ekranı bir süre açık kalır, sonra ekran sistemin zaman aşımıyla kapanabilir.
     this.time.delayedCall(LIFECYCLE.endScreenAwakeMs, () => {
@@ -1153,6 +1166,51 @@ export class MatchScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Analiz (Faz 2.8, olay sözlüğü `src/telemetry/events.ts`): maç başladı. AI vs AI (test ve
+   * ölçüm maçları) gönderilmez. Yalnızca uygulamada ve analiz rızası varsa gider.
+   */
+  private trackStart(resumed: boolean, durationSeconds: number): void {
+    const { mode, difficulty, p1Ai, characters } = this.setup;
+    if (p1Ai) return;
+    track({
+      name: 'match_start',
+      params: {
+        mode,
+        difficulty: isCpuMode(mode) ? difficulty : 'none',
+        char_p1: characters[0],
+        char_p2: characters[1],
+        controls: isTouchDevice() ? 'touch' : 'other',
+        match_seconds:
+          mode === 'training' ? 0 : clampInt(durationSeconds, 0, TELEMETRY.maxMatchSeconds),
+        resumed: resumed ? 1 : 0,
+      },
+    });
+  }
+
+  /** Analiz: maç bitti ya da yarıda bırakıldı (maç başına bir kez). */
+  private trackEnd(outcome: 'p1_win' | 'p2_win' | 'draw' | 'abandon'): void {
+    if (this.endTracked || this.setup.p1Ai) return;
+    this.endTracked = true;
+    const match = this.sim.match;
+    const [a, b] = match.score;
+    track({
+      name: 'match_end',
+      params: {
+        mode: this.setup.mode,
+        outcome,
+        goals_p1: clampInt(a, 0, TELEMETRY.maxGoals),
+        goals_p2: clampInt(b, 0, TELEMETRY.maxGoals),
+        duration_s: clampInt(
+          (performance.now() - this.startedAt) / MS_PER_S,
+          0,
+          TELEMETRY.maxMatchSeconds,
+        ),
+        golden_goal: match.endReason === 'goldenGoal' ? 1 : 0,
+      },
+    });
+  }
+
   /** Maç sonunda geri tuşu: turnuvada ağaca (Devam ile aynı), diğer modlarda ana menüye. */
   private leaveEndScreen(): void {
     sfx.menuBack();
@@ -1184,6 +1242,7 @@ export class MatchScene extends Phaser.Scene {
 
 /** Sekme dönüşü gibi uzun karelerde görsel adım sınırı (ms). */
 const MAX_FRAME_MS = 100;
+const MS_PER_S = 1000;
 const GOAL_FLASH = 0.35;
 const HARD_FLASH = 0.16;
 const SUPER_FLASH = 0.3;

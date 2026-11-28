@@ -33,6 +33,8 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      # Faz 2.8: Firebase / gözlemlenebilirlik kodu web paketine girmez (derlenmiş dosyalarda denetlenir).
+      - run: npm run check:web
       # Mobil (Capacitor) derlemesi ayrı klasöre (dist-mobile/); yalnızca duman testi için,
       # Pages'e yüklenmez. İmzalı Android AAB etiketle android-release.yml'da üretilir.
       - run: npm run build:mobile

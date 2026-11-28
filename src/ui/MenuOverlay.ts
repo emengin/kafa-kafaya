@@ -15,6 +15,12 @@ export interface MenuOverlayOptions {
   readonly items: readonly TextMenuItem[];
   /** Çizim derinliği (varsayılan `OVERLAY.depth`); üstünde kalması gereken katman varsa büyütülür. */
   readonly depth?: number;
+  /** Panel genişliği (varsayılan `OVERLAY.panel.width`; uzun açıklamalı pencereler için). */
+  readonly panelWidth?: number;
+  /** Bilgi satırlarının boyutu (varsayılan `OVERLAY.line`; açıklama metni için küçültülür). */
+  readonly lineStyle?: { readonly fontSizePx: number; readonly lineHeightPx: number };
+  /** Açılışta seçili öğe (varsayılan ilk öğe). */
+  readonly selected?: number;
 }
 
 /**
@@ -28,7 +34,9 @@ export class MenuOverlay {
 
   constructor(scene: Phaser.Scene, options: MenuOverlayOptions) {
     const { width, height } = DISPLAY;
-    const { panel, title, line, items, hint, gapPx } = OVERLAY;
+    const { panel, title, items, hint, gapPx } = OVERLAY;
+    const line = { ...OVERLAY.line, ...options.lineStyle };
+    const panelWidth = options.panelWidth ?? panel.width;
     const depth = options.depth ?? OVERLAY.depth;
     const lines = options.lines ?? [];
     const cx = width / 2;
@@ -55,7 +63,7 @@ export class MenuOverlay {
       scene,
       cx,
       top + panelHeight / 2,
-      panel.width,
+      panelWidth,
       panelHeight,
       'overlay',
       panel.radius,
@@ -74,19 +82,19 @@ export class MenuOverlay {
       .setDepth(depth);
     if (!options.titleColor) goldFill(titleText);
     // Uzun başlıklar (ör. İngilizce/uzun oyuncu adı) panele sığacak kadar küçültülür.
-    const maxTitleWidth = panel.width - panel.paddingPx * 2;
+    const maxTitleWidth = panelWidth - panel.paddingPx * 2;
     if (titleText.width > maxTitleWidth) titleText.setScale(maxTitleWidth / titleText.width);
     this.objects.push(titleText);
     y += title.lineHeightPx / 2;
 
     for (const text of lines) {
       y += line.lineHeightPx / 2;
-      this.objects.push(
-        scene.add
-          .text(cx, y, text, textStyle(line.fontSizePx, line.color))
-          .setOrigin(0.5)
-          .setDepth(depth),
-      );
+      const lineText = scene.add
+        .text(cx, y, text, textStyle(line.fontSizePx, line.color))
+        .setOrigin(0.5)
+        .setDepth(depth);
+      if (lineText.width > maxTitleWidth) lineText.setScale(maxTitleWidth / lineText.width);
+      this.objects.push(lineText);
       y += line.lineHeightPx / 2;
     }
 
@@ -102,6 +110,7 @@ export class MenuOverlay {
       depth,
       buttonWidth: panel.width - panel.paddingPx * 2,
     });
+    if (options.selected !== undefined) this.menu.select(options.selected);
     y += this.menu.span + items.spacingPx / 2 + hint.lineHeightPx / 2;
 
     this.objects.push(

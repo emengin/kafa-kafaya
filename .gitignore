@@ -28,3 +28,7 @@ local.properties
 # İmza anahtarları asla depoya girmez (release anahtarı Faz 12.1'de, depo dışında saklanır).
 *.keystore
 *.jks
+# Firebase yapılandırması (Faz 2.8) depoya girmez: yerelde elle konur, CI'da sırdan yazılır.
+# Gerekçe: docs/OPS.md § 4.
+google-services.json
+GoogleService-Info.plist

@@ -17,6 +17,7 @@
     "cap:sync:dev": "npm run build:mobile:dev && cap sync android",
     "cap:open": "cap open android",
     "assets:placeholder": "node scripts/run-ts.js scripts/mobile/placeholderAssets.ts",
+    "check:web": "node scripts/check-web-bundle.js dist",
     "preview": "vite preview",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
