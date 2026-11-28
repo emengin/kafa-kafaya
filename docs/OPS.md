@@ -298,7 +298,17 @@ Firebase konsolu Türkçe görünebilir; aşağıda düğmelerin Türkçe adı, 
    "Heap dump" / bellek sorunları için **Join Early Access** önerisi çıkarsa **Dismiss** (çökme
    anındaki uygulama belleğini gönderir; veri en az ilkesine aykırı).
 
-### 4.3 Gizlilik ayarları — en kısıtlayıcı hâl (denenmedi)
+### 4.3 Gizlilik ayarları — en kısıtlayıcı hâl (yapıldı 2026-11-28)
+
+**Durum (2026-11-28, ekran görüntüleriyle):** saklama 2 ay / 2 ay, sıfırlama kapalı (varsayılan zaten
+buydu); Google sinyalleri kapalı; ayrıntılı konum ve cihaz verisi kapalı; reklam kişiselleştirme
+307 bölgenin 0'ında açık; veri paylaşımı dört kutu boş; Veri İşleme Şartları kabul edildi; hesap adı
+`Kafadarlar`, işletme ülkesi Türkiye. **"Kullanıcı Verilerini Toplama Onayı" (Kabul ediyorum)
+verilmedi:** gizlilik açıklamalarının yapıldığı beyanıdır, Google sinyalleri gibi ek özellikler için
+gerekir; aydınlatma metni avukattan geçince (10.3) yeniden bakılır. Menü adları güncel arayüzde:
+Mülk ayarları → **Veri toplama ve değiştirme** → Veri toplama / Veri saklama. DPA iletişim ve tüzel
+kişi bilgileri ("DPA ayrıntılarını yönet") Faz 0.2'de. B bölümü (Firebase entegrasyonları) yeni
+projede boş.
 
 **A. Google Analytics** (<https://analytics.google.com>, sol alttaki dişli **Yönetici** / Admin).
 Üstte doğru hesabın (`Kafadarlar`) ve mülkün seçili olduğundan emin ol.
@@ -339,7 +349,13 @@ atar, kullanıcı kimliğiyle eşleştirmez; uygulama tarafında IP'yi kapatman�
 kimliği ve Android ID (SSAID) uygulama tarafında kapalıdır (manifest), reklam kimliği kütüphanesi
 pakete girmez.
 
-### 4.4 API anahtarını kısıtlama (Google Cloud, denenmedi)
+### 4.4 API anahtarını kısıtlama (Google Cloud; yapıldı 2026-11-28, debug + yükleme anahtarı)
+
+**Durum (2026-11-28):** Android uygulamaları kısıtlaması, `com.emengin.kafadarlar` + debug ve yükleme
+SHA-1'leri. Doğrulama (Firebase Installations, sahte kimlikle jeton isteği; hiçbir şey oluşturmaz):
+başlıksız istek **403**, eski paket adı **403**, doğru paket + her iki SHA-1 **404** (anahtar
+kontrolünü geçti). Play uygulama imzalama anahtarının SHA-1'i ilk Play yüklemesinde eklenecek
+(Faz 12.1) — eklenmezse Play'den kurulan uygulamada Firebase çalışmaz.
 
 Anahtar gizli olmadığı için asıl koruma, kullanılabileceği yeri daraltmaktır. Not: Android
 kısıtlaması isteğin başlığındaki paket adı ve imza parmak izine bakar; kararlı bir saldırgan bunları
@@ -353,8 +369,11 @@ taklit edebilir. Kısıtlama kötüye kullanımı engellemez, zorlaştırır.
    - **Hata ayıklama anahtarı** (telefona kurduğun geliştirici derlemesi). PowerShell:
      `keytool -list -v -keystore "$env:USERPROFILE\.android\debug.keystore" -alias androiddebugkey -storepass android`
      → `SHA1:` satırı. (`keytool` Android Studio'nun `jbr\bin` klasöründe.)
+   - Bu bilgisayarın debug anahtarı (2026-11-28): `01:DA:D6:C6:CF:4E:F3:89:66:55:7A:E4:45:ED:A2:F3:FE:DD:F9:FD`
+     (başka bilgisayarda derlersen o bilgisayarın debug SHA-1'i de eklenmeli).
    - **Yükleme anahtarı** (§ 2.1): `keytool -list -v -keystore <.jks yolu> -alias kafakafaya-upload`
-     → şifresini sorar → `SHA1:` satırı.
+     → şifresini sorar → `SHA1:` satırı. Şifresiz yol: imzalı bir AAB'den `keytool -printcert -jarfile <aab>`. 2026-11-28
+     (v1.0.0-rc.1 AAB'sinden): `7B:FF:9F:08:57:A7:A8:7A:D7:B0:F3:2B:0E:84:F5:03:48:65:43:4E`.
    - **Play uygulama imzalama anahtarı:** ilk Play yüklemesinden sonra Play Console → Uygulama
      bütünlüğü → Uygulama imzalama → SHA-1 (Faz 12.1). **Bu eklenmezse Play'den kurulan uygulamanın
      Firebase istekleri reddedilir.**

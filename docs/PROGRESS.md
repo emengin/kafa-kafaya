@@ -1002,10 +1002,12 @@ yapılandırmayla (soket sahipliğiyle).
   adb'nin adını değiştirmek (geliştiricinin kararı).
 - Geliştirici derlemesi de aynı Firebase projesine gönderir (`build_type = debug`, sürüm adı `-dev`
   ile ayrılır) → 6.8 notu.
-- **Açık, geliştiricide (engel değil):** GA4 gizlilik ayarları (OPS § 4.3: saklama 2 ay, Google
-  sinyalleri, ayrıntılı konum, reklam kişiselleştirme, veri işleme şartları) ve API anahtarı
-  kısıtlaması (§ 4.4). DATA_MAP'teki "2 ay" saklama § 4.3 yapılınca geçerli. CI sırrı
-  `GOOGLE_SERVICES_JSON_BASE64` eklendi; etiketli sürüm derlemesinde henüz denenmedi.
+- **Faz sonrası, aynı gün yapıldı:** GA4 gizlilik ayarları (OPS § 4.3: saklama 2 ay/2 ay, Google
+  sinyalleri kapalı, ayrıntılı konum kapalı, reklam kişiselleştirme 0/307 bölge, veri paylaşımı
+  boş, Veri İşleme Şartları 2026-11-28'de kabul) ve API anahtarı kısıtlaması (§ 4.4: paket +
+  debug/yükleme SHA-1; başlıksız istek 403, doğru paket 404 = geçti). Açık: Play imzalama SHA-1'i
+  (12.1), DPA tüzel kişi bilgileri (0.2), "Kullanıcı Verilerini Toplama Onayı" (10.3 sonrası). CI
+  sırrı `GOOGLE_SERVICES_JSON_BASE64` eklendi; etiketli sürüm derlemesinde henüz denenmedi.
 
 ## Sonraki fazlar için notlar
 
