@@ -787,26 +787,26 @@ Bitince yayın derlemesine dön: `npm run cap:sync` → ▶ Run.
 
 **Bitti kriterleri**
 
-| Kriter                                                                     | Durum                                                                                        |
-| -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Çapraz motor testi CI'da yeşil                                             | ✅ yerelde Node + Chromium + WebKit, 5 tekrar × 19.769 adım, 0 fark; CI'a bu commit'le girdi |
-| Lint kuralı etkin                                                          | ✅ (2.7a); yeni simülasyon dosyaları (`crossEngine/`, `detMathGolden.ts`) da kuralın içinde  |
-| Mevcut determinizm testleri geçiyor                                        | ✅ 517 birim testi, 14 çapraz motor testi (Chromium + WebKit), 8 duman testi                 |
-| 5. Simülasyon adımı hiç değişmez; hit-stop ve ağır çekim yalnızca çizimde  | ✅ `PresentationTimeline`; simülasyon üç hit-stop biçiminde ve 60/90 Hz'de adım adım aynı    |
-| 5. Gol sonrası duraklama kare sayısıyla ilerleyen deterministik durum      | ✅ 120 adım (`phaseTicks`); kayıtlardaki 20 duraklamanın hepsi 120 adım                      |
-| 5. Çevrimdışı mod da bu mimariyi kullanır                                  | ✅ maç sahnesi, gol tekrarı ve menüdeki demo maç                                             |
-| Hit-stop prototipi ve his değerlendirmesi                                  | ✅ ölçüldü, hızlı yetişme seçildi; ◐ öznel his telefonda (menüden üç biçim)                  |
-| 7. Kayıtlı tekrarlar: tüm karakterler ve süperler, gol, duraklama          | ✅ 10/10 karakter, 10/10 süper, 20 gol, 20 duraklama                                         |
-| 7. Chromium, WebKit ve Node'da her karenin checksum'ı; tek fark CI'ı kırar | ✅ her adım karşılaştırılıyor; kasıtlı 1e-12 px fark yakalandı                               |
-| 7. Test cihazında Android WebView'da bir kez                               | ⏳ **telefonda bekliyor** (geliştirici; adımlar yukarıda)                                    |
-| Rollback ölçümü (2.4: p99 1,1 ms; bütçe 4 ms)                              | ◐ Node'da değişmedi (ort. 0,084 ms); ⏳ **telefonda bekliyor**                               |
-| `npm run feel` tekrarı (2.9 için)                                          | ✅ 358/358 fizik ölçümü aynı; yalnızca AI maçları ayrışıyor (duraklama 78 → 120 adım)        |
+| Kriter                                                                     | Durum                                                                                            |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Çapraz motor testi CI'da yeşil                                             | ✅ CI'da yeşil (09c2ddf, Linux: Node 24 + Chromium + WebKit, run 46116924721); yerelde de 0 fark |
+| Lint kuralı etkin                                                          | ✅ (2.7a); yeni simülasyon dosyaları (`crossEngine/`, `detMathGolden.ts`) da kuralın içinde      |
+| Mevcut determinizm testleri geçiyor                                        | ✅ 517 birim testi, 14 çapraz motor testi (Chromium + WebKit), 8 duman testi                     |
+| 5. Simülasyon adımı hiç değişmez; hit-stop ve ağır çekim yalnızca çizimde  | ✅ `PresentationTimeline`; simülasyon üç hit-stop biçiminde ve 60/90 Hz'de adım adım aynı        |
+| 5. Gol sonrası duraklama kare sayısıyla ilerleyen deterministik durum      | ✅ 120 adım (`phaseTicks`); kayıtlardaki 20 duraklamanın hepsi 120 adım                          |
+| 5. Çevrimdışı mod da bu mimariyi kullanır                                  | ✅ maç sahnesi, gol tekrarı ve menüdeki demo maç                                                 |
+| Hit-stop prototipi ve his değerlendirmesi                                  | ✅ ölçüldü, hızlı yetişme seçildi; ◐ öznel his telefonda (menüden üç biçim)                      |
+| 7. Kayıtlı tekrarlar: tüm karakterler ve süperler, gol, duraklama          | ✅ 10/10 karakter, 10/10 süper, 20 gol, 20 duraklama                                             |
+| 7. Chromium, WebKit ve Node'da her karenin checksum'ı; tek fark CI'ı kırar | ✅ her adım karşılaştırılıyor; kasıtlı 1e-12 px fark yakalandı                                   |
+| 7. Test cihazında Android WebView'da bir kez                               | ⏳ **telefonda bekliyor** (geliştirici; adımlar yukarıda)                                        |
+| Rollback ölçümü (2.4: p99 1,1 ms; bütçe 4 ms)                              | ◐ Node'da değişmedi (ort. 0,084 ms); ⏳ **telefonda bekliyor**                                   |
+| `npm run feel` tekrarı (2.9 için)                                          | ✅ 358/358 fizik ölçümü aynı; yalnızca AI maçları ayrışıyor (duraklama 78 → 120 adım)            |
 
 **Faz sonu kontrolü (QUALITY_BAR, 2.7b)**
 
 | Satır                         | Ölçüm                                                                     | Durum                       |
 | ----------------------------- | ------------------------------------------------------------------------- | --------------------------- |
-| K6 Motorlar arası determinizm | Node, Chromium, WebKit'te her adım aynı; CI'da                            | ✅ CI; Android WebView ⏳   |
+| K6 Motorlar arası determinizm | Node, Chromium, WebKit'te her adım aynı; CI yeşil                         | ✅ CI; Android WebView ⏳   |
 | P9 Rollback                   | Node'da değişmedi                                                         | telefonda ⏳                |
 | D6 Giriş gecikmesi            | hit-stop simülasyonu bekletmiyor; görsel gecikme p99 33 ms, en kötü 67 ms | ✅ eskisinden kötü değil    |
 | P1 Kare işi                   | zaman çizelgesi kare başına ~7 µs (Node)                                  | telefonda stres testiyle ⏳ |
