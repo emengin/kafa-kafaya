@@ -199,7 +199,7 @@ function privacyItems(): TextMenuItem[] {
         label: s.testJsError,
         onSelect: () => {
           setTimeout(() => {
-            throw new Error('Kafa Kafaya test JS hatası (Faz 2.8)');
+            throw new Error('Kafadarlar test JS hatası (Faz 2.8)');
           }, TELEMETRY.testCrashDelayMs);
         },
       },

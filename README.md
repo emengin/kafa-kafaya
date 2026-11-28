@@ -1,4 +1,4 @@
-# Kafa Kafaya
+# Kafadarlar
 
 [![CI ve GitHub Pages](https://github.com/emengin/kafa-kafaya/actions/workflows/deploy.yml/badge.svg)](https://github.com/emengin/kafa-kafaya/actions/workflows/deploy.yml)
 [![Sürüm](https://img.shields.io/github/v/release/emengin/kafa-kafaya?label=s%C3%BCr%C3%BCm)](https://github.com/emengin/kafa-kafaya/releases)
@@ -139,7 +139,7 @@ Android Studio açılınca:
    birkaç dakika sürebilir.
 2. Üst araç çubuğundaki cihaz listesinden telefonunu seç (telefonun model adı görünür).
 3. Yeşil **▶ Run** düğmesine bas (kısayol: Shift+F10). Uygulama telefona yüklenir ve açılır;
-   telefonun uygulama listesinde **Kafa Kafaya** adıyla kalır.
+   telefonun uygulama listesinde **Kafadarlar** adıyla kalır.
 
 Kodda değişiklik yaptıktan sonra yalnızca `npm run cap:sync` çalıştır ve Android Studio'da yeniden
 ▶'ye bas; Android Studio'yu kapatmana gerek yok.

@@ -1,6 +1,6 @@
-# Kafa Kafaya — Mobil Yol Haritası (Tek Kişilik Geliştirme)
+# Kafadarlar — Mobil Yol Haritası (Tek Kişilik Geliştirme)
 
-Bu dosya, "Kafa Kafaya"nın web sürümünden Google Play ve App Store'da yayınlanan, reklam ve oyun içi satın almayla gelir elde eden, üst seviye kalitede bir mobil oyuna dönüşmesinin tam yol haritasıdır. Tek kişi tarafından; Claude Code, yapay zekâ araçları, hazır kütüphaneler ve lisanslı kaynaklarla geliştirilecek. Çıkış süresi öncelik değildir; öncelik kalitedir.
+Bu dosya, "Kafadarlar"ın web sürümünden Google Play ve App Store'da yayınlanan, reklam ve oyun içi satın almayla gelir elde eden, üst seviye kalitede bir mobil oyuna dönüşmesinin tam yol haritasıdır. Tek kişi tarafından; Claude Code, yapay zekâ araçları, hazır kütüphaneler ve lisanslı kaynaklarla geliştirilecek. Çıkış süresi öncelik değildir; öncelik kalitedir.
 
 ---
 
@@ -149,7 +149,9 @@ Bu hattın ekstra faydası: elle yeniden çizim, görsele insan emeği katar. Sa
 ### Faz 0.2 — Şirket, vergi, marka [SEN + PRO]
 
 - Mali müşavirle görüş: şahıs mı limited mi, vergi yükümlülükleri, mağaza ödemelerinin alınması.
-- TÜRKPATENT'te "Kafa Kafaya" ismini araştır; müsaitse marka tescil başvurusu yap. Alan adını al.
+- TÜRKPATENT'te oyunun adını araştır; müsaitse marka tescil başvurusu yap. Alan adını al.
+  (2026-11-28: "Kafa Kafaya" adı Play'de aynı adlı başka bir futbol oyunu olduğu için bırakıldı;
+  yeni ad "Kafadarlar: Futbol Arenası", TÜRKPATENT'te tescil yok → GAME_DESIGN_MOBILE.md K19.)
 - Avukatla bir tanışma görüşmesi: KVKK, tüketici hukuku, 2026 çocuk ve oyun platformu düzenlemesinin projeyi kapsayıp kapsamadığı. Asıl inceleme Faz 10.3'te.
 
 ### Faz 0.3 — Proje yapısı ve dokümanlar [CC] (Y)
@@ -195,7 +197,7 @@ Bitti kriteri: Doküman çelişkisiz; ekonomi tablosu sayısal hedeflerle dolu.
 - Görüntüleri Claude sohbetine yükle ve şu promptu ver:
 
 ```
-Sen deneyimli bir mobil oyun tasarımcısı ve sanat yönetmenisin. Ekteki ekran görüntüleri en iyi mobil spor oyunlarından. Benim oyunum "Kafa Kafaya": 2D, yandan görünümlü, 1v1 kafa topu. Her oyun için: görsel stil, arayüz dili, renk kullanımı, para kazanma yerleşimleri, ilk açılış akışı. Sonra ortak kalite işaretlerini, sık yapılan hataları ve benim oyunumun öne çıkabileceği boşlukları listele. Sonucu docs/COMPETITOR_ANALYSIS.md olarak kaydedeceğim; Markdown formatında yaz.
+Sen deneyimli bir mobil oyun tasarımcısı ve sanat yönetmenisin. Ekteki ekran görüntüleri en iyi mobil spor oyunlarından. Benim oyunum "Kafadarlar": 2D, yandan görünümlü, 1v1 kafa topu. Her oyun için: görsel stil, arayüz dili, renk kullanımı, para kazanma yerleşimleri, ilk açılış akışı. Sonra ortak kalite işaretlerini, sık yapılan hataları ve benim oyunumun öne çıkabileceği boşlukları listele. Sonucu docs/COMPETITOR_ANALYSIS.md olarak kaydedeceğim; Markdown formatında yaz.
 ```
 
 ### Faz 1.3 — Stil testleri [SEN + yapay zekâ araçları]
@@ -209,7 +211,7 @@ Sen deneyimli bir mobil oyun tasarımcısı ve sanat yönetmenisin. Ekteki ekran
 Seçtiğin stilin örneklerini ve rakip analizini sohbete yükle:
 
 ```
-Sen deneyimli bir mobil oyun sanat yönetmenisin. "Kafa Kafaya" adlı 2D, yandan görünümlü, 1v1 kafa topu oyunu için bir sanat rehberi (art bible) yaz. Oyunu tek kişi geliştiriyor; görseller yapay zekâ konseptinden vektör programında elle yeniden çizilerek üretilecek. Hedef: Play Store'daki en kaliteli spor oyunlarıyla yarışan, tutarlı ve asla "yapay zekâ işi" görünmeyen bir stil. Ekteki görseller seçtiğim stil yönü.
+Sen deneyimli bir mobil oyun sanat yönetmenisin. "Kafadarlar" adlı 2D, yandan görünümlü, 1v1 kafa topu oyunu için bir sanat rehberi (art bible) yaz. Oyunu tek kişi geliştiriyor; görseller yapay zekâ konseptinden vektör programında elle yeniden çizilerek üretilecek. Hedef: Play Store'daki en kaliteli spor oyunlarıyla yarışan, tutarlı ve asla "yapay zekâ işi" görünmeyen bir stil. Ekteki görseller seçtiğim stil yönü.
 İçerik:
 - Renk paleti (ana, ikincil, vurgu, arka plan; takımlar için renk körü dostu çiftler)
 - Işık yönü, gölge, çizgi kalınlığı, oran kuralları (büyük kafa, küçük gövde)

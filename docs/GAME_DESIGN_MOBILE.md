@@ -1,9 +1,9 @@
-# Kafa Kafaya — Mobil Oyun Tasarım Belgesi
+# Kafadarlar — Mobil Oyun Tasarım Belgesi
 
 > **Durum:** Faz 1.1'de dolduruldu (2026-11-20). Temel kararlar § Kararlar'da (K1–K12 Faz 0.4,
-> K13–K17 Faz 1.1, K18 ve K2 güncellemesi 2026-11-26).
+> K13–K17 Faz 1.1, K18 ve K2 güncellemesi 2026-11-26, K19 2026-11-28).
 >
-> **Çalışma adı:** "Kafa Kafaya: Futbol Arenası" (marka araştırması Faz 0.2'de). Dünya ve kadro:
+> **Ad:** "Kafadarlar: Futbol Arenası" (K19; eski çalışma adı "Kafa Kafaya"). Dünya ve kadro:
 > K18; görsel kurallar [ART_BIBLE.md](ART_BIBLE.md).
 >
 > Bu belge [GAME_DESIGN.md](GAME_DESIGN.md)'yi (web sürümü: fizik, kurallar, karakterler, süperler,
@@ -95,7 +95,7 @@ farklı gösterir; hiçbiri maçı kolaylaştırmaz (§9).
 
 ### 1.5 Ana menü
 
-Rakiplerin ana menüsü 13–31 dokunulabilir öğe taşıyor (COMPETITOR_ANALYSIS.md §3.2). Kafa Kafaya'nın
+Rakiplerin ana menüsü 13–31 dokunulabilir öğe taşıyor (COMPETITOR_ANALYSIS.md §3.2). Kafadarlar'ın
 kalıcı öğe sınırı **10**, etkin bir etkinlik varsa +1 etkinlik kartı:
 
 | #   | Öğe                        | Yer           | Not                                                                               |
@@ -891,7 +891,8 @@ Altın (K17), lig/seviye/başarım/ustalık ödülleri.
 
 Bağlayıcıdır; uygulandıkları fazlar [ROADMAP_MOBILE.md](ROADMAP_MOBILE.md)'de. K1–K12 Faz 0.4'te
 (2026-11-20) Faz 0.3'ün açık sorularından, K13–K17 Faz 1.1'de (2026-11-20) "Hâlâ açık olanlar"dan
-karara bağlandı. K18 ve K2'nin güncellemesi 2026-11-26'da tema değişikliğiyle geldi. Tasarım bu
+karara bağlandı. K18 ve K2'nin güncellemesi 2026-11-26'da tema değişikliğiyle, K19 2026-11-28'de
+ad değişikliğiyle geldi. Tasarım bu
 kararlarla çelişmez; değişiklik gerekiyorsa önce bu bölüm güncellenir.
 
 ### K1. Güç satılmaz, çeşitlilik satılır (eski soru 1)
@@ -1046,8 +1047,24 @@ Sonuçları:
 - Çizim tarzı değişmez: ART_BIBLE'daki sıcak el çizimi, dev kafa oranları, kontur, palet, yüz
   ızgarası ve yaylı kafa.
 - Para birimleri Altın + Elmas (§2.1); şişe kapağı, misket ve kedi maskot yok.
-- Çalışma adı "Kafa Kafaya: Futbol Arenası"; marka araştırması Faz 0.2'de. Uygulama kimliği
-  (`com.emengin.kafakafaya`) değişmedi.
+- Çalışma adı o tarihte "Kafa Kafaya: Futbol Arenası"ydı; 2026-11-28'de "Kafadarlar: Futbol
+  Arenası" oldu (K19). Uygulama kimliği (`com.emengin.kafakafaya`) değişmedi.
+
+### K19. Oyunun adı: Kafadarlar (2026-11-28)
+
+- Oyunun adı **Kafadarlar**; mağaza başlığı **"Kafadarlar: Futbol Arenası"** (26 karakter, Play
+  sınırı 30). İngilizce mağaza başlığı "Kafadarlar: Football Arena". "Head Soccer" ve "Kafa Topu"
+  adları kullanılmaz (türün bilinen oyunları).
+- Neden: Google Play'de "Kafa Kafaya" adıyla başka bir geliştiricinin futbol oyunu var (üstten
+  bakışlı 2'ye 2, reklamlı, 1 bin+ indirme; 2026-11-28'de görüldü). Aynı ad ve aynı tür aramada ve
+  kulaktan kulağa karışıklık, yanlış yorumlar ve tescil yarışı riski getirir; mağazaya çıkmadan
+  değiştirmek neredeyse bedava.
+- 2026-11-28 araştırması: TÜRKPATENT'te "Kafadarlar" da "Kafa Kafaya" da tescilli değil; Play ve
+  App Store'da "Kafadarlar" adlı uygulama yok (Play'de "Kafadar: Arkadaşlık Testi" var; futbol oyunu
+  değil, tekil ad).
+- Değişmeyenler: uygulama kimliği `com.emengin.kafakafaya`, imza anahtarı, kayıt anahtarlarının
+  `kafa-kafaya.` öneki (değişirse oyuncunun kaydı kaybolur), web adresi ve depo adı (ayrı karar).
+- Açık: "Kafadarlar" marka tescil başvurusu (sınıflar avukata; Faz 0.2).
 
 ### Hâlâ açık olanlar
 
@@ -1067,5 +1084,5 @@ seçim sırası (K14).
 | 18 yaş altı harcama limiti değeri ve ebeveyn onayı akışı (§5.4)                                | 8.5, avukat 10.3  |
 | Lig eşikleri, kupa değerleri ve sezon sıfırlaması (§7.2'deki ilk değerler)                     | 9.5               |
 | Yankı ve Sekme süperlerinin son sayısal değerleri (§9.4)                                       | 7.6 (2.9 sonrası) |
-| Çalışma adı "Kafa Kafaya: Futbol Arenası" için marka araştırması (K18)                         | 0.2               |
+| "Kafadarlar" marka tescil başvurusu: hangi sınıflar, ne zaman (K19)                            | 0.2, avukat       |
 | Stadyum varyantlarının renkleri ve çim zemin rengi (ART_BIBLE §2.4)                            | 4.1, 7.2          |

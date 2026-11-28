@@ -1,5 +1,5 @@
 /**
- * Kafa Kafaya — tüm denge ve ayar değerlerinin tek kaynağı.
+ * Kafadarlar — tüm denge ve ayar değerlerinin tek kaynağı.
  *
  * Kural: oyun kodunda sihirli sayı yok. Yeni bir ayar gerekiyorsa buraya eklenir
  * (ESLint `no-magic-numbers` kuralı src/config dışını denetler).

@@ -248,7 +248,7 @@ export function installDevTools(game: Phaser.Game): void {
   game.events.on(Phaser.Core.Events.POST_STEP, () => {
     if (menuLogged || !game.scene.isActive(MENU_SCENE)) return;
     menuLogged = true;
-    console.info(`[Kafa Kafaya] menü hazır ${performance.now().toFixed(0)} ms`);
+    console.info(`[Kafadarlar] menü hazır ${performance.now().toFixed(0)} ms`);
   });
 
   devHooks.match = (ctx: MatchDevContext): MatchDevSession | null => {
@@ -273,7 +273,7 @@ export function installDevTools(game: Phaser.Game): void {
         if (!result && monitor.elapsedMs >= limitMs) {
           result = { kind, verdict: monitor.verdict(), minutes: [...monitor.minutes] };
           // chrome://inspect konsolunda okunur.
-          console.info('[Kafa Kafaya] test bitti', JSON.stringify(report()));
+          console.info('[Kafadarlar] test bitti', JSON.stringify(report()));
         }
       },
       destroy: () => {

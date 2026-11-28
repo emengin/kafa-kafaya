@@ -19,7 +19,7 @@ export const MOBILE = {
   /** Mobil derlemenin çıktı klasörü = Capacitor `webDir`. */
   outDir: 'dist-mobile',
   appId: 'com.emengin.kafakafaya',
-  appName: 'Kafa Kafaya',
+  appName: 'Kafadarlar',
   /** Android projesinin klasörü (Capacitor varsayılanı). */
   androidDir: 'android',
 } as const;

@@ -9,6 +9,8 @@ denge tabloları: [docs/archive/PROGRESS_WEB.md](docs/archive/PROGRESS_WEB.md).
 
 ### Değişenler
 
+- **Oyunun adı artık Kafadarlar** (eski adı Kafa Kafaya). Google Play'de aynı adlı başka bir futbol
+  oyunu olduğu için değiştirildi. Kayıtlı ayarlar, açılan karakterler ve web adresi aynı.
 - **Phaser 3.90 → Phaser 4.2.1** (mobil yol haritası Faz 2.0). Oyun davranışı ve görünüm aynı;
   tarayıcıda aynı tohumlu AI vs AI maçları adım adım birebir aynı durumu üretiyor. `LiteGraphics`
   çizicisi Phaser 4'ün render node mimarisine taşındı; özel Phaser derlemesi Phaser 4'e göre yeniden

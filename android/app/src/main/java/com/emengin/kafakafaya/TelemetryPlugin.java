@@ -187,7 +187,7 @@ public class TelemetryPlugin extends Plugin {
         }
         call.resolve();
         new Handler(Looper.getMainLooper()).post(() -> {
-            throw new RuntimeException("Kafa Kafaya test çökmesi (Faz 2.8)");
+            throw new RuntimeException("Kafadarlar test çökmesi (Faz 2.8)");
         });
     }
 

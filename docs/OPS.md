@@ -275,16 +275,16 @@ Firebase konsolu Türkçe görünebilir; aşağıda düğmelerin Türkçe adı, 
 
 1. <https://console.firebase.google.com> adresine git, oyunun Google hesabıyla gir. (Bu hesapta
    iki adımlı doğrulama açık olsun.)
-2. **Proje oluştur** (Create a project) → proje adı: `kafa-kafaya` → **Devam**.
+2. **Proje oluştur** (Create a project) → proje adı: `kafadarlar` → **Devam**.
 3. "Firebase'de Gemini" / yapay zekâ yardımı sorulursa **kapalı** bırak → **Devam**.
 4. **Bu projede Google Analytics'i etkinleştir** (Enable Google Analytics) **açık** kalsın (Analytics
    için gerekli) → **Devam**.
-5. Analytics hesabı: **Yeni hesap oluştur** → ad: `Kafa Kafaya`. **Analytics konumu**: Türkiye.
+5. Analytics hesabı: **Yeni hesap oluştur** → ad: `Kafadarlar`. **Analytics konumu**: Türkiye.
    Bu ekranda veri paylaşımıyla ilgili onay kutuları varsa **hepsinin işaretini kaldır**. Google
    Analytics şartlarını kabul et → **Proje oluştur**. Bitince **Devam**.
 6. Proje ana sayfasında **Android simgesine** (Uygulamanıza Firebase ekleyin → Android) tıkla:
    - **Android paket adı:** `com.emengin.kafakafaya` (harfi harfine; sonra değiştirilemez).
-   - **Uygulama takma adı:** `Kafa Kafaya Android`.
+   - **Uygulama takma adı:** `Kafadarlar Android`.
    - **SHA-1:** boş bırak (Analytics ve Crashlytics için gerekmez).
    - **Uygulamayı kaydet** → **google-services.json dosyasını indir**.
    - Sonraki "Firebase SDK'sı ekle" adımlarını **İleri** ile geç (kod hazır) → **Konsola devam et**.
@@ -296,7 +296,7 @@ Firebase konsolu Türkçe görünebilir; aşağıda düğmelerin Türkçe adı, 
 ### 4.3 Gizlilik ayarları — en kısıtlayıcı hâl (denenmedi)
 
 **A. Google Analytics** (<https://analytics.google.com>, sol alttaki dişli **Yönetici** / Admin).
-Üstte doğru hesabın (`Kafa Kafaya`) ve mülkün seçili olduğundan emin ol.
+Üstte doğru hesabın (`Kafadarlar`) ve mülkün seçili olduğundan emin ol.
 
 1. **Veri saklama** (Mülk → Veri ayarları → Veri saklama / Data retention):
    - **Olay verilerinin saklanması:** **2 ay** (en kısa).
@@ -340,7 +340,7 @@ Anahtar gizli olmadığı için asıl koruma, kullanılabileceği yeri daraltmak
 kısıtlaması isteğin başlığındaki paket adı ve imza parmak izine bakar; kararlı bir saldırgan bunları
 taklit edebilir. Kısıtlama kötüye kullanımı engellemez, zorlaştırır.
 
-1. <https://console.cloud.google.com> → üstten Firebase projesini (`kafa-kafaya`) seç.
+1. <https://console.cloud.google.com> → üstten Firebase projesini (`kafadarlar`) seç.
 2. **API'ler ve Hizmetler** → **Kimlik bilgileri** (APIs & Services → Credentials) →
    **Android key (auto created by Firebase)** satırına tıkla.
 3. **Uygulama kısıtlamaları** (Application restrictions): **Android uygulamaları** → **Öğe ekle**:
@@ -380,17 +380,17 @@ Faz 2.8'in bitti kriteri. Geliştirici derlemesinde Ayarlar → Gizlilik altınd
 3. Analiz olaylarını saniyeler içinde görmek için **DebugView**'ı aç:
    `adb shell setprop debug.firebase.analytics.app com.emengin.kafakafaya`. Firebase konsolunda
    sol menü → **Analytics** → **DebugView** sayfasını aç ve açık bırak.
-4. Rıza ekranını yeniden görmek için telefonda Ayarlar → Uygulamalar → Kafa Kafaya → Depolama →
+4. Rıza ekranını yeniden görmek için telefonda Ayarlar → Uygulamalar → Kafadarlar → Depolama →
    **Verileri temizle**. Uygulamayı aç → "Oyunu geliştirmemize yardım et" → **İzin ver**.
 5. **Analiz olayı:** bir Hızlı Maç başlat, bitene kadar oyna (ya da duraklat → Ana menü). DebugView'da
    birkaç saniye–1 dakika içinde `first_open`, `session_start`, `match_start`, `match_end` görünmeli.
    Bir olaya tıklayınca parametreleri (`mode`, `outcome`, `goals_p1`…) gör. Kişisel veri olmamalı.
 6. **Test çökmesi:** Ayarlar → Gizlilik → **Test çökmesi (yerel)** → uygulama kapanır. Uygulamayı
    **yeniden aç** (rapor açılışta gönderilir). Firebase konsolu → **Crashlytics**: 5–10 dakika içinde
-   `RuntimeException: Kafa Kafaya test çökmesi (Faz 2.8)` görünmeli. İlk raporla panel açılır.
+   `RuntimeException: Kafadarlar test çökmesi (Faz 2.8)` görünmeli. İlk raporla panel açılır.
 7. **JS hatası (K4):** Ayarlar → Gizlilik → **Test JS hatası** (uygulama kapanmaz). Uygulamayı
    kapatıp yeniden aç. Crashlytics'te olay türü filtresini **Çökme olmayanlar** (Non-fatals) yap:
-   `JsError: Error: Kafa Kafaya test JS hatası (Faz 2.8)`. Rapora tıklayınca **Anahtarlar** (Keys)
+   `JsError: Error: Kafadarlar test JS hatası (Faz 2.8)`. Rapora tıklayınca **Anahtarlar** (Keys)
    sekmesinde `webview_version`, `build_type = debug`, `js_version`, `scene` görünmeli.
 8. **Geri alma:** Ayarlar → Gizlilik → iki anahtarı da **Kapalı** yap, bir maç daha oyna →
    DebugView'a yeni `match_start` düşmemeli.

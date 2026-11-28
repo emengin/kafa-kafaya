@@ -68,8 +68,8 @@ export default defineConfig(({ command, mode, isPreview }) => {
       // yeni sürümün üstünü örtmesin.
       !mobile &&
         pwa({
-          name: 'Kafa Kafaya',
-          shortName: 'Kafa Kafaya',
+          name: 'Kafadarlar',
+          shortName: 'Kafadarlar',
           description: 'Tarayıcıda oynanan 2D, 1v1 kafa topu oyunu.',
           lang: 'tr',
           themeColor: PLATFORM.themeColor,

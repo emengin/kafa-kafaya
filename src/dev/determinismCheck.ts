@@ -10,7 +10,7 @@ import { DET_MATH_GOLDEN, goldenDigest } from '../physics/detMathGolden';
  * hangi 60 adımlık aralıkta başladığı yazılır.
  *
  * Ayarlar → Kontroller → "Motorlar arası test" ya da `?devtest=determinism`. Sonuç ekranda ve
- * konsolda (`[Kafa Kafaya] determinizm testi {...}`; chrome://inspect ya da logcat).
+ * konsolda (`[Kafadarlar] determinizm testi {...}`; chrome://inspect ya da logcat).
  */
 
 export interface DeterminismFixtureResult {
@@ -138,6 +138,6 @@ export async function runAndShow(panel: DeterminismPanel): Promise<DeterminismRe
     'Kapatmak için dokun.',
   ];
   panel.show(lines, true);
-  console.info('[Kafa Kafaya] determinizm testi', JSON.stringify(report));
+  console.info('[Kafadarlar] determinizm testi', JSON.stringify(report));
   return report;
 }

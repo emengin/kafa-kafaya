@@ -1,9 +1,9 @@
-# Kafa Kafaya — Rakip Analizi
+# Kafadarlar — Rakip Analizi
 
 > **Tarih:** 20 Kasım 2026
 > **Kaynak:** `Oyun_Ekranlari_Guncel.zip`: 11 oyundan 40 ekran görüntüsü (LDPlayer emülatörü)
 > **Amaç:** Görsel stil, arayüz, para kazanma ve ilk açılış kalıplarını çıkarmak; Faz 1.3 stil testlerine girdi sağlamak
-> **Kısıtlar (Kafa Kafaya):** 2D, yandan görünüm, 1v1 kafa topu · reklam + oyun içi satın alma · **rastgele ödül kutusu yok · parayla güç satışı yok**
+> **Kısıtlar (Kafadarlar):** 2D, yandan görünüm, 1v1 kafa topu · reklam + oyun içi satın alma · **rastgele ödül kutusu yok · parayla güç satışı yok**
 
 **Okuma notu:** Tüm gözlemler durağan ekran görüntülerine dayanıyor. Animasyon, ses ve oyun hissiyle ilgili yorumlar **(çıkarım)** olarak işaretlendi. Ekranlarda net görülmeyen para kazanma unsurları "olası" diye yazıldı.
 
@@ -17,16 +17,16 @@
 3. [Karşılaştırma tabloları](#3-karşılaştırma-tabloları)
 4. [Bu oyunları "kaliteli" gösteren ortak işaretler](#4-bu-oyunları-kaliteli-gösteren-ortak-işaretler)
 5. [Sık yapılan hatalar ve ucuz görünen noktalar](#5-sık-yapılan-hatalar-ve-ucuz-görünen-noktalar)
-6. [Kafa Kafaya'nın öne çıkabileceği boşluklar](#6-kafa-kafayanın-öne-çıkabileceği-boşluklar)
+6. [Kafadarlar'ın öne çıkabileceği boşluklar](#6-kafadarların-öne-çıkabileceği-boşluklar)
 7. [Faz 1.3 için 3 stil yönü](#7-faz-13-için-3-stil-yönü)
 
 ---
 
 ## 0. Özet
 
-- **Türün görsel dili doymuş durumda.** Dört doğrudan rakibin üçü (Kafa Topu 2, Head Soccer, Basketball Arena) aynı formülü kullanıyor: dişlerini sıkmış, öfkeli, karikatür futbolcu kafası, dev ayakkabı ve doygun renkler. Kafa Kafaya'nın en ucuz farklılaşma yolu **şekil dili ve tema**.
+- **Türün görsel dili doymuş durumda.** Dört doğrudan rakibin üçü (Kafa Topu 2, Head Soccer, Basketball Arena) aynı formülü kullanıyor: dişlerini sıkmış, öfkeli, karikatür futbolcu kafası, dev ayakkabı ve doygun renkler. Kafadarlar'ın en ucuz farklılaşma yolu **şekil dili ve tema**.
 - **Kaliteli görünmenin sırrı tutarlılık.** En kaliteli görünen oyunlar tek bir motifi her ekrana taşıyor: Head Basketball'da LED skorbord, Basketball Arena'da neon ve eğik kesimler, Miniclip'te temiz şablon. En ucuz görünenler (Head Soccer, Soccer Stars) ise farklı dönemlerden ve çözünürlüklerden varlıkları karıştırıyor.
-- **Rakiplerin para modeli, senin dışarıda bıraktığın iki şeye dayanıyor.** Altı oyunda rastgele paket/sandık/torba ya da parayla istatistik ekranda açıkça görülüyor (Kafa Topu 2 ve Mini Football'da ikisi birden). Head Basketball ve Soccer Stars'ta da güçlü işaretler var. "Kutu yok, güç satılmaz" Kafa Kafaya'nın vitrin cümlesi olabilir, ama ancak oyunda ve mağaza sayfasında **görünür** kılınırsa işe yarar.
+- **Rakiplerin para modeli, senin dışarıda bıraktığın iki şeye dayanıyor.** Altı oyunda rastgele paket/sandık/torba ya da parayla istatistik ekranda açıkça görülüyor (Kafa Topu 2 ve Mini Football'da ikisi birden). Head Basketball ve Soccer Stars'ta da güçlü işaretler var. "Kutu yok, güç satılmaz" Kafadarlar'ın vitrin cümlesi olabilir, ama ancak oyunda ve mağaza sayfasında **görünür** kılınırsa işe yarar.
 - **Para kazanma yerleşimleri standartlaşmış:** üstte "+" düğmeli para çubuğu, yanlarda teklif ve "izle-kazan" kutuları, altta sandık/paket yuvaları, sezon kartı, mağazada geri sayımlar ve kayıp ekranında indirim.
 - **En büyük UX boşluğu kalabalık.** Kafa Topu 2'nin ana menüsünde yaklaşık 31 dokunulabilir öğe, 11 bildirim rozeti ve 7 kilit var. Sade, "tek dokunuşla maç" sunan bir ana ekran tek başına ayrışma sağlar.
 - **Önerilen 3 stil yönü:** **A) Mahalle Maçı:** sıcak, el çizimi, yerel mizah. **B) Gece Ligi:** koyu zemin, neon, rekabetçi enerji. **C) Yaylı Kafalar:** bobblehead oyuncak figürler, dokunsal 3D görünüm.
@@ -89,7 +89,7 @@
 
 - Anahtar görsel + yüzdelik yükleme çubuğu + sürüm numarası, ardından doğrudan ana menü. Hesap önceden oynanmış olduğu için ilk maç eğitimi değerlendirilemedi.
 
-**Kafa Kafaya için**
+**Kafadarlar için**
 
 - ✅ **Al:** Karakter kimliğini kafanın çevresindeki aksesuarla kurmak (kozmetik satışına çok uygun) · maçtaki "sen" oku · tam Türkçe arayüz.
 - ❌ **Alma:** 30'a yakın öğeli ana menü · rastgele paketler · "Reklamları Kaldır"ı ana ekranın en görünür köşesine koymak (oyuncuya ilk bakışta "burada çok reklam var" mesajı veriyor).
@@ -125,7 +125,7 @@
 
 - Stadyum arka planlı logo ekranından doğrudan ana menüye geçiliyor (Arcade seçili). Onay ekranı ya da eğitim görünmüyor; en kısa akış bu.
 
-**Kafa Kafaya için**
+**Kafadarlar için**
 
 - ✅ **Al:** Karakter mizahı (kaybedenin terlemesi, konuşma balonları) · modların tek satırda seçilmesi.
 - ❌ **Alma:** Karışık çözünürlük · parayla istatistik · **ayna maç** (Kore'ye karşı Kore, aynı yüz; kimin kim olduğu yalnızca "YOU" balonundan anlaşılıyor).
@@ -161,7 +161,7 @@
 
 - Yayıncı logosu + "LOADING...", ardından 5 butonlu ana menü. Çok sade.
 
-**Kafa Kafaya için**
+**Kafadarlar için**
 
 - ✅ **Al:** Tek tema motifini her ekrana taşıma disiplini · vücut bölgesine göre kozmetik kategorileri · sonuç ekranında görev ve seviye ilerlemesi.
 - ❌ **Alma:** Neredeyse görünmez kontroller · kayıp anında agresif indirim teklifi.
@@ -196,7 +196,7 @@
 
 - Yükleme ekranının üstünde "Hoş Geldin" gizlilik/hizmet şartları onayı (tek yeşil buton), ardından ana menü. **Zorunlu onay ekranı bile oyunun panel ve yazı diliyle tasarlanmış.**
 
-**Kafa Kafaya için**
+**Kafadarlar için**
 
 - ✅ **Al:** Onay ekranını oyunun diliyle tasarlamak · sonuç ekranını sahnenin içinde göstermek · hazır ifade paneli · neon çerçeveli kontroller.
 - ❌ **Alma:** Sandık slotları ve rastgele sandıklar · boş yuvaların "Sandık Slotu" yazısıyla beklemesi (bitmemiş görünüyor).
@@ -232,7 +232,7 @@
 
 - Düz mavi zeminde oyun ve yayıncı logosu, ardından misafir hesapla ana menü (GUEST_DA0011). Kayıt zorunlu değil.
 
-**Kafa Kafaya için**
+**Kafadarlar için**
 
 - ✅ **Al:** Ana menünün ferahlığı · alan derinliğiyle karakteri öne çıkarma · sonuç ekranında görev bandı.
 - ❌ **Alma:** Gerçek parayla istatistikli oyuncu kartı · 9 sekmeli mağaza · geri sayımla aciliyet baskısı · ham "GUEST_" isimleri.
@@ -267,7 +267,7 @@
 
 - Mavi zemin + logo + dönen top yükleyicisi. Kayıt notuna göre ardından doğrudan eğitim maçı, sonra ana menü. **Oyuncuyu menüden önce maça sokuyor.**
 
-**Kafa Kafaya için**
+**Kafadarlar için**
 
 - ✅ **Al:** İlk dakikada menü yerine maç · ödüllü reklamı ilerleme adımlarına bölmek.
 - ❌ **Alma:** Rastgele torbalar · ifadesiz gerçekçi karakterler (kafa topunun mizahına ters).
@@ -299,7 +299,7 @@
 
 - Düz yeşil logo ekranından misafir hesapla ana menüye.
 
-**Kafa Kafaya için**
+**Kafadarlar için**
 
 - ✅ **Al:** Mağaza ürününde "Kullanılan/Sahip" etiketi (oyuncu neye sahip olduğunu anında görüyor).
 - ❌ **Alma:** Şans çarkı (kuralınla çelişir; yerine önceden görünen, sabit ödüllü günlük takvim koy).
@@ -328,7 +328,7 @@
 
 - Logo + dönen top, ardından misafir hesapla ana menü ve eğitim oku. Emülatörde yönlendirme tıklamalara yanıt vermedi.
 
-**Kafa Kafaya için**
+**Kafadarlar için**
 
 - ❌ **Alma:** Kısmi çeviri · metin taşması · hiyerarşisiz ikon şeridi.
 
@@ -340,18 +340,18 @@
 - **Arayüz dili:** Yeşil yükleme çubuğu (%49), altında oyun ipucu ("Resmine dokunup kariyerine genel bakışı ve maç geçmişini gör"), köşede sürüm numarası.
 - **İlk açılış akışı:** Kayıt notuna göre yükleme, gizlilik ekranı, ardından eğitim.
 - **Para kazanma:** Görülmedi.
-- **Kafa Kafaya için:** Yükleme süresini ipucuyla doldurmak · tüm kadroyu tek kompozisyonda gösteren "vitrin görseli" (mağaza sayfası görseli için de iyi bir örnek).
+- **Kafadarlar için:** Yükleme süresini ipucuyla doldurmak · tüm kadroyu tek kompozisyonda gösteren "vitrin görseli" (mağaza sayfası görseli için de iyi bir örnek).
 
 ### 2.10 Carrom Pool _(yalnızca giriş ekranı)_
 
 - **Görsel stil:** Sıcak kırmızı-kahve ahşap tema, parlak metalik logo.
 - **Arayüz dili:** İlk ekranda 8 dil seçeneği. Büyük renkli giriş butonları: Facebook mavi, Misafir turuncu, Google Play yeşil. Altta hüküm ve gizlilik bağlantıları.
 - **Para kazanma / ilk açılış:** "Bonus mücevher ve para almak için giriş yap": hesap bağlama ödülle teşvik ediliyor, misafir seçeneği de açık.
-- **Kafa Kafaya için:** ✅ Misafir seçeneği + hesap bağlama ödülü. ❌ Oyundan önce 3 seçenekli giriş duvarı (hesap bağlamayı ilk birkaç maçtan sonra istemek daha az sürtünmeli).
+- **Kafadarlar için:** ✅ Misafir seçeneği + hesap bağlama ödülü. ❌ Oyundan önce 3 seçenekli giriş duvarı (hesap bağlamayı ilk birkaç maçtan sonra istemek daha az sürtünmeli).
 
 ### 2.11 8 Ball Pool _(analiz edilemedi)_
 
-- Emülatörde "güvenlik tehdidi" uyarısıyla kapandı. Tasarım açısından tek çıkarım şu: çevrim içi ve satın almalı oyunlar cihaz/istemci bütünlüğü kontrolüne ciddi yatırım yapıyor. Kafa Kafaya çevrim içi PvP'ye geçerse sunucu taraflı satın alma doğrulaması ve hile önlemi plana girmeli.
+- Emülatörde "güvenlik tehdidi" uyarısıyla kapandı. Tasarım açısından tek çıkarım şu: çevrim içi ve satın almalı oyunlar cihaz/istemci bütünlüğü kontrolüne ciddi yatırım yapıyor. Kafadarlar çevrim içi PvP'ye geçerse sunucu taraflı satın alma doğrulaması ve hile önlemi plana girmeli.
 
 ---
 
@@ -465,7 +465,7 @@ _Ekran görüntülerinden elle sayıldı; ±2 hata payı var._
 
 ---
 
-## 6. Kafa Kafaya'nın öne çıkabileceği boşluklar
+## 6. Kafadarlar'ın öne çıkabileceği boşluklar
 
 ### 6.1 "Adil mağaza"yı görünür bir kimliğe çevir
 
@@ -495,7 +495,7 @@ Rakiplerin ortalaması 15–30 öğe. Hedef: **8–10 öğe**, ilk 3 oturumda da
 
 ### 6.3 Farklı bir şekil dili
 
-Türün üç doğrudan rakibi aynı "öfkeli karikatür futbolcu" kalıbını kullanıyor. Kafa Kafaya'nın mağaza ikonları ızgarasında **ilk bakışta** ayrışması gerekiyor. Bunun yolu daha iyi bir karikatür değil, farklı bir karakter fikri (bkz. Bölüm 7).
+Türün üç doğrudan rakibi aynı "öfkeli karikatür futbolcu" kalıbını kullanıyor. Kafadarlar'ın mağaza ikonları ızgarasında **ilk bakışta** ayrışması gerekiyor. Bunun yolu daha iyi bir karikatür değil, farklı bir karakter fikri (bkz. Bölüm 7).
 
 ### 6.4 İsimden gelen imza an: "kafa kafaya"
 
@@ -519,7 +519,7 @@ Aşağıdaki sayılar test için başlangıç değerleri:
 | Mağaza       | "Reklamları Kaldır"               | Tek seferlik satın alma. Geçiş reklamlarını kaldırır, ödüllü reklamlar isteğe bağlı kalır |
 | Oyun dünyası | Stadyum panoları                  | Gerçek reklam yok. Panolar kendi etkinlik ve sezon duyurularını göstersin                 |
 
-### 6.7 Kafa Kafaya için para kazanma yerleşimi
+### 6.7 Kafadarlar için para kazanma yerleşimi
 
 | Yer              | Ne                                                                                                         | Kural                                                           |
 | ---------------- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
@@ -577,7 +577,7 @@ Türkiye'de geliştirilen Kafa Topu 2 bile görsel olarak küresel ve nötr. Tü
 
 ### 7.1 Yön A — "Mahalle Maçı"
 
-**Fikir:** Apartmanların arasında, akşamüstü, mahallenin tipleri kafa kafaya. "Kafa Kafaya" deyiminin sıcaklığı sahnede. Herkesin tanıdığı evrensel bir sokak futbolu, yerel detaylar ise ikinci okumada.
+**Fikir:** Apartmanların arasında, akşamüstü, mahallenin tipleri kafa kafaya. "Kafa kafaya" deyiminin ve "kafadar" kelimesinin sıcaklığı sahnede. Herkesin tanıdığı evrensel bir sokak futbolu, yerel detaylar ise ikinci okumada.
 
 **Palet**
 

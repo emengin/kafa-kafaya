@@ -1,4 +1,4 @@
-# Kafa Kafaya — Oyun Tasarım Belgesi
+# Kafadarlar — Oyun Tasarım Belgesi
 
 Tarayıcıda oynanan, 2D yandan görünümlü, 1v1 kafa topu oyunu. Hedef: düşük donanımda
 60 FPS, sıkı ve tatmin edici oynanış hissi. Tüm karakterler, görseller ve sesler özgündür;

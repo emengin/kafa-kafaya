@@ -3,7 +3,7 @@
  * `{ad}` biçimindeki yer tutucular `format()` ile doldurulur.
  */
 export const tr = {
-  'game.title': 'Kafa Kafaya',
+  'game.title': 'Kafadarlar',
   'menu.quickMatch': 'Hızlı Maç',
   'menu.twoPlayers': '2 Oyuncu',
   'menu.tournament': 'Turnuva',
@@ -258,7 +258,7 @@ export const tr = {
 export type StringKey = keyof typeof tr;
 
 export const en: Record<StringKey, string> = {
-  'game.title': 'Kafa Kafaya',
+  'game.title': 'Kafadarlar',
   'menu.quickMatch': 'Quick Match',
   'menu.twoPlayers': '2 Players',
   'menu.tournament': 'Tournament',

@@ -1,5 +1,5 @@
 /**
- * Kafa Kafaya için özel Phaser derlemesi (Faz 7, paket boyutu; Faz 2.0'da Phaser 4'e taşındı).
+ * Kafadarlar için özel Phaser derlemesi (Faz 7, paket boyutu; Faz 2.0'da Phaser 4'e taşındı).
  *
  * Tam `phaser` paketi oyunun hiç kullanmadığı sistemleri de taşır: Matter.js ve Arcade fiziği,
  * tilemap'ler, parçacıklar, ses yöneticisi (sesler kendi Web Audio motorumuzda), yükleyici (tüm

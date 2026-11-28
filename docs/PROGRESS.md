@@ -63,7 +63,8 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
 
 - **Bölüm 0 — Hazırlık**
   - [ ] 0.1 Hesaplar ve araç seti [SEN]
-  - [ ] 0.2 Şirket, vergi, marka [SEN + PRO]
+  - [ ] 0.2 Şirket, vergi, marka [SEN + PRO] — ad araştırması yapıldı (2026-11-28, ↓); tescil
+        başvurusu, şirket ve vergi bekliyor
   - [x] 0.3 Proje yapısı ve dokümanlar [CC] — 2026-11-20
   - [x] 0.4 Kararlar ve yol haritası revizyonu [CC] — 2026-11-20
 - **Bölüm 1 — Tasarım ve sanat yönü**
@@ -181,8 +182,16 @@ Faz ayrıntıları: 0.3 ve 0.4 → [archive/PROGRESS_MOBILE_0.md](archive/PROGRE
 kutuları sen işaretle. 1.3'ün stil testi görselleri ve karşılaştırması `design/style-tests/`
 altında (seçilen çizim tarzı: Yön A'nın sıcak el çizimi, dev kafa oranlarıyla; testteki "Mahalle
 Maçı" adı yalnızca çalışma adıydı); 1.4'ün sonucu [ART_BIBLE.md](ART_BIBLE.md). Oyunun dünyası
-stadyumlar, kadrosu kurgusal futbolcu tipleri + 3 sürpriz karakter; çalışma adı "Kafa Kafaya: Futbol
-Arenası" ([GAME_DESIGN_MOBILE.md](GAME_DESIGN_MOBILE.md) K18).
+stadyumlar, kadrosu kurgusal futbolcu tipleri + 3 sürpriz karakter ([GAME_DESIGN_MOBILE.md](GAME_DESIGN_MOBILE.md)
+K18).
+
+**Oyunun adı: Kafadarlar** (2026-11-28, [GAME_DESIGN_MOBILE.md](GAME_DESIGN_MOBILE.md) K19). Eski
+çalışma adı "Kafa Kafaya" bırakıldı: Google Play'de aynı adlı başka bir futbol oyunu var (üstten
+bakışlı 2'ye 2, 1 bin+ indirme). TÜRKPATENT'te iki ad da tescilli değil; Play ve App Store'da
+"Kafadarlar" adlı uygulama yok. Mağaza başlığı "Kafadarlar: Futbol Arenası". Oyunda, Android
+uygulama adında, web sayfası başlığında ve belgelerde değişti; uygulama kimliği, imza anahtarı,
+kayıt anahtarları (`kafa-kafaya.`), web adresi ve depo adı aynı. Depo adı ve web adresi ayrı karar
+(mağazadan önce). Tescil başvurusu Faz 0.2'de (sınıflar avukata).
 
 ### Faz 2.0 — Phaser 3.90 ↔ 4.2.1 karşılaştırması
 
@@ -1038,6 +1047,10 @@ sonra hâlâ görülen riskler:
   sorulacak: Google'ın konsolda kabul edilen veri işleme şartları KVKK standart sözleşmesi yerine
   geçer mi; Firebase Sessions'ın saklama süresi; rıza kaydının hukuki sebebi; WebView'ın yazı tipi
   indirmesinin aydınlatma metninde anılması gerekir mi.)
+- **0.2 — "Kafadarlar" marka tescili (2026-11-28, K19):** TÜRKPATENT'te tescil yok. Avukata: hangi
+  sınıflar (oyun yazılımı için genelde 9 ve 41; oyuncak ve ürün için 28), mağazadan önce mi
+  başvurulmalı, "Futbol Arenası" alt başlığı da kapsansın mı. Play'deki "Kafa Kafaya" (başka
+  geliştirici) ile bir ilişkimiz yok; o adı kullanmıyoruz.
 - **5.3 — Çevrimdışı kuyruk ve cihaz saati:** günlük tavan cihaz saatine göre sayılırsa saat
   değiştirilerek katlanır; sunucuya ulaşma gününe göre sayılırsa uzun çevrimdışı oyun ödül kaybeder.
 - **5.4 / 9.3 — Uzaktan ayar ve determinizm:** Nakama simülasyonu etkileyen değerleri (fizik,
