@@ -45,7 +45,7 @@ Canlı: https://emengin.github.io/kafa-kafaya/ · ölçümler, denge tabloları,
 
 - Gerçek düşük güçlü telefonda, iOS Safari'de ve gerçek gamepad'le ölçülmedi (benzetimle doğrulandı).
 - Determinizm JS motorları arasında: CI'da Node, Chromium ve WebKit'te kayıtlı tekrarların her adımı
-  aynı (Faz 2.7). Gerçek Android WebView'da bir kez denenecek (2.7b, telefon); gerçek iPhone
+  aynı (Faz 2.7); referans telefonun Android WebView'ında da aynı (2.7b). Gerçek iPhone
   (JavaScriptCore, iOS) 12.2/12.3'te.
 - Telefonda yazılar küçük (~0,54 ölçek); tek telefonda dokunmatikle 2 oyuncu yok.
 - iOS Safari'de tam ekran yok; yalnızca gamepad'le ses başlamıyor (autoplay kuralı).
@@ -90,9 +90,9 @@ geliştirici · [PRO] avukat / mali müşavir. Kararlar:
         (aşağıda)
   - [x] 2.6 Sürekli derleme hattı — 2026-11-28 → `v1.0.0-rc.1` etiketiyle imzalı AAB oluştu
         (aşağıda)
-  - [ ] 2.7 Determinizm sertleştirme — **kod tamam; telefonda WebView testi ve rollback ölçümü
-        bekliyor** (2.7a: denetim, deterministik matematik, PRNG, lint, durum özeti; 2.7b, 2026-11-28:
-        zaman efektleri görüntüde, çapraz motor testi Node + Chromium + WebKit yeşil) (aşağıda)
+  - [x] 2.7 Determinizm sertleştirme — 2026-11-28 → çapraz motor testi CI'da yeşil (Node + Chromium +
+        WebKit), telefonun Android WebView'ında geçti; zaman efektleri görüntüde; rollback telefonda
+        p99 1,1 ms (aşağıda)
   - [ ] 2.8 Gözlemlenebilirlik temeli
   - [ ] 2.9 His ve denge yeniden ayarı
 - **Bölüm 3 — Görsel ve ses altyapısı [CC]**
@@ -640,12 +640,13 @@ sonunda (not).
 | P9 Rollback                   | Node'da değişmedi (ort. 0,08 ms)                                          | telefonda 2.7b sonunda    |
 | Determinizm testleri          | 494 birim testi, 8 duman testi yeşil; tarayıcı tezgâhında çelişki 0       | ✅                        |
 
-### Faz 2.7b — Determinizm sertleştirme, 2. oturum (2026-11-28; kod tamam — telefon testi bekliyor)
+### Faz 2.7b — Determinizm sertleştirme, 2. oturum (2026-11-28, tamamlandı)
 
 Madde 5 (zaman efektleri görüntüye) ve madde 7 (çapraz motor testi). Fazın bitti kriteri (çapraz motor
-testi yeşil, lint etkin, determinizm testleri geçiyor) yerelde sağlandı. **Faz tamamlandı
-işaretlenmedi:** madde 7'nin "test cihazında Android WebView'da bir kez" kısmı ve rollback ölçümü
-telefonda yapılacak (telefon USB'deydi ama ekran kilitliydi; adımlar aşağıda).
+testi CI'da yeşil, lint etkin, determinizm testleri geçiyor) sağlandı. Telefon testleri (madde 7'nin
+Android WebView'ı ve rollback ölçümü) geliştirici ekranı açınca Claude Code tarafından `adb` ile, yeni
+geliştirici derlemesi telefona kurularak yapıldı (sonuçlar aşağıda). **Faz 2.7 tamamlandı.** Öznel
+hit-stop hissi (isteğe bağlı) denenmedi.
 
 **5. Zaman efektleri yalnızca görüntüde**
 
@@ -728,21 +729,43 @@ akarken (ağır çekim hariç); dakikada 28 hit-stop, oyun süresinin %2,3'ü do
   testler kırılır. `npm run replays -- --update` aynı girdilerle zinciri yeniler; kapsam bozulursa
   `--record` yeniden üretir. Değişiklik bilinçli değilse kırılan test bir determinizm hatasıdır.
 
-| Motor                                                | detMath özeti      | 5 tekrar, 19.769 adım    |
-| ---------------------------------------------------- | ------------------ | ------------------------ |
-| Node 24.22 (V8), yerel                               | ✅                 | ✅ zincir aynı           |
-| Chromium 158 (V8, Playwright), yerel                 | ✅                 | ✅ her adım Node'la aynı |
-| WebKit 27.2 (JavaScriptCore, Playwright), yerel      | ✅                 | ✅ her adım Node'la aynı |
-| Chrome 158, geliştirici derlemesindeki telefon testi | ✅                 | ✅                       |
-| Android WebView (realme 12 kite)                     | telefonda bekliyor | telefonda bekliyor       |
+| Motor                                                     | detMath özeti | 5 tekrar, 19.769 adım    |
+| --------------------------------------------------------- | ------------- | ------------------------ |
+| Node 24.22 (V8), yerel                                    | ✅            | ✅ zincir aynı           |
+| Chromium 158 (V8, Playwright), yerel                      | ✅            | ✅ her adım Node'la aynı |
+| WebKit 27.2 (JavaScriptCore, Playwright), yerel           | ✅            | ✅ her adım Node'la aynı |
+| Chrome 158, geliştirici derlemesindeki telefon testi      | ✅            | ✅                       |
+| Android WebView 158 (realme 12 kite, uygulamanın kendisi) | ✅            | ✅ zincir aynı (1,25 sn) |
 
 **Fizik hissi (2.9 için)** — `npm run feel`, 2.7a (be489fb) ↔ 2.7b: 365 ölçümün 358'i bit düzeyinde aynı
 (zıplama, şut, 10 süper, serbest top). Farklı olan yalnızca 3 AI maçı (süre ve skor): gol sonrası
 duraklama 78 → 120 adım olduğu için ilk golden sonra maçlar kaotik olarak ayrışıyor. **His değişmedi.**
 
 **Rollback** — Node (kayıt + 8 adım, 5.400 kare): ort. 0,084 ms, p99 0,19 ms (2.7a: 0,08 / 0,13–0,16 ms)
-→ değişmedi. Rollback ölçeri zaman çizelgesinden etkilenmez (görüntü kopyası ayrı). **Telefonda:**
-geliştirici ölçecek (adımlar aşağıda); 2.4'te kayıt + 8 adım p99 1,1 ms, p99,9 2,1 ms, bütçe 4 ms.
+→ değişmedi. Rollback ölçeri zaman çizelgesinden etkilenmez (görüntü kopyası ayrı).
+
+**Telefonda (realme 12 kite, 2026-11-28)** — geliştirici derlemesi uygulama olarak, Stres testi (AI vs AI
+Zor + hedef boyutlu sahne + her karede 8 adımlık rollback) 5 dk, USB'de, ekran açık, termal durum 0,
+pil 25 → 27,5 °C; 2.4'teki 5 dakikalık tekrarla aynı yöntem:
+
+| Ölçüm                     | 2.4 (5 dk stres)      | **2.7b (5 dk stres)** |
+| ------------------------- | --------------------- | --------------------- |
+| Rollback ort.             | 0,54 ms               | **0,53 ms**           |
+| Rollback p99              | 1,2 ms                | **1,1 ms**            |
+| Rollback p99,9            | 2,1 ms                | **1,8 ms**            |
+| En kötü / 4 ms'yi aşan    | 4,1 ms / 1 (10.877)   | 4,1 ms / 1 (9.782)    |
+| Kayıt / yükleme + 8 adım  | 0,08 / 0,43–0,46 ms   | 0,08 / 0,45 ms        |
+| Gölge ↔ canlı durum farkı | 0 / 1.087             | **0 / 978**           |
+| FPS                       | 59,7 (15 dk)          | 59,6                  |
+| Kare işi ort. / p99       | 6,9 / 10,6 ms (15 dk) | 7,4 / 11,1 ms         |
+| Kare aralığı p99          | 19,6 ms (15 dk)       | 18,9 ms               |
+
+Rollback bütçenin (4 ms) içinde ve 2.4 ile aynı: deterministik matematik (2.7a) ve zaman çizelgesi (2.7b)
+maliyeti değiştirmedi. Kare işi ~0,5 ms yüksek (2.4'ün dakikalık 6,6–7,3 ms aralığının biraz üstü,
+%99,95'i bütçede); zaman çizelgesinin payı Node'da kare başına ~7 µs, farkın çoğu ölçüm gürültüsü ya da
+pil sıcaklığı olabilir — 4.6'daki cihaz turunda 15 dk ile yeniden bakılmalı. Oyun akarken 5 takılma
+(50–82 ms; o karelerin işi 6–11 ms): bilinen P2 (V8 büyük GC), değişmedi. Telefonda geliştirici
+derlemesi kurulu; yayın derlemesine dönüş: `npm run cap:sync` → ▶ Run.
 
 **Telefonda Android WebView testi — adım adım**
 
@@ -798,18 +821,18 @@ Bitince yayın derlemesine dön: `npm run cap:sync` → ▶ Run.
 | Hit-stop prototipi ve his değerlendirmesi                                  | ✅ ölçüldü, hızlı yetişme seçildi; ◐ öznel his telefonda (menüden üç biçim)                      |
 | 7. Kayıtlı tekrarlar: tüm karakterler ve süperler, gol, duraklama          | ✅ 10/10 karakter, 10/10 süper, 20 gol, 20 duraklama                                             |
 | 7. Chromium, WebKit ve Node'da her karenin checksum'ı; tek fark CI'ı kırar | ✅ her adım karşılaştırılıyor; kasıtlı 1e-12 px fark yakalandı                                   |
-| 7. Test cihazında Android WebView'da bir kez                               | ⏳ **telefonda bekliyor** (geliştirici; adımlar yukarıda)                                        |
-| Rollback ölçümü (2.4: p99 1,1 ms; bütçe 4 ms)                              | ◐ Node'da değişmedi (ort. 0,084 ms); ⏳ **telefonda bekliyor**                                   |
+| 7. Test cihazında Android WebView'da bir kez                               | ✅ realme 12 kite, WebView 158: detMath özeti ve 5 tekrarın 19.769 adımı Node ile aynı           |
+| Rollback ölçümü (2.4: p99 1,1 ms; bütçe 4 ms)                              | ✅ telefonda ort. 0,53 ms, p99 1,1 ms, p99,9 1,8 ms; gölge ↔ canlı 0 fark                        |
 | `npm run feel` tekrarı (2.9 için)                                          | ✅ 358/358 fizik ölçümü aynı; yalnızca AI maçları ayrışıyor (duraklama 78 → 120 adım)            |
 
 **Faz sonu kontrolü (QUALITY_BAR, 2.7b)**
 
-| Satır                         | Ölçüm                                                                     | Durum                       |
-| ----------------------------- | ------------------------------------------------------------------------- | --------------------------- |
-| K6 Motorlar arası determinizm | Node, Chromium, WebKit'te her adım aynı; CI yeşil                         | ✅ CI; Android WebView ⏳   |
-| P9 Rollback                   | Node'da değişmedi                                                         | telefonda ⏳                |
-| D6 Giriş gecikmesi            | hit-stop simülasyonu bekletmiyor; görsel gecikme p99 33 ms, en kötü 67 ms | ✅ eskisinden kötü değil    |
-| P1 Kare işi                   | zaman çizelgesi kare başına ~7 µs (Node)                                  | telefonda stres testiyle ⏳ |
+| Satır                         | Ölçüm                                                                         | Durum                       |
+| ----------------------------- | ----------------------------------------------------------------------------- | --------------------------- |
+| K6 Motorlar arası determinizm | Node, Chromium, WebKit (CI) ve Android WebView'da her adım aynı               | ✅ (iPhone 12.2/12.3)       |
+| P9 Rollback                   | telefonda p99 1,1 ms, p99,9 1,8 ms (bütçe 4 ms)                               | ✅                          |
+| D6 Giriş gecikmesi            | hit-stop simülasyonu bekletmiyor; görsel gecikme p99 33 ms, en kötü 67 ms     | ✅ eskisinden kötü değil    |
+| P1 Kare işi                   | telefonda stres 5 dk: 59,6 FPS, iş 7,4 ms, %99,95 bütçede, aralık p99 18,9 ms | ✅ (P2 takılmaları sürüyor) |
 
 ## Sonraki fazlar için notlar
 
@@ -844,10 +867,11 @@ sonra hâlâ görülen riskler:
   12.4'ün kayıt altyapısıyla Bölüm 6 ya da 11'e eklenmeli.
 - **12.6 — Günlük sıfırlama saati:** 00:00 TSİ uzak bölgelerde günün ortasına denk gelir; bölgesel
   sıfırlama kararı test lansmanından önce.
-- **2.7 — Telefonda kalanlar (2.7b'den):** Android WebView'da motorlar arası test ve rollback ölçümü
-  (geliştirici derlemesi: Ayarlar → Kontroller → Motorlar arası test / Stres testi). Adımlar 2.7b
-  bölümünde. 2.4'te kayıt + 8 adım p99 1,1–1,2 ms, p99,9 2,1 ms (bütçe 4 ms); Node'da 2.7a ve 2.7b'den
-  sonra değişmedi (ort. 0,08 ms).
+- **2.9 / 3.6 — Hit-stop öznel hissi (2.7b'den):** üç hit-stop biçimi ölçüldü, "hızlı yetişme"
+  seçildi; telefonda elle oynanarak karşılaştırılmadı (geliştirici derlemesi: Ayarlar → Kontroller →
+  Hit-stop ◄ ►). His ayarında (2.9) bir kez denenmeli.
+- **4.6 — Kare işi (2.7b'den):** telefonda 5 dk streste kare işi ort. 7,4 ms (2.4: 6,9 ms, 15 dk).
+  4.6'daki 15 dk cihaz turunda yeniden bakılmalı (zaman çizelgesinin payı Node'da ~7 µs/kare).
 - **2.9 — His ve kayıtlar (2.7b'den):** 2.7b'den sonra his ölçümü alındı (358 fizik ölçümü 2.7a ile bit
   düzeyinde aynı). 2.9'da her denge ya da fizik değişikliğinden sonra çapraz motor kayıtlarının zinciri
   değişir: `npm run replays -- --update` (kapsam bozulursa `--record`), ardından
